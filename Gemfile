@@ -58,7 +58,7 @@ gem 'pagy', '~> 4.11'
 
 gem 'andand'
 gem 'angularjs-rails', '1.8.0'
-gem 'aws-sdk', '1.67.0'
+gem 'aws-sdk', '3.1.0'
 gem 'bugsnag'
 gem 'haml'
 gem 'redcarpet'

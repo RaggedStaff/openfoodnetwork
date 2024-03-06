@@ -45,7 +45,7 @@ orders_qry=" spree_orders WHERE completed_at<now() - INTERVAL '6 years"
 customers_qry=" customers WHERE id IN (SELECT id FROM customers as a  \n
       join (select customer_id, max(completed_at) as last_order from spree_orders   group by customer_id) as b \n
       on a.id=b.customer_id where last_order< now() - INTERVAL '6 years') \n
-      AND create_date < now() - INTERVAl '1 year'"
+      AND create_date < now() - INTERVAl '13 months'"
 
 
 backup_qry "orders" "$orders_qry"

@@ -12,12 +12,14 @@ module OrderManagement
 
       def initialize(order, payment: nil, off_session: false, notify_hub: false)
         @order = order
-        @payment = payment || OrderPaymentFinder.new(order).last_pending_payment
+        @payment = payment || Orders::FindPaymentService.new(order).last_pending_payment
         @off_session = off_session
         @notify_hub = notify_hub
       end
 
       def call!(return_url = off_session_return_url)
+        # if the payment requires_authorization (3D Secure), can't be authorized again
+        return payment if payment&.requires_authorization?
         return unless payment&.checkout?
 
         payment.authorize!(return_url)

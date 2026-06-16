@@ -20,11 +20,3 @@ module AngularFormHelper
     ng_options_for_select(options, angular_field)
   end
 end
-
-module ActionView
-  module Helpers
-    class InstanceTag
-      include AngularFormHelper
-    end
-  end
-end

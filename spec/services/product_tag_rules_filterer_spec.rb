@@ -1,15 +1,13 @@
 # frozen_string_literal: true
 
-require "spec_helper"
-
-describe ProductTagRulesFilterer do
+RSpec.describe ProductTagRulesFilterer do
   describe "filtering by tag rules" do
     let!(:distributor) { create(:distributor_enterprise) }
-    let(:product) { create(:product, supplier: distributor) }
-    let(:v1) { create(:variant, product:) }
-    let(:v2) { create(:variant, product:) }
-    let(:v3) { create(:variant, product:) }
-    let(:v4) { create(:variant, product:) }
+    let(:product) { create(:product, ) }
+    let(:v1) { create(:variant, product:, supplier: distributor) }
+    let(:v2) { create(:variant, product:, supplier: distributor) }
+    let(:v3) { create(:variant, product:, supplier: distributor) }
+    let(:v4) { create(:variant, product:, supplier: distributor) }
     let(:variant_hidden_by_default) { create(:variant_override, variant: v1, hub: distributor) }
     let(:variant_hidden_by_rule) { create(:variant_override, variant: v2, hub: distributor) }
     let(:variant_shown_by_rule) { create(:variant_override, variant: v3, hub: distributor) }
@@ -18,7 +16,7 @@ describe ProductTagRulesFilterer do
     }
     let(:customer) { create(:customer, enterprise: distributor) }
     let(:variants_relation) {
-      Spree::Variant.joins(:product).where("spree_products.supplier_id = ?", distributor.id)
+      Spree::Variant.left_joins(:variant_overrides).where(supplier: distributor.id)
     }
     let(:default_hide_rule) {
       create(:filter_products_tag_rule,
@@ -50,9 +48,98 @@ describe ProductTagRulesFilterer do
     }
     let(:filterer) { described_class.new(distributor, customer, variants_relation) }
 
-    context "when the distributor has no rules" do
-      it "returns the relation unchanged" do
-        expect(filterer.call).to eq variants_relation
+    describe "#call" do
+      before do
+        v1
+        v2
+        v3
+        v4
+      end
+
+      context "when the distributor has no rules" do
+        it "returns the relation unchanged" do
+          expect(filterer.call).to eq variants_relation
+        end
+      end
+
+      context "with hide rule" do
+        it "hides the variant matching the rule" do
+          customer.update_attribute(:tag_list, hide_rule.preferred_customer_tags)
+          variant_hidden_by_rule.update_attribute(:tag_list, hide_rule.preferred_variant_tags)
+
+          expect(filterer.call).not_to include(variant_hidden_by_rule.variant)
+        end
+
+        context "with multiple conflicting rules" do
+          it "applies the show rule" do
+            # Customer has show rule tag and hide rule tag
+            customer.update_attribute(:tag_list,
+                                      [hide_rule.preferred_customer_tags,
+                                       show_rule.preferred_customer_tags])
+            # Variant has show rule tag and hide rule tag
+            variant_hidden_by_rule.update_attribute(:tag_list,
+                                                    [hide_rule.preferred_variant_tags,
+                                                     show_rule.preferred_variant_tags])
+            hide_rule.update_attribute(:priority, 1)
+            show_rule.update_attribute(:priority, 2)
+
+            expect(filterer.call).to include(variant_hidden_by_rule.variant)
+
+            # Re order rule
+            hide_rule.update_attribute(:priority, 2)
+            show_rule.update_attribute(:priority, 1)
+
+            expect(filterer.call).to include(variant_hidden_by_rule.variant)
+          end
+        end
+      end
+
+      context "with variant hidden by default" do
+        before do
+          variant_hidden_by_default.update_attribute(:tag_list,
+                                                     default_hide_rule.preferred_variant_tags)
+        end
+
+        it "excludes variant hidden by default" do
+          expect(filterer.call).not_to include(variant_hidden_by_default.variant)
+        end
+
+        context "with variant rule overriding default rule" do
+          it "includes variant hidden by default" do
+            customer.update_attribute(:tag_list, show_rule.preferred_customer_tags)
+            # Variant has default rule tag and show rule tag
+            variant_hidden_by_default.update_attribute(:tag_list,
+                                                       [default_hide_rule.preferred_variant_tags,
+                                                        show_rule.preferred_variant_tags])
+
+            expect(filterer.call).to include(variant_hidden_by_default.variant)
+          end
+
+          context "with multiple conflicting rules applying to same variant" do
+            it "applies the show rule" do
+              # customer has show rule and hide rule tag
+              customer.update_attribute(:tag_list,
+                                        [show_rule.preferred_customer_tags,
+                                         hide_rule.preferred_customer_tags])
+
+              # Variant has default rule tag and show rule tag and hide rule tag
+              show_rule.update_attribute(:priority, 1)
+              hide_rule.update_attribute(:priority, 2)
+              variant_hidden_by_default.update_attribute(:tag_list,
+                                                         [default_hide_rule.preferred_variant_tags,
+                                                          show_rule.preferred_variant_tags,
+                                                          hide_rule.preferred_variant_tags])
+
+              expect(filterer.call).to include(variant_hidden_by_default.variant)
+
+              # Re order rule
+              show_rule.update_attribute(:priority, 2)
+              hide_rule.update_attribute(:priority, 1)
+
+              expect(filterer.call).to include(variant_hidden_by_default.variant)
+            end
+          end
+        end
       end
     end
 

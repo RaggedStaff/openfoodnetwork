@@ -12,7 +12,7 @@ module Api
 
         if pagination_required?
           @pagy, orders = pagy(orders,
-                               items: params[:per_page] || default_per_page)
+                               limit: params[:per_page] || default_per_page)
         end
 
         render json: {
@@ -47,7 +47,7 @@ module Api
       def capture
         authorize! :admin, order
 
-        payment_capture = OrderCaptureService.new(order)
+        payment_capture = Orders::CaptureService.new(order)
 
         if payment_capture.call
           render json: order.reload, serializer: Api::Admin::OrderSerializer, status: :ok
@@ -67,7 +67,8 @@ module Api
       def serialized_orders(orders)
         ActiveModel::ArraySerializer.new(
           orders,
-          each_serializer: Api::Admin::OrderSerializer
+          each_serializer: Api::Admin::OrderSerializer,
+          current_user: current_api_user
         )
       end
 

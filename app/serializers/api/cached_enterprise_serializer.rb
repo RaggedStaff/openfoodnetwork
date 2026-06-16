@@ -95,9 +95,7 @@ module Api
         .merge(Exchange.to_enterprise(enterprise))
         .select('DISTINCT spree_properties.*')
 
-      return properties.merge(OrderCycle.active) if active
-
-      properties
+      properties.merge(OrderCycle.active)
     end
 
     def distributed_producer_properties
@@ -106,16 +104,14 @@ module Api
       properties = Spree::Property
         .joins(
           producer_properties: {
-            producer: { supplied_products: { variants: { exchanges: :order_cycle } } }
+            producer: { supplied_variants: { exchanges: :order_cycle } }
           }
         )
         .merge(Exchange.outgoing)
         .merge(Exchange.to_enterprise(enterprise))
         .select('DISTINCT spree_properties.*')
 
-      return properties.merge(OrderCycle.active) if active
-
-      properties
+      properties.merge(OrderCycle.active)
     end
 
     def active
@@ -131,7 +127,7 @@ module Api
         producer_shop: "map_003-producer-shop.svg",
         producer: "map_001-producer-only.svg",
       }
-      "/map_icons/" + (icons[enterprise.category] || "map_001-producer-only.svg")
+      "/map_icons/#{icons[enterprise.category] || 'map_001-producer-only.svg'}"
     end
 
     # Choose regular icon font for enterprises.

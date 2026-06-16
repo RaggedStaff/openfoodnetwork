@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
 require 'benchmark'
 
-describe Spree::Shipment do
+RSpec.describe Spree::Shipment do
   let(:order) { build(:order) }
   let(:shipping_method) { build(:shipping_method, name: "UPS") }
   let(:shipment) do
@@ -65,8 +64,8 @@ describe Spree::Shipment do
     end
 
     describe "with soft-deleted products or variants" do
-      let!(:product) { create(:product) }
-      let!(:order) { create(:order, distributor: product.supplier) }
+      let(:variant) { create(:variant) }
+      let(:order) { create(:order, distributor: variant.supplier) }
 
       context "when the variant is soft-deleted" do
         it "can still access the variant" do
@@ -79,11 +78,21 @@ describe Spree::Shipment do
 
       context "when the product is soft-deleted" do
         it "can still access the variant" do
-          order.line_items.first.variant.delete
+          order.line_items.first.product.delete
 
           variants = shipment.reload.manifest.map(&:variant)
           expect(variants).to eq [order.line_items.first.variant]
         end
+      end
+    end
+
+    context "with variant override", feature: :inventory do
+      let(:order) { create(:order, distributor: variant.supplier) }
+
+      it "returns the scoped variant" do
+        create(:variant_override, hub: variant.supplier, variant:, price: 25.00)
+
+        expect(shipment.manifest.first.variant.price).to eq 25.00
       end
     end
   end
@@ -124,7 +133,7 @@ describe Spree::Shipment do
           to receive(:new).with(shipment.order).and_return(mock_estimator)
         allow(shipment).to receive_messages(shipping_method: nil)
         expect(shipment.refresh_rates).to eq shipping_rates
-        expect(shipment.reload.selected_shipping_rate).to_not be_nil
+        expect(shipment.reload.selected_shipping_rate).not_to be_nil
       end
 
       it 'should not refresh if shipment is shipped' do
@@ -264,6 +273,37 @@ describe Spree::Shipment do
     end
   end
 
+  describe "#finalize!" do
+    subject(:shipment) { order.shipments.first }
+    let(:variant) { order.variants.first }
+    let(:order) { create(:order_ready_for_confirmation) }
+
+    it "reduces stock" do
+      variant.on_hand = 5
+
+      expect { shipment.finalize! }
+        .to change { variant.on_hand }.from(5).to(4)
+    end
+
+    it "reduces stock of a variant override", feature: :inventory do
+      variant.on_hand = 5
+      variant_override = VariantOverride.create!(
+        variant:,
+        hub: order.distributor,
+        count_on_hand: 7,
+        on_demand: false,
+      )
+
+      expect {
+        shipment.finalize!
+        variant.reload
+        variant_override.reload
+      }
+        .to change { variant_override.count_on_hand }.from(7).to(6)
+        .and change { variant.on_hand }.by(0)
+    end
+  end
+
   context "when order is completed" do
     before do
       allow(order).to receive_messages completed?: true
@@ -293,8 +333,7 @@ describe Spree::Shipment do
       allow(shipment).to receive_message_chain(:inventory_units,
                                                :group_by,
                                                map: [unit])
-      shipment.stock_location = build(:stock_location)
-      expect(shipment.stock_location).to receive(:restock).with(variant, 1, shipment)
+      expect(variant).to receive(:move).with(1)
       shipment.after_cancel
     end
   end
@@ -317,8 +356,7 @@ describe Spree::Shipment do
       allow(shipment).to receive_message_chain(:inventory_units,
                                                :group_by,
                                                map: [unit])
-      shipment.stock_location = create(:stock_location)
-      expect(shipment.stock_location).to receive(:unstock).with(variant, 1, shipment)
+      expect(variant).to receive(:move).with(-1)
       shipment.after_resume
     end
 
@@ -347,10 +385,10 @@ describe Spree::Shipment do
     it "should update shipped_at timestamp" do
       allow(shipment).to receive(:send_shipped_email)
       shipment.ship!
-      expect(shipment.shipped_at).to_not be_nil
+      expect(shipment.shipped_at).not_to be_nil
       # Ensure value is persisted
       shipment.reload
-      expect(shipment.shipped_at).to_not be_nil
+      expect(shipment.shipped_at).not_to be_nil
     end
 
     it "should send a shipment email if order.send_shipment_email is true" do

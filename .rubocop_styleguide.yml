@@ -3,16 +3,20 @@
 # These are the rules we agreed upon and we work towards.
 AllCops:
   NewCops: enable
-  SuggestExtensions: false
+  MigratedSchemaVersion: "20250111000000"
   Exclude:
     - bin/**/*
-    - db/**/*
     - config/**/*
+    - db/bad_migrations/*
+    - db/migrate/201*
+    - db/migrate/202[0-4]*
+    - db/schema.rb
     - script/**/*
     - vendor/**/*
     - node_modules/**/*
     # Excluding: inadequate Naming/FileName rule rejects GemFile name with camelcase
     - engines/web/Gemfile
+    - .undercover
 
 Bundler/DuplicatedGem:
   Enabled: false
@@ -90,7 +94,7 @@ Metrics/PerceivedComplexity:
   Enabled: true
   Max: 14 # default 8
 
-Naming/PredicateName:
+Naming/PredicatePrefix:
   Enabled: false
 
 Naming/VariableNumber:
@@ -99,6 +103,8 @@ Naming/VariableNumber:
     - street_address_2
   AllowedPatterns:
     - _v[\d]+
+    # Cf. conversation https://github.com/openfoodfoundation/openfoodnetwork/pull/13306#pullrequestreview-2831644286 
+    - menu_[\d]
 
 Rails/ApplicationRecord:
   Exclude:
@@ -112,9 +118,18 @@ Rails/ApplicationRecord:
 Rails/HasAndBelongsToMany:
   Enabled: false
 
+# Cf. conversation https://github.com/openfoodfoundation/openfoodnetwork/pull/13251
+Rails/LexicallyScopedActionFilter:
+  Enabled: false
+
 Rails/OutputSafety:
   Exclude:
     - spec/**/*
+
+Rails/RedundantActiveRecordAllMethod:
+  AllowedReceivers:
+    - ActionMailer::Preview
+    - ActiveSupport::TimeZone
 
 Rails/SkipsModelValidations:
   AllowedMethods:
@@ -124,6 +139,16 @@ Rails/SkipsModelValidations:
     - update_attribute
     - update_column
     - update_columns
+
+Rails/UnknownEnv:
+  Environments:
+    - development
+    - production
+    - staging
+    - test
+
+Rails/WhereExists:
+  EnforcedStyle: where # Cf. conversion https://github.com/openfoodfoundation/openfoodnetwork/pull/12363
 
 Style/Documentation:
   Enabled: false

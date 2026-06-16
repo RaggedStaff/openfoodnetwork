@@ -1,11 +1,10 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe WebhookDeliveryJob do
-  subject { WebhookDeliveryJob.new(url, event, data) }
+RSpec.describe WebhookDeliveryJob do
+  subject { WebhookDeliveryJob.new(url, event, data, at:) }
   let(:url) { 'https://test/endpoint' }
   let(:event) { 'order_cycle.opened' }
+  let(:at) { 1.second.ago }
   let(:data) {
     {
       order_cycle_id: 123, name: "Order cycle 1", open_at: 1.minute.ago.to_s, tags: ["tag1", "tag2"]
@@ -22,10 +21,10 @@ describe WebhookDeliveryJob do
   end
 
   it "delivers a payload" do
-    Timecop.freeze do
+    freeze_time do
       expected_body = {
         id: /.+/,
-        at: Time.zone.now.to_s,
+        at: at.to_s,
         event:,
         data:,
       }
@@ -42,15 +41,18 @@ describe WebhookDeliveryJob do
   # update this to confirm the response isn't exposed.
   describe "server side request forgery" do
     describe "private addresses" do
+      before(:all) do
+        # Open port to await connections.
+        # Will free port when process ends. Can't free it before.
+        TCPServer.new(3001)
+      end
       private_addresses = [
-        "http://127.0.0.1/all_the_secrets",
-        "http://localhost/all_the_secrets",
+        "http://127.0.0.1:3001/all_the_secrets",
+        "http://localhost:3001/all_the_secrets",
       ]
 
       private_addresses.each do |url|
         it "rejects private address #{url}" do
-          # Github Actions doesn't allow local connections.
-          pending if ENV["CI"]
           expect {
             WebhookDeliveryJob.perform_now(url, event, data)
           }.to raise_error(PrivateAddressCheck::PrivateConnectionAttemptedError)

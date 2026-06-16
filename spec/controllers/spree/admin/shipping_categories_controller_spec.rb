@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 module Spree
   module Admin
-    describe ShippingCategoriesController, type: :controller do
+    RSpec.describe ShippingCategoriesController do
       include AuthenticationHelper
 
       describe "#create and #update" do

@@ -1,10 +1,15 @@
 ru:
   language_name: "Русский"
+  time:
+    formats:
+      long: "%B %d, %Y %-l:%M %p"
   activerecord:
     models:
       spree/product: Товар
       spree/shipping_method: Способ Доставки
     attributes:
+      spree/image:
+        attachment: Вложение
       spree/order/ship_address:
         address1: "Адрес доставки (Улица + Номер дома)"
         address2: "2 строка адреса доставки"
@@ -42,10 +47,12 @@ ru:
       spree/product:
         name: "Имя Товара"
         price: "Цена"
-        primary_taxon: "Категория Продукта"
-        supplier: "Поставщик"
+        primary_taxon_id: "Категория Товара"
         shipping_category_id: "Категория Доставки"
-        variant_unit: "Единица Варианта"
+      spree/variant:
+        primary_taxon: "Категория Товара"
+        shipping_category_id: "Категория Доставки"
+        supplier: "Поставщик"
         variant_unit_name: "Название Единицы Варианта"
         unit_value: "Значение товара"
       spree/credit_card:
@@ -73,8 +80,10 @@ ru:
         white_label_logo_link: "Ссылка на логотип, используемый на витрине магазина"
     errors:
       models:
-        enterprise_fee:
-          inherit_tax_requires_per_item_calculator: "Для наследования налоговой категории требуется поэлементный калькулятор."
+        spree/image:
+          attributes:
+            attachment:
+              integrity_error: "ошибка загрузки. Пожалуйста, проверьте, не поврежден ли файл и повторите попытку."
         spree/user:
           attributes:
             email:
@@ -94,32 +103,12 @@ ru:
         variant_override:
           count_on_hand:
             using_producer_stock_settings_but_count_on_hand_set: "должно быть пустым, потому что используются настройки склада производителя"
-            on_demand_but_count_on_hand_set: "должен быть пустым, если по требованию'"
             limited_stock_but_no_count_on_hand: "необходимо указать, поскольку принудительный ограниченный запас"
       messages:
+        confirmation: "не соответствует %{attribute}"
         blank: "не может быть пустым"
+        too_short: "слишком короткий (минимум %{count} символов)"
   errors:
-    messages:
-      content_type_invalid: "имеет неверный тип контента"
-      file_size_out_of_range: "размер %{file_size} не входит в требуемый диапазон"
-      limit_out_of_range: "общее количество вне диапазона"
-      image_metadata_missing: "недопустимое изображение"
-      dimension_min_inclusion: "должно быть больше или равно %{width} x %{height} пикселей."
-      dimension_max_inclusion: "должно быть меньше или равно %{width} x %{height} пикселей."
-      dimension_width_inclusion: "ширина не включена между %{min} и %{max} пикселей."
-      dimension_height_inclusion: "высота не включена между %{min} и %{max} пикселями."
-      dimension_width_greater_than_or_equal_to: "ширина должна быть больше или равна %{length} пикселя."
-      dimension_height_greater_than_or_equal_to: "высота должна быть больше или равна %{length} пикселя."
-      dimension_width_less_than_or_equal_to: "ширина должна быть меньше или равна %{length} пикселя."
-      dimension_height_less_than_or_equal_to: "высота должна быть меньше или равна %{length} пикселя."
-      dimension_width_equal_to: "ширина должна быть равна %{length} пикселю."
-      dimension_height_equal_to: "высота должна быть равна %{length} пикселю."
-      aspect_ratio_not_square: "должно быть квадратное изображение"
-      aspect_ratio_not_portrait: "должно быть портретное изображение"
-      aspect_ratio_not_landscape: "должно быть пейзажное изображение"
-      aspect_ratio_is_not: "должен иметь соотношение сторон %{aspect_ratio}"
-      aspect_ratio_unknown: "имеет неизвестное соотношение сторон"
-      image_not_processable: "недопустимое изображение"
     not_found:
       title: "Страница не существует (404)"
       message_html: "<b>Пожалуйста, попробуйте еще раз</b><p> Это может быть временной проблемой. Нажмите кнопку «Назад», чтобы вернуться к предыдущему экрану, или вернитесь на <a href='/'>Главную</a> страницу и повторите попытку.</p> <b>Свяжитесь с поддержкой</b><p> Если проблема сохраняется или срочная, пожалуйста, сообщите нам об этом. Найдите наши контактные данные на глобальной <a href='https://openfoodnetwork.org/ofn-local/' target='blank'>странице Open Food Network Local</a> .</p><p> Нам очень поможет, если вы сможете дать как можно больше подробностей о том, о чем пропавшая страница.</p>"
@@ -129,6 +118,8 @@ ru:
     unprocessable_entity:
       title: "Требуемое изменение было отклонено (422)"
       message_html: "<p>Требуемое изменение было отклонено. Возможно, вы пытались изменить что-то, к чему у вас нет доступа.<br><h3> <a href='/' >Вернуться домой</a></h3></p>"
+    general_error:
+      message: "Нам очень жаль, но что-то пошло не так.\n\n Возможно, это временная проблема, поэтому повторите попытку или перезагрузите страницу.\n Мы записываем все ошибки и возможно уже работаем над их исправлением.\n Если проблема не устранена или срочная, пожалуйста, свяжитесь с нами."
   stripe:
     error_code:
       incorrect_number: "Номер карты неверный."
@@ -289,6 +280,13 @@ ru:
     integer_array_validator:
       not_array_error: "должен быть массивом"
       invalid_element_error: "должен содержать только правильные целые числа"
+  report_job:
+    report_failed: |
+        Ошибка создания отчета. Возможно, он слишком велик для обработки.
+        Мы рассмотрим эту проблему, но, пожалуйста, сообщите нам, если проблема не исчезнет.
+  backorder_mailer:
+    backorder_failed:
+      product: "Товар"
   enterprise_mailer:
     confirmation_instructions:
       subject: "Пожалуйста, подтвердите адрес электронной почты для %{enterprise}"
@@ -304,9 +302,18 @@ ru:
       join_community: "Присоединяйтесь к сообществу"
     invite_manager:
       subject: "%{enterprise} пригласил Вас стать менеджером"
+  payment_mailer:
+    authorize_payment:
+      subject: "Авторизуйте платеж на адрес %{distributor} в ОСП"
+      instructions: "Ваш платеж %{amount} на %{distributor} требует дополнительной аутентификации. Перейдите по следующему URL-адресу, чтобы авторизовать платеж:"
+    authorization_required:
+      subject: "Платеж требует согласия клиента"
+      message: "Для оплаты заказа %{order_number} требуется дополнительное согласие со стороны покупателя. Клиент был уведомлен по электронной почте и платеж будет отображаться как ожидающий, пока он не будет подтвержден."
   producer_mailer:
     order_cycle:
       subject: "Отчет по Циклу Заказа для %{producer}"
+    order_cycle_report:
+      order_number: "Номер Заказа"
   provider_settings: "Настройки провайдера"
   report_mailer:
     report_ready:
@@ -378,6 +385,7 @@ ru:
   cancel_order: "Отменить Заказ"
   confirm_send_invoice: "Счет на этот заказ будет отправлен клиенту. Вы уверены что хотите продолжить?"
   confirm_resend_order_confirmation: "Вы уверены, что хотите повторно отправить письмо с подтверждением заказа?"
+  must_have_valid_business_number: "Чтобы можно было использовать счета, %{enterprise_name} должен иметь корректный ИНН."
   invoice: "Счёт"
   invoices: "Счета"
   file: "Файл"
@@ -455,7 +463,7 @@ ru:
   password_confirmation: Подтверждение Пароля
   reset_password_token: Сброс пароля токена
   expired: истёк, пожалуйста запросите новый
-  back_to_payments_list: "Назад к Списку Платежей"
+  back_to_payments_list: "Вернуться К Списку Платежей"
   maestro_or_solo_cards: "Дебитовые карты"
   backordered: "Предзаказано"
   on_hand: "В наличии"
@@ -471,6 +479,7 @@ ru:
     create_and_add_another: "Создать и Добавить Другой"
     create: "Создать"
     cancel: "Отмена"
+    cancel_order: "Выход"
     resume: "Продолжить"
     save: "Сохранить"
     edit: "Изменить"
@@ -494,8 +503,12 @@ ru:
         per_page: "%{count} элементов на странице"
         colums: Колонки
       columns:
+        image: Изображение
         name: Название
+        unit_scale: Единицы
         unit: Единица измерения
+        unit_value: Значение товара
+        display_as: Отображать единицы как
         price: Цена
         producer: Производитель
         category: Категория
@@ -506,6 +519,7 @@ ru:
         inherits_properties: "Наследовать Свойства?"
         import_date: "Дата Импорта"
         actions: Действия
+        tags: Метки
       columns_selector:
         unit: Единица измерения
         price: Цена
@@ -521,8 +535,11 @@ ru:
         edit: Изменить
         clone: Клонировать
         delete: Удалить
+        remove: Удалить
       image:
         edit: Изменить
+      product_preview:
+        shop_tab: Магазин
     adjustments:
       skipped_changing_canceled_order: "Вы не можете изменить отмененный заказ."
     begins_at: Начинается С
@@ -576,7 +593,6 @@ ru:
     show_n_more: Показать %{num} больше
     choose: "Выбрать..."
     please_select: Пожалуйста выберите...
-    column_save_as_default: Сохранить По Умолчанию
     columns: Колонки
     actions: Действия
     viewing: "Просмотр: %{current_view_name}"
@@ -587,6 +603,9 @@ ru:
     has_n_rules: "имеет %{num} правил"
     unsaved_confirm_leave: "На этой странице есть несохранённые изменения. Продолжить без сохранения?"
     available_units: "Доступные Единицы"
+    terms_of_service_have_been_updated_html: "Обновлены Условия Сервиса Открытой Сети Продуктов: %{tos_link}"
+    terms_of_service: Прочтите Условия Сервиса
+    accept_terms_of_service: Принять Условия Сервиса
     shopfront_settings:
       embedded_shopfront_settings: "Настройки Встроенного Магазина"
       enable_embedded_shopfronts: "Включить Встроенные Витрины"
@@ -661,6 +680,11 @@ ru:
         balance_due: "Задолжность"
       destroy:
         has_associated_subscriptions: "Не удалось удалить: у этого клиента есть активные подписки. Сначала отмените их."
+    customer_account_transaction:
+      index:
+        description: Описание
+        amount: Количество
+        running_balance: Текущий баланс
     contents:
       edit:
         title: Содержание
@@ -674,6 +698,13 @@ ru:
         your_content: Ваше Содержимое
         user_guide: Руководство Пользователя
         map: Карта
+    dfc_product_imports:
+      index:
+        update: Обновить
+        new: Новый
+        selected:
+          other: "выбрано %{count}"
+        import: Импорт
     enterprise_fees:
       index:
         title: "Сборы Предприятия"
@@ -727,7 +758,6 @@ ru:
       variants:
         infinity: "Безграничный"
         to_order_tip: "Товары, изготовленные на заказ, не имеют определенного уровня запасов, например, буханки хлеба, приготовленные на заказ."
-      back_to_products_list: "Назад к списку товаров"
       editing_product: "Изменение Товара"
       tabs:
         product_details: "Информация о Товаре"
@@ -739,23 +769,74 @@ ru:
       index:
         header:
           title: Массовое редактирование товаров
+      content:
         loading: Загрузка ваших товаров
-      sort:
-        pagination:
-          clear_search: Сбросить поиск
+      delete_modal:
+        delete_product_modal:
+          heading: "Удалить товар"
+          prompt: "Это навсегда удалит его из вашего списка."
+          confirmation_text: "Удалить товар"
+          cancellation_text: "Сохранить товар"
+        delete_variant_modal:
+          heading: "Удалить вариант"
+          prompt: "Это навсегда удалит его из вашего списка."
+          confirmation_text: "Удалить вариант"
+          cancellation_text: "Сохранить вариант"
       filters:
+        search_products: Поиск товаров
+        search_for_producers: Поиск производителей
+        all_producers: Все производители
+        search_for_categories: Поиск категорий
+        all_categories: Все категории
         producers:
           label: Производители
         categories:
           label: Категории
+        tags:
+          label: Метки
+          none: Нет
         search: Поиск
+      sort:
+        pagination:
+          per_page:
+            show: Показывать
+            per_page: "%{num} на странице"
+          clear_search: Сбросить поиск
       no_products:
         no_products_found: Товары не найдены
         import_products: Импорт нескольких товаров
+        no_products_found_for_search: По вашим критериям поиска товары не найдены
       table:
+        changed_summary:
+          one: "%{count} товар изменен."
+          other: "%{count} товары изменены."
+        error_summary:
+          saved:
+            one: "%{count} товар был сохранен правильно, но "
+            other: "%{count} товары сохранились корректно, но "
+          invalid:
+            one: "%{count} продукт не удалось сохранить. Пожалуйста, просмотрите ошибки и повторите попытку."
+            few: "%{count} продукты не удалось сохранить. Пожалуйста, просмотрите ошибки и повторите попытку."
+            many: "%{count} продукты не удалось сохранить. Пожалуйста, просмотрите ошибки и повторите попытку."
+            other: "%{count} товары не удалось сохранить. Пожалуйста, просмотрите ошибки и повторите попытку."
+        reset: Отменить изменения
+        save: Сохранить изменения
+      product_variant_row:
         new_variant: Новый вариант
-      edit_image:
-        close: Назад
+      bulk_update:
+        success: Изменения сохранены
+      delete_product:
+        success: Товар успешно удален
+        error: Невозможно удалить товар
+      delete_variant:
+        success: Вариант успешно удален.
+        error: Невозможно удалить вариант
+      variant_row:
+        none_tax_category: Нет
+        category_field_name: "Категория"
+        tax_category_field_name: "Налоговая Категория"
+        producer_field_name: "Производитель"
+        add_a_tag: Добавить Метку
     product_import:
       title: Импорт Товара
       file_not_found: Файл не найден или не может быть открыт
@@ -797,6 +878,9 @@ ru:
         product_categories: Категории Товаров
         tax_categories: Налоговые Категории
         shipping_categories: Категории Доставки
+      dfc_import_form:
+        title: "Импорт из каталога DFC"
+        catalog_url: "URL-адрес каталога DFC"
       import:
         review: Просмотр
         import: Импорт
@@ -816,7 +900,6 @@ ru:
         no_name: Без имени
         blank_enterprise: некоторые товары не имеют определенного предприятия
         reset_absent?: Сбросить отсутствующие товары
-        reset_absent_tip: Установить запас в ноль всех существующих товаров, отсутствующих в файле
         overwrite_all: Всё перезаписать
         overwrite_empty: Перезаписать если пусто
         default_stock: Установить уровень запасов
@@ -898,6 +981,7 @@ ru:
     orders:
       edit:
         order_sure_want_to: Вы уверены, что хотите %{event} этот заказ?
+        voucher_tax_included_in_price: "%{label} (налог включен в купон)"
       invoice_email_sent: 'Письмо Счета отправлено'
       order_email_resent: 'Письмо Заказа отправлено'
       bulk_management:
@@ -1000,12 +1084,7 @@ ru:
         images:
           legend: "Изображения"
           logo: Логотип
-          promo_image_placeholder: 'Это изображение будет отображаться в "О Нас"'
-          promo_image_note1: 'ОБРАТИТЕ ВНИМАНИЕ:'
-          promo_image_note2: Любое загруженное здесь промо изображение будет обрезано до 1200x260.
-          promo_image_note3: Промо изображение отображается в верхней части страницы профиля предприятия и всплывающих окнах.
-          remove_logo: "Удалить Изображение"
-          remove_promo_image: "Удалить Изображение"
+          logo_size: "300 х 300 пикселей"
         inventory_settings:
           legend: "Настройка товарной номенклатуры"
           text1: Вы можете управлять уровнем запасов и ценами через свой
@@ -1086,13 +1165,15 @@ ru:
           customer_names_tip: "Разрешите поставщикам видеть имена клиентов в отчетах"
           customer_names_false: "Выключено"
           customer_names_true: "Включено"
+          customer_contacts_false: "Выключено"
+          customer_contacts_true: "Включено"
+          producers_edit_orders_false: "Выключено"
+          producers_edit_orders_true: "Включено"
           shopfront_message: "Сообщение Витрины"
           shopfront_message_placeholder: >
               Дополнительное сообщение, чтобы приветствовать клиентов и объяснить,
               как у Вас делать покупки. Если текст введен здесь, он будет отображаться
               на главной вкладке, когда клиенты впервые придут в Ваш магазин.
-          shopfront_message_link_tooltip: "Вставить / изменить ссылку"
-          shopfront_message_link_prompt: "Пожалуйста, введите URL для вставки"
           shopfront_closed_message: "Сообщение при Закрытии Витрины"
           shopfront_closed_message_placeholder: >
               Сообщение, которое содержит более подробное объяснение того, почему
@@ -1104,6 +1185,7 @@ ru:
           open_date: "Время Открытия"
           close_date: "Время Закрытия"
           display_ordering_in_shopfront: "Отображение заказа на витрине:"
+          shopfront_sort_by_product: "По товару"
           shopfront_sort_by_category: "По категории"
           shopfront_sort_by_producer: "По производителю"
           shopfront_sort_by_category_placeholder: "Категория"
@@ -1137,27 +1219,24 @@ ru:
             no_rules_yet: Правила по умолчанию еще не применяются
             add_new_button: '+ Добавить Новое Правило По Умолчанию'
           no_tags_yet: К этому предприятию метки пока не применяются
-          no_rules_yet: К этой метке еще не применяются правила
-          for_customers_tagged: 'Для клиентов с метками:'
-          add_new_rule: '+ Добавить Новое Правило'
           add_new_tag: '+ Добавить Новую Метку'
+          show_hide_variants: 'Показать или Скрыть варианты в моей витрине'
+          show_hide_shipping: 'Показать или Скрыть способы доставки в оформлении заказа'
+          show_hide_payment: 'Показать или Скрыть способы оплаты в оформлении заказа'
+          show_hide_order_cycles: 'Показать или Скрыть циклы заказов в моей витрине'
         users:
           legend: "Пользователи"
           email_confirmation_notice_html: "Ожидается подтверждение по электронной почте. Мы отправили электронное письмо с подтверждением на %{email}."
           resend: Отправить заново
-          owner: 'Владелец'
           contact: "Контакт"
+          owner: 'Владелец'
           contact_tip: "Менеджер, который будет получать электронные письма предприятия для заказов и уведомлений. Должен иметь подтвержденный адрес электронной почты."
           owner_tip: Основной пользователь, ответственный за это предприятие.
           notifications: Уведомления
           notifications_tip: Уведомления о заказах будут отправлены на этот адрес электронной почты.
           notifications_placeholder: напр. ivanov@example.ru
           notifications_note: 'Примечание: перед использованием, может потребоваться подтверждение нового адреса электронной почты'
-          managers: Менеджеры
-          managers_tip: Другие пользователи с правами управлять этим предприятием.
           invite_manager: "Пригласить Менеджера"
-          invite_manager_tip: "Пригласить незарегистрированного пользователя для регистрации и установить менеджером этого предприятия."
-          add_unregistered_user: "Добавить незарегистрированного пользователя"
           email_confirmed: "Email подтверждён"
           email_not_confirmed: "Email не подтверждён"
         vouchers:
@@ -1176,17 +1255,30 @@ ru:
         white_label:
           legend: "Белая Этикетка"
           hide_ofn_navigation: "Скрыть навигацию ОСП"
-          upload_logo: "Логотип используемый на витрине магазина"
-          remove_logo: "Удалить логотип"
-          remove_logo_confirm: "Вы уверены, что хотите удалить этот логотип?"
-          remove_logo_success: "Логотип удален"
           white_label_logo_link_label: "Ссылка на логотип, используемый на витрине магазина"
           hide_groups_tab: "Скрыть вкладку групп на витрине"
           create_custom_tab: "Создать пользовательскую вкладку на витрине магазина"
           custom_tab_title: "Название пользовательской вкладки"
           custom_tab_content: "Контент для пользовательской вкладки"
         connected_apps:
-          loading: "Загружается"
+          legend: "Подключенные приложения"
+          affiliate_sales_data:
+            enable: "Разрешить обмен данными"
+            disable: "Прекратить обмен данными"
+            loading: "Загружается"
+          discover_regen:
+            title: "Discover Regenerative"
+            tagline: "Разрешите Discover Regenerative публиковать информацию о вашем предприятии."
+            enable: "Разрешить обмен данными"
+            disable: "Прекратить обмен данными"
+            loading: "Загружается"
+            note: |
+                Ваша учетная запись Открытой Сети Продуктов подключена к Discover Regenerative.
+                Добавьте или обновите информацию о своем списке Discover Regenerative здесь.
+            link_label: "Управление списком"
+          vine:
+            enable: "Подключить"
+            disable: "Отключить"
       actions:
         edit_profile: Настройки
         properties: Свойства
@@ -1239,10 +1331,8 @@ ru:
         contact_name: Имя Контакта
       edit:
         editing: 'Настройки:'
-        back_link: Назад к списку Предприятий
       new:
         title: Новое Предприятие
-        back_link: Назад к списку Предприятий
       welcome:
         welcome_title: Добро пожаловать в Открытую Сеть Продуктов!
         welcome_text: Вы успешно создали
@@ -1250,9 +1340,6 @@ ru:
         choose_starting_point: 'Выберите Ваш пакет:'
         profile: 'Профиль'
         producer_profile: 'Профиль Производителя'
-      invite_manager:
-        user_already_exists: "Пользователь уже существует"
-        error: "Что-то пошло не так"
     order_cycles:
       loading_flash:
         loading_order_cycles: ЗАГРУЗКА ЦИКЛОВ ЗАКАЗОВ
@@ -1279,6 +1366,8 @@ ru:
         choose_products_from: "Выбрать Товары Из:"
         re_notify_producers: Повторно уведомить производителей
         notify_producers_tip: Каждому производителю будет отправлено электронное письмо со списком их заказов.
+      date_time_warning_modal_content:
+        cancel: 'Выход'
       incoming:
         incoming: "Входящие"
         supplier: "Поставщик"
@@ -1410,12 +1499,28 @@ ru:
       searching: Идет поиск...
       no_matches: Ничего не найдено
     shared:
+      attachment_field:
+        logo_label: "Логотип"
+        logo_hint: 300 х 300 пикселей
+        logo_remove: "Удалить Изображение"
+        logo_remove_confirm: "Логотип будет удален сразу после подтверждения."
+        promo_image_note1: 'ОБРАТИТЕ ВНИМАНИЕ:'
+        promo_image_note2: Любое загруженное здесь промо изображение будет обрезано до 1200x260.
+        promo_image_note3: Промо изображение отображается в верхней части страницы профиля предприятия и всплывающих окнах.
+        promo_image_placeholder: 'Это изображение будет отображаться в "О Нас"'
+        promo_image_remove: "Удалить Изображение"
+        promo_image_remove_confirm: "Промо-изображение будет удалено сразу после подтверждения."
+        white_label_logo_label: "Логотип используемый на витрине магазина"
+        white_label_logo_remove: "Удалить Изображение"
+        white_label_logo_remove_confirm: "Вы уверены, что хотите удалить этот логотип?"
       user_guide_link:
         user_guide: Руководство Пользователя
       enterprises_hubs_tabs:
         has_no_payment_methods: "%{enterprise} не имеет способов оплаты"
         has_no_shipping_methods: "%{enterprise} не имеет способов доставки"
         has_no_enterprise_fees: "%{enterprise} не имеет сборов предприятия"
+      flashes:
+        dismiss: Отклонять
       side_menu:
         enterprise:
           primary_details: "Основная Информация"
@@ -1436,6 +1541,7 @@ ru:
           users: "Пользователи"
           vouchers: Купоны
           white_label: "Белая Этикетка"
+          connected_apps: "Подключенные приложения"
         enterprise_group:
           primary_details: "Основная Информация"
           users: "Пользователи"
@@ -1452,7 +1558,7 @@ ru:
       not_visible: "%{enterprise} не виден и поэтому не может быть найден на карте или в поисках"
     reports:
       deprecated: "Этот отчет устарел и будет удален в будущем выпуске."
-      hidden: СКРЫТО
+      hidden_field: "&lt;Скрытый&gt;"
       unitsize: РАЗМЕР ЕДИНИЦЫ
       total: ВСЕГО
       total_items: ИТОГО
@@ -1519,11 +1625,11 @@ ru:
         name: "Сводка Сборов Предприятия"
         description: "Сводная Информация о Сборах с Предприятия"
       enterprise_fees_with_tax_report_by_order: "Сборы Предприятия с Налоговым Отчетом по Заказу"
+      enterprise_fees_with_tax_report_by_producer: "Комиссионные Сборы Предприятия С Налоговым Отчетом По Производителю"
       errors:
         no_report_type: "Укажите тип отчета"
         report_not_found: "Отчет не найден"
         missing_ransack_params: "Пожалуйста, укажите параметры поиска Ransack в запросе"
-      hidden_field: "&lt;Скрытый&gt;"
       summary_row:
         total: "ВСЕГО"
       table:
@@ -1555,9 +1661,15 @@ ru:
       index:
         title: "Настройки OIDC"
         connect: "Подключить свою учетную запись"
+        disconnect: "Отключить"
+        connected: "Ваша учетная запись связана с %{uid} ."
         les_communs_link: "Les Communs Open ID сервер"
         link_your_account: "Сначала вам необходимо связать свою учетную запись с поставщиком авторизации, используемым DFC (Les Communs Open ID Connect)."
         link_account_button: "Свяжите свою учетную запись Les Communs OIDC"
+        note_expiry: |
+            Срок действия токенов для доступа к подключенным приложениям истек. Пожалуйста, обновите ваше
+            подключение учетной записи для поддержания работы всех интеграций.
+        refresh: "Обновить авторизацию"
         view_account: "Чтобы просмотреть свою учетную запись, см.:"
     subscriptions:
       index:
@@ -1655,6 +1767,11 @@ ru:
     schedules:
       destroy:
         associated_subscriptions_error: Это расписание не может быть удалено, потому что оно имеет связанные подписки
+    user_invitations:
+      new:
+        back: Назад
+        email: Email
+        invite: Пригласить
     vouchers:
       new:
         legend: Новый Купон
@@ -1662,11 +1779,17 @@ ru:
         save: Сохранить
         voucher_code: Код Купона
         voucher_amount: Количество
+        voucher_type: Тип Купона
+        flat_rate: Плоский
+        percentage_rate: Процент (%)
     controllers:
       enterprises:
         stripe_connect_cancelled: "Подключение к Stripe было отменено"
         stripe_connect_success: "Аккаунт Stripe успешно подключен"
         stripe_connect_fail: К сожалению, не удалось подключиться к вашей учетной записи Stripe
+        remove_logo_success: "Логотип успешно удален"
+        remove_promo_image_success: "Промо-изображение успешно удалено"
+        remove_white_label_logo_success: "Логотип успешно удален"
       stripe_connect_settings:
         resource: Конфигурация Stripe Connect
     resend_confirmation_emails_feedback:
@@ -1800,7 +1923,6 @@ ru:
       select_a_shipping_method: Выберите способ доставки
       select_a_payment_method: Выберите способ оплаты
       no_shipping_methods_available: Оформить заказ невозможно из-за отсутствия возможности доставки. Пожалуйста, свяжитесь с владельцем магазина.
-      voucher_not_found: Не найден
       add_voucher_error: При добавлении ваучера произошла ошибка
   shops:
     hubs:
@@ -1868,21 +1990,26 @@ ru:
   invoice_column_price: "Цена"
   invoice_column_item: "Позиция"
   invoice_column_qty: "Кол-во"
+  invoice_column_weight_volume: "Вес / ОБЪЕМ."
   invoice_column_unit_price_with_taxes: "Цена за единицу (Вкл. налоги)"
   invoice_column_unit_price_without_taxes: "Цена за единицу (Искл. налоги)"
   invoice_column_price_with_taxes: "Итоговая цена (Искл. налоги)"
   invoice_column_price_without_taxes: "Итоговая цена (Вкл. налоги)"
+  invoice_column_price_per_unit_without_taxes: "Цена За Единицу (без налога)"
   invoice_column_tax_rate: "Налоговая ставка"
   invoice_tax_total: "Всего налогов:"
+  invoice_cancel_and_replace_invoice: "отменяет и заменяет счет"
   tax_invoice: "СЧЁТ"
   tax_total: "Всего налога (%{rate}):"
   invoice_shipping_category_delivery: "Доставка"
   invoice_shipping_category_pickup: "Самовывоз"
   total_excl_tax: "Всего (Искл. налог):"
   total_incl_tax: "Всего (Вкл. налог):"
+  total_all_tax: "Общий налог:"
   abn: "ИНН"
   acn: "Юридическое название"
   invoice_issued_on: "Счёт выписан:"
+  order_number: "Номер заказа:"
   date_of_transaction: "Дата операции:"
   menu_1_title: "Магазины"
   menu_1_url: "/shops"
@@ -1965,7 +2092,6 @@ ru:
   label_account: "Профиль"
   label_more: "Показать больше"
   label_less: "Показать меньше"
-  label_notices: "Уведомления"
   cart_items: "позиции"
   cart_headline: "Ваша корзина"
   total: "Всего"
@@ -2001,7 +2127,6 @@ ru:
       essential_cookies_note: "Большинство файлов cookie содержат только уникальный идентификатор, но не содержат никаких других данных, поэтому ваш адрес электронной почты и пароль, например, никогда не содержатся в них и не раскрываются."
       cookie_domain: "Установлен:"
       cookie_session_desc: "Используется, чтобы позволить веб-сайту запоминать пользователей между посещениями страницы, например, помнить товары в вашей корзине."
-      cookie_consent_desc: "Используется для поддержания статуса согласия пользователя на хранение куки"
       cookie_remember_me_desc: "Используется, если пользователь запросил сайт, чтобы запомнить его. Этот файл cookie автоматически удаляется через 12 дней. Если вы как пользователь хотите удалить этот файл cookie, вам нужно только выйти из системы. Если вы не хотите, чтобы этот файл cookie устанавливался на ваш компьютер, не следует ставить флажок “запомнить меня” при входе в систему."
       cookie_openstreemap_desc: "Используется нашим дружественным картографическим провайдером с открытым исходным кодом (OpenStreetMap), чтобы гарантировать, что он не получает слишком много запросов в течение определенного периода времени, чтобы предотвратить злоупотребление их услугами."
       cookie_stripe_desc: "Данные, собираемые нашей платежной системой Stripe для обнаружения мошенничества https://stripe.com/cookies-policy/legal. Не все магазины используют Stripe в качестве способа оплаты, но для предотвращения мошенничества рекомендуется применять его ко всем страницам. Stripe, вероятно, создаст картину того, какие из наших страниц обычно взаимодействуют со своим API, а затем пометит что-то необычное. Таким образом, установка Stripe cookie имеет более широкую функцию, чем просто предоставление пользователю способа оплаты. Его удаление может повлиять на безопасность самой службы. Вы можете узнать больше о Stripe и ознакомиться с его политикой конфиденциальности на https://stripe.com/privacy."
@@ -2019,13 +2144,6 @@ ru:
       disabling_cookies_ie_link: "https://support.microsoft.com/en-us/help/17442/windows-internet-explorer-delete-manage-cookies"
       disabling_cookies_safari_link: "https://www.apple.com/legal/privacy/en-ww/cookies/"
       disabling_cookies_note: "Но имейте в виду, что если вы удалите или измените основные файлы cookie, используемые Открытой Сетью Продуктов, веб-сайт не будет работать, вы не сможете, например, добавить что-либо в свою корзину или оформить заказ."
-    cookies_banner:
-      cookies_usage: "Этот сайт использует cookie файлы, чтобы сделать вашу навигацию удобной и безопасной, а также помочь нам понять, как вы используете ее для улучшения предлагаемых нами функций."
-      cookies_definition: "Файлы cookie - это очень маленькие текстовые файлы, которые сохраняются на вашем компьютере при посещении некоторых веб-сайтов."
-      cookies_desc: "Мы используем только те файлы cookie, которые необходимы для предоставления вам услуги продажи / покупки продуктов через Интернет. Мы не продаем ваши данные. Мы используем файлы cookie главным образом для того, чтобы запоминать, кто вы, если вы входите в службу, или чтобы помнить товары, которые вы положили в корзину, даже если вы не вошли в систему. Если вы продолжаете навигацию по сайту, не нажимая на “Принимать куки”, мы предполагаем, что вы даете нам согласие на хранение куки, которые необходимы для функционирования веб-сайта."
-      cookies_policy_link_desc: "Если вы хотите узнать больше, проверьте наш"
-      cookies_policy_link: "Политики cookies"
-      cookies_accept_button: "Принимать Cookies"
   home_shop: Начать покупки
   brandstory_headline: "Независимые продукты."
   brandstory_intro: "Иногда лучший способ исправить систему - запустить новую…"
@@ -2036,12 +2154,11 @@ ru:
   brandstory_part5_strong: "Мы называем это Открытая Сеть Продуктов."
   brandstory_part6: "Все мы любим еду. Теперь мы можем так же любить нашу продуктовую систему."
   system_headline: "Покупки - как это работает."
-  system_step1: "1. Поиск"
-  system_step1_text: "Ищите наши разнообразные, независимые магазины для сезонной местной еды. Поиск по району и категории продуктов питания, с доставкой или самовывозом."
-  system_step2: "2. Покупка"
-  system_step2_text: "Измените свои покупки на доступные местные продукты от различных производителей и центров. Узнавайте истории, стоящие за вашей едой и людьми, которые ее производят!"
-  system_step3: "3. Забрать / Доставить"
-  system_step3_text: "Воспользуйтесь доставкой или посетите вашего производителя, или центр для более личной связи с вашей едой. Продовольственные магазины настолько разнообразны, насколько это задумывалось природой."
+  system_step1_html: "1. Поиск"
+  system_step2_html: "2. Покупка"
+  system_step2_text_html: "Измените свои покупки на доступные местные продукты от различных производителей и центров. Узнавайте истории, стоящие за вашей едой и людьми, которые ее производят!"
+  system_step3_html: "3. Забрать / Доставить"
+  system_step3_text_html: "Воспользуйтесь доставкой или посетите вашего производителя, или центр для более личной связи с вашей едой. Продовольственные магазины настолько разнообразны, насколько это задумывалось природой."
   cta_headline: "Покупки, которые делают мир лучше."
   cta_label: "Начать Покупки"
   stats_headline: "Мы создаем новую систему питания."
@@ -2078,6 +2195,7 @@ ru:
   order_total: Весь заказ
   order_payment: "Тип оплаты:"
   no_payment_required: "Оплата не требуется"
+  customer_credit: Кредит
   order_billing_address: Платежный Адрес
   order_delivery_on: Доставка по
   order_delivery_address: Адрес доставки
@@ -2095,6 +2213,9 @@ ru:
   order_back_to_store: Назад В Магазин
   order_back_to_cart: Назад В Корзину
   order_back_to_website: Вернуться На Сайт
+  checkout_details_title: Детали Заказа
+  checkout_payment_title: Оплата Заказа
+  checkout_summary_title: Информация по заказу
   bom_tip: "Используйте эту страницу для изменения количества товара в нескольких заказах. Если необходимо, Товары могут быть полностью удалены из заказов."
   unsaved_changes_warning: "Есть несохраненные изменения, которые будут потеряны, если вы продолжите."
   unsaved_changes_error: "Поля с красными границами содержат ошибки."
@@ -2105,10 +2226,8 @@ ru:
   email_confirmed: "Спасибо за подтверждение Вашего email адреса."
   email_confirmation_activate_account: "Перед тем как сможем активировать Ваш профиль, мы должны подтвердить Ваш email адрес."
   email_confirmation_greeting: "Привет, %{contact}!"
-  email_confirmation_profile_created: "Профиль для %{name} успешно создан! Для активации Вашего профиля нам необходимо подтвердить этот email адрес."
   email_confirmation_click_link: "Пожалуйста нажмите на ссылку ниже, чтобы подтвердить Ваш email и продолжить настраивать Ваш профиль."
   email_confirmation_link_label: "Подтвердить email адрес »"
-  email_confirmation_help_html: "После подтверждения Вашего email, Вы можете войти в свой административный профиль для этого предприятия. Смотрите %{link}, чтобы узнать больше о функциях %{sitename} и начать использовать свой профиль или интернет-магазин."
   email_confirmation_notice_unexpected: "Вы получили это сообщение, потому что Вы зарегистрировались в %{sitename} или Вас пригласил зарегистрироваться кто-то, кого Вы, вероятно, знаете. Если вы не понимаете, почему вы получили это письмо, напишите на %{contact}."
   email_social: "Связаться с нами:"
   email_contact: "Напишите нам:"
@@ -2701,26 +2820,14 @@ ru:
   spree_admin_enterprises_fees: "Сборы Предприятия"
   spree_admin_enterprises_none_create_a_new_enterprise: "СОЗДАТЬ НОВОЕ ПРЕДПРИЯТИЕ"
   spree_admin_enterprises_none_text: "У Вас еще нет Предприятий"
-  spree_admin_enterprises_tabs_hubs: "ЦЕНТРЫ"
   spree_admin_enterprises_producers_manage_products: "УПРАВЛЯТЬ ТОВАРАМИ"
   spree_admin_enterprises_create_new_product: "СОЗДАТЬ НОВЫЙ ТОВАР"
-  spree_admin_single_enterprise_alert_mail_confirmation: "Пожалуйста, подтвердите адрес электронной почты для"
-  spree_admin_single_enterprise_alert_mail_sent: "Мы отправили письмо на"
-  spree_admin_overview_action_required: "Требуется действие"
-  spree_admin_overview_check_your_inbox: "Пожалуйста, проверьте свой почтовый ящик для дальнейших инструкций. Спасибо!"
-  spree_admin_unit_value: Значение Единицы
-  spree_admin_unit_description: Описание Единицы
-  spree_admin_variant_unit: Вариант единицы
-  spree_admin_variant_unit_scale: Вариант шкалы единиц
   spree_admin_supplier: Поставщик
-  spree_admin_product_category: Категория Продукта
-  spree_admin_variant_unit_name: Наименование варианта
   unit_name: "Название элемента"
   change_package: "Сменить Пакет"
   spree_admin_single_enterprise_hint: "Подсказка: чтобы люди могли вас найти, включите видимость в"
   spree_admin_eg_pickup_from_school: "напр. 'Самовывоз у школы'"
   spree_admin_eg_collect_your_order: "напр. 'Пожалуйста, заберите свой заказ по адресу: ул. Школьная д.1, Воронеж'"
-  spree_classification_primary_taxon_error: "Taxon %{taxon} is the primary taxon of %{product} and cannot be deleted"
   spree_order_availability_error: "Дистрибьютор или цикл заказа не могут поставить продукты в Вашей корзине"
   spree_order_populator_error: "Этот дистрибьютор или цикл заказа не может поставить все продукты в Вашей корзине. Пожалуйста, выберите другой."
   spree_order_cycle_error: "Выберите цикл для этого заказа."
@@ -2823,7 +2930,6 @@ ru:
   report_header_paid: Оплачен?
   report_header_delivery: Доставка?
   report_header_shipping: Доставка
-  report_header_shipping_method: Способ Доставки
   report_header_shipping_instructions: Инструкции по Доставке
   report_header_ship_street: Улица Доставки
   report_header_ship_street_2: Улица Доставки 2
@@ -2872,6 +2978,7 @@ ru:
   report_header_quantity: Количество
   report_header_max_quantity: Max Количество
   report_header_variant: Вариант
+  report_header_variant_unit_name: Название Единицы Варианта
   report_header_variant_value: Значение Варианта
   report_header_variant_unit: Единица Варианта
   report_header_total_available: Всего доступно
@@ -2945,6 +3052,8 @@ ru:
   report_header_total_excl_vat: "Итого искл. налог (%{currency_symbol})"
   report_header_total_incl_vat: "Итого, вкл. налог (%{currency_symbol})"
   report_header_temp_controlled: Контроль Температуры?
+  report_header_shipment_state: "Статус Доставки"
+  report_header_shipping_method: "Способ Доставки"
   report_header_is_producer: Производитель?
   report_header_not_confirmed: Не Подтверждено
   report_header_gst_on_income: Налог на доход
@@ -2957,6 +3066,11 @@ ru:
   report_header_transaction_fee: Комиссия за Операцию (без налога)
   report_header_total_untaxable_admin: Всего необлагаемых налогом административных корректировок (без налогов)
   report_header_total_taxable_admin: Всего налогооблагаемых административных корректировок (включая налоги)
+  report_header_voucher_label: Этикетка Купона
+  report_header_voucher_amount: "Сумма Купона ( %{currency_symbol} )"
+  report_line_cost_of_produce: Стоимость продукции
+  report_line_line_items: позиции
+  report_header_last_completed_order_date: Дата последнего выполненного заказа
   report_xero_configuration: Xero Конфигурация
   initial_invoice_number: "Начальный номер счета"
   invoice_date: "Дата Счёта"
@@ -3035,18 +3149,21 @@ ru:
   order_cycles_no_permission_to_coordinate_error: "Ни одно из ваших Предприятий не имеет разрешения координировать цикл заказа"
   order_cycles_no_permission_to_create_error: "У вас нет разрешения на создание цикла заказов, координируемого этим Предприятием"
   order_cycle_closed: "Выбранный вами цикл заказов закрылся. Пожалуйста, попробуйте еще раз!"
-  back_to_orders_list: "Назад к списку заказов"
+  back_to_orders_list: "Назад К Списку Заказов"
   no_orders_found: "Заказов Не Найдено"
   order_information: "Информация по Заказу"
   new_payment: "Новый Платёж"
+  create_or_update_invoice: "Создать или Обновить счет"
   date_completed: "Дата Завершения"
   amount: "К оплате"
   invoice_number: "Номер Счета"
   invoice_file: "Файл"
+  invalid_url: "&#39; %{url} &#39; — неверный URL-адрес."
   state_names:
     ready: Готово
     pending: В ожидании
     shipped: Отправлено
+  business_name: Наименование фирмы
   js:
     saving: 'Сохранение...'
     changes_saved: 'Изменения сохранены.'
@@ -3214,18 +3331,8 @@ ru:
           select_all_variants: "Выбрать Все %{total_number_of_variants} Варианты"
           variants_loaded: "Загружено %{num_of_variants_loaded} из %{total_number_of_variants} Вариантов"
           loading_variants: "Загрузка Вариантов"
-      tag_rules:
-        shipping_method_tagged_top: "Способы доставки помечены"
-        shipping_method_tagged_bottom: "являются:"
-        payment_method_tagged_top: "Способы оплаты помечены"
-        payment_method_tagged_bottom: "являются:"
-        order_cycle_tagged_top: "Циклы заказа помечены"
-        order_cycle_tagged_bottom: "являются:"
-        inventory_tagged_top: "Помечены варианты Товарной Номенклатуры"
-        inventory_tagged_bottom: "являются:"
-      new_tag_rule_dialog:
-        select_rule_type: "Выберите тип правила:"
-        add_rule: "Добавить Правило"
+          no_variants: "Для этого товара нет доступных вариантов (скрыт в настройках инвентаря)."
+          some_variants_hidden: "(Некоторые варианты могут быть скрыты в настройках инвентаря)"
       enterprise_fees:
         inherit_from_product: "Наследовать От Товара"
       orders:
@@ -3270,6 +3377,7 @@ ru:
           processing: "в обработке"
           void: "аннулирован"
           invalid: "Недействительный"
+        quantity_unavailable: "Недостаточно товаров на складе. Позиция не сохранена!"
         quantity_unchanged: "Количество не изменилось по сравнению с предыдущим."
         cancel_the_order_html: "Это отменит текущий заказ.<br /> Вы уверены, что хотите продолжить?"
         cancel_the_order_send_cancelation_email: "Отправить клиенту электронное письмо об отмене"
@@ -3313,10 +3421,6 @@ ru:
       enterprises:
         form:
           images:
-            removed_logo_successfully: "Логотип успешно удален"
-            immediate_logo_removal_warning: "Логотип будет удален сразу после подтверждения."
-            removed_promo_image_successfully: "Промо-изображение успешно удалено"
-            immediate_promo_image_removal_warning: "Промо-изображение будет удалено сразу после подтверждения."
             immediate_terms_and_conditions_removal_warning: "Файл Условий и Положений будет удален сразу после вашего подтверждения."
             removed_terms_and_conditions_successfully: "Файл Условий и Положений успешно удален"
     insufficient_stock: "Недостаточно доступных запасов, осталось только %{on_hand}"
@@ -3326,7 +3430,7 @@ ru:
           Пока вы делали покупки, уровень запасов для одного или нескольких товаров
           в вашей корзине снизился. Вот что изменилось:
       now_out_of_stock: сейчас нет в наличии.
-      only_n_remainging: "теперь осталось только %{num}."
+      only_n_remaining: "теперь осталось только %{num}."
     shopfront:
       variant:
         add_to_cart: "Добавить"
@@ -3359,13 +3463,6 @@ ru:
       some_trouble: "Были проблемы с сохранением: %{errors}"
       changing_on_hand_stock: Изменение уровня запасов в наличии ...
       stock_reset: Запасы сброшены до значений по умолчанию.
-    tag_rules:
-      show_hide_variants: 'Показать или Скрыть варианты в моей витрине'
-      show_hide_shipping: 'Показать или Скрыть способы доставки в оформлении заказа'
-      show_hide_payment: 'Показать или Скрыть способы оплаты в оформлении заказа'
-      show_hide_order_cycles: 'Показать или Скрыть циклы заказов в моей витрине'
-      visible: Видимый
-      not_visible: Не видимый
     services:
       unsaved_changes_message: Есть несохраненные изменения, сохранить или игнорировать?
       save: Сохранить
@@ -3381,6 +3478,8 @@ ru:
           Это установит нулевой уровень запасов для всех продуктов этого
           предприятия, которых нет в загруженном файле.
     order_cycles:
+      unsaved_changes: "Есть не сохраненные изменения"
+      bulk_save_error: "Ой! Не удалось сохранить  Ваши изменения"
       create_failure: "Не удалось создать цикл заказа"
       update_success: 'Ваш цикл заказа был обновлен.'
       update_failure: "Не удалось обновить цикл заказа"
@@ -3408,6 +3507,9 @@ ru:
           При настройке вашей карты в нашем платежном шлюзе возникла проблема.
           Обновите страницу и попробуйте еще раз, если это не удастся второй раз,
           свяжитесь с нами для получения поддержки.
+    trix:
+      code: "Код"
+      urlPlaceholder: "Пожалуйста, введите URL для вставки"
   inflections:
     each:
       one: "каждый"
@@ -3509,11 +3611,6 @@ ru:
       few: "горшки"
       many: "горшки"
       other: "горшки"
-    bundle:
-      one: "связка"
-      few: "связки"
-      many: "связки"
-      other: "связки"
     flask:
       one: "фляга"
       few: "колбы"
@@ -3529,6 +3626,11 @@ ru:
       few: "мешки"
       many: "мешки"
       other: "мешки"
+    bundle:
+      one: "связка"
+      few: "связки"
+      many: "связки"
+      other: "связки"
   producers:
     signup:
       start_free_profile: "Начните с бесплатного профиля и расширяйтесь, когда будете готовы!"
@@ -3626,6 +3728,7 @@ ru:
       success: Конечная точка веб-хука успешно удалена
       error: Не удалось удалить конечную точку веб-хука.
   spree:
+    order_updated: "Заказ Обновлен"
     add_country: "Добавить страну"
     add_state: "Добавить область"
     adjustment: "Корректирование"
@@ -3650,9 +3753,9 @@ ru:
     more: "Ещё"
     new_adjustment: "Новая корректировка"
     new_tax_category: "Новая Налоговая Категория"
-    new_taxon: "Новая таксономия"
     new_user: "Новый пользователь"
     no_pending_payments: "Нет ожидающих платежей"
+    remove: "Удалить"
     none: "Нет"
     not_found: "Не найден"
     notice_messages:
@@ -3662,16 +3765,8 @@ ru:
     rma_credit: "Кредит RMA"
     refund: "Возврат"
     server_error: "Ошибка сервера"
-    shipping_method_names:
-      UPS Ground: "UPS Ground"
-      pick_up: "Самовывоз на ферме"
-      delivery: "Подписано, запечатано, доставлено"
     start_date: "Дата начала"
     successfully_removed: "Успешно удалено"
-    taxonomy_edit: "Изменить таксономию"
-    taxonomy_tree_error: "Ошибка дерева таксономии"
-    taxonomy_tree_instruction: "Инструкция по дереву таксономии"
-    tree: "Дерево"
     updating: "Обновление"
     your_order_is_empty_add_product: "Ваша корзина пуста, пожалуйста, найдите и добавьте товар выше"
     add_product: "Добавить Товар"
@@ -3723,6 +3818,7 @@ ru:
     credit_card: "Кредитная Карта"
     new_payment: "Новый Платёж"
     capture: "Capture"
+    capture_and_complete_order: "Применить и завершить заказ"
     void: "Void"
     login: "Войти"
     password: "Пароль"
@@ -3734,6 +3830,7 @@ ru:
     logourl: "URL логотипа"
     are_you_sure_delete: "Вы уверены, что хотите удалить эту запись?"
     confirm_delete: "Подтвердить Удаление"
+    voucher: "Ваучер"
     configurations: "Настройки"
     general_settings: "Основные Настройки"
     site_name: "Имя Сайта"
@@ -3767,7 +3864,6 @@ ru:
     tax_rate_amount_explanation: "Налоговые ставки представляют собой десятичную сумму для помощи в расчетах (т.е. если налоговая ставка составляет 5%, введите 0,05)"
     included_in_price: "Включено в Стоимость"
     show_rate_in_label: "Показывать ставку в метке"
-    back_to_tax_rates_list: "Назад к Списку Налоговых Ставок"
     tax_settings: "Настройки Налогов"
     zones: "Торговая зона"
     new_zone: "Новая Торговая зона"
@@ -3780,14 +3876,11 @@ ru:
     iso_name: "ISO Имя"
     states_required: "Области Обязательны"
     editing_country: "Редактирование Страны"
-    back_to_countries_list: "Назад к Списку Стран"
     states: "Регионы"
     abbreviation: "Сокращение"
     new_state: "Новый Регион"
     payment_methods: "Способы Оплаты"
-    taxonomies: "Таксономии"
-    new_taxonomy: "Новая Таксономия"
-    back_to_taxonomies_list: "Назад к Списку Таксономий"
+    taxons: "Категории Товаров"
     shipping_methods: "Способы Доставки"
     shipping_method: "Способ Доставки"
     shipment: "Доставка"
@@ -3880,6 +3973,11 @@ ru:
     validation:
       must_be_int: "должно быть целым числом"
     admin:
+      images:
+        edit:
+          title: Изменить фотографию товара
+          close: Назад
+          upload: Загрузить фото
       mail_methods:
         send_testmail: "Отправить тестовое письмо"
         testmail:
@@ -3894,6 +3992,7 @@ ru:
         bulk_order_management: "Пакетное Управление Заказами"
         subscriptions: "Подписки"
         products: "Товары"
+        products_v3: "Товары"
         option_types: "Типы Опций"
         properties: "Свойства"
         variant_overrides: "Товарная номенклатура"
@@ -3907,6 +4006,10 @@ ru:
         customers: "Клиенты"
         groups: "Группы"
         oidc_settings: "Настройки OIDC"
+        overview: "Введение"
+        product_import: "Импорт"
+        enterprise_roles: "Роли"
+        payment_methods: "Способы Оплаты"
       product_properties:
         index:
           inherits_properties_checkbox_hint: "Наследовать свойства от %{supplier}? (если не отменено выше)"
@@ -3937,7 +4040,6 @@ ru:
           continue: "Продолжить"
         new:
           new_return_authorization: "Новое разрешение на возврат"
-          back_to_return_authorizations_list: "Назад К Списку Разрешений На Возврат"
           continue: "Продолжить"
         edit:
           receive: "получить"
@@ -3964,6 +4066,9 @@ ru:
         add_product:
           cannot_add_item_to_canceled_order: "Невозможно добавить товар в отмененный заказ"
           include_out_of_stock_variants: "Включить варианты, которых нет в наличии"
+        shipment:
+          mark_as_shipped_message_html: "Заказ будет помечен как Отправленный.<br /> Вы уверены, что хотите продолжить?"
+          mark_as_shipped_label_message: "Отправить клиенту сообщение об отправке/выдаче."
         index:
           listing_orders: "Список Заказов"
           new_order: "Новый Заказ"
@@ -4004,10 +4109,12 @@ ru:
           from: "От"
           to: "Плательщик"
           shipping: "Доставка"
+          order_number: "Номер Заказа"
           invoice_number: "Номер Счета"
           payments_list:
             date_time: "Дата/Время"
             payment_method: "Способ оплаты"
+            payment_state: "Состояние оплаты"
             amount: "Количество"
         note:
           note_label: "Примечание:"
@@ -4020,6 +4127,9 @@ ru:
           line_item_adjustments: "Корректировки позиции"
           order_adjustments: "Корректировки Заказа"
           order_total: "Весь заказ"
+      invoices:
+        index:
+          order_has_changed: "Заказ изменился с момента последнего обновления счета. Показанный здесь счет, возможно, уже неактуален."
       overview:
         enterprises_header:
           ofn_with_tip: Предприятия являются Производителями и/или Центрами и являются основной единицей организации в рамках Открытой Сети Продуктов.
@@ -4028,6 +4138,7 @@ ru:
           has_no_payment_methods: "нет способов оплаты"
           has_no_shipping_methods: "нет способов доставки"
         products:
+          products_tip: "Товары, которые вы продаете через Открытую Сеть Продуктов."
           active_products:
             zero: "У Вас нет активных товаров."
             one: "У Вас один активный товар."
@@ -4122,9 +4233,7 @@ ru:
         providers:
           provider: "Провайдер"
           check: "Наличные/ EFT/т. д. (платежи, для которых автоматическая проверка не требуется)"
-          pin: "Пин Платежи"
           paypalexpress: "PayPal Express"
-          stripeconnect: "Stripe"
           stripesca: "Stripe SCA"
       payments:
         source_forms:
@@ -4175,16 +4284,17 @@ ru:
           product_name: Имя Товара
         primary_taxon_form:
           product_category: Категория Товара
+          search_for_categories: "Поиск категорий"
         group_buy_form:
           group_buy: "Групповая покупка?"
           bulk_unit_size: Размер оптовой еденицы
         display_as:
           display_as: Показывать Как
+        clone:
+          success: Товар клонирован
       reports:
         table:
           select_and_search: "Для получения данных, выберите фильры и нажмите на %{option}."
-        customer_names_message:
-          customer_names_tip: "Если имена клиентов скрыты для заказов, которые вы предоставили, вы можете связаться с дистрибьютором и спросить, могут ли они обновить настройки своего магазина, чтобы их поставщики могли просматривать имена клиентов."
         products_and_inventory:
           all_products:
             message: "Обратите внимание, что указанные уровни запасов взяты только из списков продуктов поставщиков. Если вы используете Товарную Номенклатуру для управления запасами, эти значения будут игнорироваться в этом отчете."
@@ -4203,10 +4313,10 @@ ru:
         form:
           disabled: "Выключен?"
           email: "Почта"
-          roles: "Роли"
           enterprise_limit: "Ограничение Предприятий"
           confirm_password: "Подтвердить пароль"
           password: "Пароль"
+          locale: "Язык"
         email_confirmation:
           confirmation_pending: "Ожидается подтверждение по электронной почте. Мы отправили электронное письмо с подтверждением на %{address}."
       variants:
@@ -4225,12 +4335,16 @@ ru:
           new_variant: "Новый Вариант"
         form:
           sku: "SKU"
-          price: "Цена"
           unit_price: "Цена за единицу"
           display_as: "Показать как"
           display_name: "Показать имя"
           display_as_placeholder: 'напр. 2 кг'
           display_name_placeholder: 'напр. Помидоры'
+          unit_scale: "Единицы"
+          unit: Единица измерения
+          price: Цена
+          unit_value: Значение товара
+          variant_category: Категория
         autocomplete:
           out_of_stock: "Нет в Наличии"
           producer_name: "Производитель"
@@ -4240,6 +4354,7 @@ ru:
           terms_of_service: "Условия Сервиса"
         sortable_header:
           name: "Имя"
+          on_hand: "В наличии"
           number: "Номер"
           completed_at: "Завершено"
           state: "Статус"
@@ -4249,14 +4364,14 @@ ru:
           total: "Всего"
           billing_address_name: "Название"
       taxons:
+        index:
+          title: "Категории Товаров"
         form:
           name: Название
-          permalink: Постоянная ссылка
           description: Описание
       general_settings:
         edit:
           legal_settings: "Правовые настройки"
-          cookies_consent_banner_toggle: "Показывать баннер на согласие использования файлов cookie"
           privacy_policy_url: "URL политики конфиденциальности"
           enterprises_require_tos: "Предприятия должны принять Условия сервиса"
           shoppers_require_tos: "Покупатели должны принять Условия Сервиса."
@@ -4347,13 +4462,6 @@ ru:
         subject: "Инструкции по сбросу пароля"
       confirmation_instructions:
         subject: "Пожалуйста, подтвердите Вашу ОСП учетную запись"
-    payment_mailer:
-      authorize_payment:
-        subject: "Авторизуйте платеж на адрес %{distributor} в ОСП"
-        instructions: "Ваш платеж %{amount} на %{distributor} требует дополнительной аутентификации. Перейдите по следующему URL-адресу, чтобы авторизовать платеж:"
-      authorization_required:
-        subject: "Платеж требует согласия клиента"
-        message: "Для оплаты заказа %{order_number} требуется дополнительное согласие со стороны покупателя. Клиент был уведомлен по электронной почте и платеж будет отображаться как ожидающий, пока он не будет подтвержден."
     shipment_mailer:
       shipped_email:
         dear_customer: "Уважаемый Клиент,"
@@ -4416,13 +4524,10 @@ ru:
       webhook_endpoints:
         title: Конечные точки веб-хука
         description: События в системе могут запускать веб-хуки к внешним системам.
-        event_types:
-          order_cycle_opened: Цикл Заказа Открыт
         event_type:
           header: Тип события
         url:
           header: URL-адрес конечной точки
-          create_placeholder: Введите URL-адрес конечной точки удаленного веб-хука.
       developer_settings:
         title: Настройки Разработчика
       form:
@@ -4442,6 +4547,10 @@ ru:
         transaction_history: История Операций
         authorisation_required: Требуется Согласие
         authorise: Разрешить
+      customer_account_transactions:
+        description: Описание
+        amount: Количество
+        running_balance: Текущий баланс
       open_orders:
         order: Заказ
         shop: Магазин
@@ -4490,7 +4599,6 @@ ru:
       key_cleared: "Ключ очищен"
       shipment:
         cannot_ready: "Не может готовая отгрузка."
-      invalid_taxonomy_id: "Неверный ID таксономии."
       toggle_api_key_view: "Показать ключ API для пользователя"
     activerecord:
       models:
@@ -4575,3 +4683,30 @@ ru:
     pagination:
       next: Следующий
       previous: Предыдущий
+    tag_list_input:
+      default_placeholder: Добавить Метку
+    tag_rule_form:
+      tag_rules:
+        shipping_method_tagged_top: "Способы доставки помечены"
+        shipping_method_tagged_bottom: "являются:"
+        payment_method_tagged_top: "Способы оплаты помечены"
+        payment_method_tagged_bottom: "являются:"
+        order_cycle_tagged_top: "Циклы заказа помечены"
+        order_cycle_tagged_bottom: "являются:"
+        inventory_tagged_top: "Помечены варианты Товарной Номенклатуры"
+        inventory_tagged_bottom: "являются:"
+        variant_tagged_bottom: "являются:"
+        visible: Видимый
+        not_visible: Не видимый
+    tag_rule_group_form:
+      for_customers_tagged: 'Для клиентов с метками:'
+      add_new_rule: '+ Добавить Новое Правило'
+      no_rules_yet: К этой метке еще не применяются правила
+    add_tag_rule_modal:
+      select_rule_type: "Выберите тип правила:"
+      add_rule: "Добавить Правило"
+    webhook_endpoint_form:
+      url:
+        create_placeholder: Введите URL-адрес конечной точки удаленного веб-хука.
+      event_types:
+        order_cycle_opened: Цикл Заказа Открыт

@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe '
+RSpec.describe '
   As an Administrator
   I want to manage relationships between enterprises
 ' do
@@ -44,21 +44,26 @@ create(:enterprise)
 
       check 'to add to order cycle'
       check 'to manage products'
-      uncheck 'to manage products'
+      check 'to manage products'
       check 'to edit profile'
-      check 'to add products to inventory'
+      uncheck 'to add products to inventory'
+      check 'to create linked variants'
       select2_select 'Two', from: 'enterprise_relationship_child_id'
       click_button 'Create'
 
       # Wait for row to appear since have_relationship doesn't wait
       expect(page).to have_selector 'tr', count: 2
+      # Permissions appear.. in a different order for some reason.
       expect_relationship_with_permissions e1, e2,
                                            ['to add to order cycle',
-                                            'to add products to inventory', 'to edit profile']
+                                            'to create linked variants [BETA]',
+                                            'to edit profile',
+                                            'to manage products']
       er = EnterpriseRelationship.where(parent_id: e1, child_id: e2).first
       expect(er).to be_present
       expect(er.permissions.map(&:name)).to match_array ['add_to_order_cycle', 'edit_profile',
-                                                         'create_variant_overrides']
+                                                         'manage_products',
+                                                         'create_linked_variants']
     end
 
     it "attempting to create a relationship with invalid data" do
@@ -75,6 +80,24 @@ create(:enterprise)
 
         # Then I should see an error message
         expect(page).to have_content "That relationship is already established."
+      end.to change { EnterpriseRelationship.count }.by(0)
+    end
+
+    it "attempting to create a relationship with conflicting permissions" do
+      e1 = create(:enterprise, name: 'One')
+      e2 = create(:enterprise, name: 'Two')
+
+      expect do
+        # When I attempt to create a duplicate relationship
+        visit admin_enterprise_relationships_path
+        select2_select 'One', from: 'enterprise_relationship_parent_id'
+        select2_select 'Two', from: 'enterprise_relationship_child_id'
+        check "to add products to inventory"
+        check "to create linked variants"
+        click_button 'Create'
+
+        # Then I should see an error message
+        expect(page).to have_content "Cannot grant both inventory and linked variants permissions."
       end.to change { EnterpriseRelationship.count }.by(0)
     end
 
@@ -138,6 +161,7 @@ create(:enterprise)
     end
   end
 
+  # rubocop:disable Rails/FindEach. # These are Capybara finders
   def find_relationship(parent, child)
     page.all('tr').each do |tr|
       return tr if tr.find('td:first-child').text == parent.name &&
@@ -146,4 +170,5 @@ create(:enterprise)
     end
     raise "relationship not found"
   end
+  # rubocop:enable Rails/FindEach.
 end

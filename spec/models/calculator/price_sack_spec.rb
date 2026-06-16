@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Calculator::PriceSack do
+RSpec.describe Calculator::PriceSack do
   let(:calculator) do
     calculator = Calculator::PriceSack.new
     calculator.preferred_minimal_amount = 5

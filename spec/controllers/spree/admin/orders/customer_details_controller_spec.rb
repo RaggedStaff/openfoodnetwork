@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Spree::Admin::Orders::CustomerDetailsController, type: :controller do
+RSpec.describe Spree::Admin::Orders::CustomerDetailsController do
   include AuthenticationHelper
 
   describe "#update" do

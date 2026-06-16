@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
-
-describe "/admin", type: :request do
+RSpec.describe "/admin" do
   let(:enterprise) { create(:supplier_enterprise, name: "Feedme") }
   let(:enterprise_user) { create(:user, enterprise_limit: 1) }
 
@@ -45,7 +43,7 @@ describe "/admin", type: :request do
 
             get "/admin"
 
-            expect(response.body).to_not include("Terms of Service have been updated")
+            expect(response.body).not_to include("Terms of Service have been updated")
           end
         end
 
@@ -66,7 +64,7 @@ describe "/admin", type: :request do
 
             get "/admin"
 
-            expect(response.body).to_not include("Terms of Service have been updated")
+            expect(response.body).not_to include("Terms of Service have been updated")
           end
         end
 
@@ -79,7 +77,7 @@ describe "/admin", type: :request do
           it "doesn't show accept new ToS banner" do
             get "/admin"
 
-            expect(response.body).to_not include("Terms of Service have been updated")
+            expect(response.body).not_to include("Terms of Service have been updated")
           end
         end
       end

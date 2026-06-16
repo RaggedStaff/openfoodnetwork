@@ -24,6 +24,7 @@ module Reporting
             hub: proc { |orders| distributor(orders).name },
             hub_id: proc { |orders| distributor(orders).id },
             hub_business_number: proc { |orders| distributor(orders).abn },
+            hub_external_billing_id: proc { |orders| distributor(orders).external_billing_id },
             hub_legal_name: proc { |orders| distributor(orders).business_address&.company },
             hub_contact_name: proc { |orders| distributor(orders).contact_name },
             hub_email: proc { |orders| distributor(orders).email_address },
@@ -59,8 +60,8 @@ module Reporting
           grouped_orders.each do |orders|
             voucher_adjustments = calculate_voucher_adjustments(orders)
 
-            total_incl_tax = orders.sum(&:total)
-            total_tax = orders.sum(&:total_tax) + voucher_adjustments
+            total_incl_tax = orders.map(&:total).compact.sum
+            total_tax = orders.map(&:total_tax).compact.sum + voucher_adjustments
             total_excl_tax = total_incl_tax - total_tax
 
             @tax_data[distributor(orders).id] = {

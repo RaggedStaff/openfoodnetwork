@@ -84,20 +84,18 @@ module ReportsActions
                         else
                           params[:fields_to_show]
                         end,
+        display_metadata_rows: false,
         display_summary_row: request.get?,
         display_header_row: false
       }
     end
-    update_rendering_options
-    @rendering_options
   end
 
   def update_rendering_options
-    return unless request.post?
-
-    @rendering_options.update(
+    rendering_options.update(
       options: {
         fields_to_show: params[:fields_to_show],
+        display_metadata_rows: params[:display_metadata_rows].present?,
         display_summary_row: params[:display_summary_row].present?,
         display_header_row: params[:display_header_row].present?
       }

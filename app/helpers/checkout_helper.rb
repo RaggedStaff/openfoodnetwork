@@ -5,10 +5,6 @@ module CheckoutHelper
     order.ship_address == order.bill_address
   end
 
-  def guest_checkout_allowed?
-    current_order.distributor.allow_guest_orders?
-  end
-
   def checkout_adjustments_for(order, opts = {})
     exclude = opts[:exclude] || {}
     reject_zero_amount = opts.fetch(:reject_zero_amount, true)
@@ -59,7 +55,7 @@ module CheckoutHelper
   end
 
   def display_checkout_taxes_hash(order)
-    totals = OrderTaxAdjustmentsFetcher.new(order).totals
+    totals = Orders::FetchTaxAdjustmentsService.new(order).totals
 
     totals.map do |tax_rate, tax_amount|
       {
@@ -79,46 +75,8 @@ module CheckoutHelper
     tax_rates.map { |tr| number_to_percentage(tr.amount * 100, precision: 1) }.join(", ")
   end
 
-  def display_adjustment_amount(adjustment)
-    Spree::Money.new(adjustment.amount, currency: adjustment.currency)
-  end
-
   def display_checkout_total_less_tax(order)
     Spree::Money.new order.total - order.total_tax, currency: order.currency
-  end
-
-  def validated_input(name, path, args = {})
-    attributes = {
-      :required => true,
-      :type => :text,
-      :name => path,
-      :id => path,
-      "ng-model" => path,
-      "ng-class" => "{error: !fieldValid('#{path}')}"
-    }.merge args
-
-    render "shared/validated_input", name:, path:, attributes:
-  end
-
-  def validated_select(name, path, options, args = {})
-    attributes = {
-      :required => true,
-      :id => path,
-      "ng-model" => path,
-      "ng-class" => "{error: !fieldValid('#{path}')}"
-    }.merge args
-
-    render "shared/validated_select", name:, path:, options:,
-                                      attributes:
-  end
-
-  def payment_method_price(method, order)
-    price = method.compute_amount(order)
-    if price == 0
-      t('checkout_method_free')
-    else
-      "{{ #{price} | localizeCurrency }}"
-    end
   end
 
   def payment_or_shipping_price(method, order)
@@ -143,7 +101,7 @@ module CheckoutHelper
   def stripe_card_options(cards)
     cards.map do |cc|
       [
-        "#{cc.brand} #{cc.last_digits} #{I18n.t(:card_expiry_abbreviation)}:" \
+        "#{cc.cc_type} #{cc.last_digits} #{I18n.t(:card_expiry_abbreviation)}:" \
         "#{cc.month.to_s.rjust(2, '0')}/#{cc.year}", cc.id
       ]
     end
@@ -153,5 +111,14 @@ module CheckoutHelper
   # Checkout Details, Checkout Payment and Checkout Summary
   def checkout_page_title
     t("checkout_#{checkout_step}_title")
+  end
+
+  def display_voucher?(order, paid_with_credit)
+    # We have a voucher so we need the voucher section to be able to remove said voucher
+    return true if order.voucher_adjustments.first
+
+    return false if paid_with_credit&.positive? && order.outstanding_balance.zero?
+
+    order.distributor.vouchers.present? || order.distributor.connected_apps.vine.present?
   end
 end

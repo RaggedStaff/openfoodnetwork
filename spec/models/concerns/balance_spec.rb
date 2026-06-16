@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Balance do
+RSpec.describe Balance do
   context "#new_outstanding_balance" do
     context 'when orders are in cart state' do
       let(:order) { build(:order, total: 100, payment_total: 10, state: 'cart') }
@@ -34,6 +32,38 @@ describe Balance do
       it 'returns the order balance' do
         expect(order.new_outstanding_balance).to eq(100 - 10)
       end
+
+      context "when orders include a payment with credit" do
+        let(:order) { create(:order, total: 100, payment_total: 0, state: 'payment') }
+
+        it "returns the order balance minus the credit payment" do
+          payment = create(:payment, order:, amount: 5.00, state: "checkout",
+                                     payment_method: Spree::PaymentMethod.customer_credit)
+          order.payments << payment
+
+          expect(order.new_outstanding_balance).to eq(100 - 5)
+        end
+      end
+    end
+
+    context 'when orders are in confirmation state' do
+      let(:order) { build(:order, total: 100, payment_total: 10, state: 'confirmation') }
+
+      it 'returns the order balance' do
+        expect(order.new_outstanding_balance).to eq(100 - 10)
+      end
+
+      context "when orders include a payment with credit" do
+        let(:order) { create(:order, total: 100, payment_total: 0, state: 'confirmation') }
+
+        it "returns the order balance minus the credit payment" do
+          payment = create(:payment, order:, amount: 5.00, state: "checkout",
+                                     payment_method: Spree::PaymentMethod.customer_credit)
+          order.payments << payment
+
+          expect(order.new_outstanding_balance).to eq(100 - 5)
+        end
+      end
     end
 
     context 'when no orders where paid' do
@@ -62,14 +92,6 @@ describe Balance do
 
     context 'when an order is resumed' do
       let(:order) { build(:order, total: 100, payment_total: 10, state: 'resumed') }
-
-      it 'returns the customer balance' do
-        expect(order.new_outstanding_balance).to eq(100 - 10)
-      end
-    end
-
-    context 'when an order is in payment' do
-      let(:order) { build(:order, total: 100, payment_total: 10, state: 'payment') }
 
       it 'returns the customer balance' do
         expect(order.new_outstanding_balance).to eq(100 - 10)

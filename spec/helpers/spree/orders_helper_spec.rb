@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Spree::OrdersHelper, type: :helper do
+RSpec.describe Spree::OrdersHelper do
   describe "#changeable_orders" do
     let(:complete_orders) { double(:complete_orders, where: "some_orders") }
 
@@ -31,17 +29,17 @@ describe Spree::OrdersHelper, type: :helper do
             before { allow(current_distributor).to receive(:allow_order_changes?) { false } }
             it { expect(helper.changeable_orders).to eq [] }
           end
+
+          context "when a current_distributor is not defined" do
+            let(:current_distributor) { nil }
+            it { expect(helper.changeable_orders).to eq [] }
+          end
         end
 
         context "when a current_order_cycle is not defined" do
           let(:current_order_cycle) { nil }
           it { expect(helper.changeable_orders).to eq [] }
         end
-      end
-
-      context "when a current_distributor is not defined" do
-        let(:current_distributor) { nil }
-        it { expect(helper.changeable_orders).to eq [] }
       end
     end
 

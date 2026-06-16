@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe ApplicationHelper, type: :helper do
+RSpec.describe ApplicationHelper do
   describe "#feature?" do
     it "takes several actors" do
       user = Spree::User.new(id: 4)
@@ -89,13 +87,13 @@ describe ApplicationHelper, type: :helper do
     it "appends locale and digest to a single key" do
       expect(
         helper.cache_key_with_locale("single-key", "en")
-      ).to eq(["single-key", "en", en_digest])
+      ).to eq(["single-key", "v3", "en", en_digest])
     end
 
     it "appends locale and digest to multiple keys" do
       expect(
         helper.cache_key_with_locale(["array", "of", "keys"], "es")
-      ).to eq(["array", "of", "keys", "es", es_digest])
+      ).to eq(["array", "of", "keys", "v3", "es", es_digest])
     end
   end
 end

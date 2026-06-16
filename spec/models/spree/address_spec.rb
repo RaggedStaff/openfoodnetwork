@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Spree::Address do
+RSpec.describe Spree::Address do
   describe "clone" do
     it "creates a copy of the address with the exception of the id, " \
        "updated_at and created_at attributes" do
@@ -36,9 +34,9 @@ describe Spree::Address do
       expect(cloned.state_name).to eq original.state_name
       expect(cloned.zipcode).to eq original.zipcode
 
-      expect(cloned.id).to_not eq original.id
-      expect(cloned.created_at).to_not eq original.created_at
-      expect(cloned.updated_at).to_not eq original.updated_at
+      expect(cloned.id).not_to eq original.id
+      expect(cloned.created_at).not_to eq original.created_at
+      expect(cloned.updated_at).not_to eq original.updated_at
     end
   end
 
@@ -74,7 +72,7 @@ describe Spree::Address do
     it "errors when state_name is nil" do
       address.state_name = nil
       address.state = nil
-      expect(address).to_not be_valid
+      expect(address).not_to be_valid
     end
 
     it "full state name is in state_name and country does contain that state" do
@@ -131,6 +129,17 @@ describe Spree::Address do
         address.valid?
         expect(address.errors[:zipcode]).to be_empty
       end
+    end
+  end
+
+  context "associations" do
+    it "destroys shipments upon destroy" do
+      address = create(:address)
+      create(:shipment, address:)
+
+      expect {
+        address.destroy
+      }.to raise_error(ActiveRecord::DeleteRestrictionError)
     end
   end
 

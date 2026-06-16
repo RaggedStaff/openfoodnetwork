@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe OidcAccount, type: :model do
+RSpec.describe OidcAccount do
   describe "associations and validations" do
     subject {
       OidcAccount.new(

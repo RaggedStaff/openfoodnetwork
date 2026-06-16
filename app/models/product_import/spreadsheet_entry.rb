@@ -84,6 +84,12 @@ module ProductImport
       invalid_attrs.except(* NON_PRODUCT_ATTRIBUTES, *NON_DISPLAY_ATTRIBUTES)
     end
 
+    def match_variant?(variant)
+      match_display_name?(variant) &&
+        variant.unit_value.to_d == unit_value.to_d &&
+        (variant_unit.nil? || variant.variant_unit == variant_unit)
+    end
+
     private
 
     def remove_empty_skus(attrs)
@@ -94,10 +100,16 @@ module ProductImport
       units = UnitConverter.new(attrs)
 
       units.converted_attributes.each do |attr, value|
-        if respond_to?("#{attr}=") && !NON_PRODUCT_ATTRIBUTES.include?(attr)
+        if respond_to?("#{attr}=") && NON_PRODUCT_ATTRIBUTES.exclude?(attr)
           public_send("#{attr}=", value)
         end
       end
+    end
+
+    def match_display_name?(variant)
+      return true if display_name.blank? && variant.display_name.blank?
+
+      variant.display_name == display_name
     end
   end
 end

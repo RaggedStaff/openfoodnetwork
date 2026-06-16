@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Api::CurrentOrderSerializer do
+RSpec.describe Api::CurrentOrderSerializer do
   let(:distributor) { build(:distributor_enterprise) }
   let(:order_cycle) { build(:simple_order_cycle) }
   let(:line_item) { build(:line_item, variant: create(:variant)) }

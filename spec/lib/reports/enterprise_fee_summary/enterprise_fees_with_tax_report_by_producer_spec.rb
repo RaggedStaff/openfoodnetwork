@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
-
-describe Reporting::Reports::EnterpriseFeeSummary::EnterpriseFeesWithTaxReportByProducer do
+RSpec.describe Reporting::Reports::EnterpriseFeeSummary::EnterpriseFeesWithTaxReportByProducer do
   let(:current_user) { create(:admin_user) }
 
   let(:enterprise) {
@@ -26,7 +24,7 @@ describe Reporting::Reports::EnterpriseFeeSummary::EnterpriseFeesWithTaxReportBy
       outgoing.exchange_variants.create(variant:)
     end
   }
-  let(:variant) { create(:product, supplier: enterprise).variants.first }
+  let(:variant) { create(:variant, supplier: enterprise) }
   let(:order) {
     create(
       :order, :with_line_item,
@@ -34,7 +32,7 @@ describe Reporting::Reports::EnterpriseFeeSummary::EnterpriseFeesWithTaxReportBy
       shipping_method:, ship_address: create(:address)
     ).tap do |order|
       order.recreate_all_fees!
-      OrderWorkflow.new(order).complete!
+      Orders::WorkflowService.new(order).complete!
     end
   }
 
@@ -55,7 +53,6 @@ describe Reporting::Reports::EnterpriseFeeSummary::EnterpriseFeesWithTaxReportBy
 
     report = described_class.new(current_user)
 
-    pending "https://github.com/openfoodfoundation/openfoodnetwork/issues/11529"
     expect(report.query_result.values).to eq [[order]]
   end
 end

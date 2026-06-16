@@ -1,27 +1,9 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Spree::Order::Checkout do
+RSpec.describe Spree::Order::Checkout do
   let(:order) { Spree::Order.new }
 
   context "with default state machine" do
-    context "#checkout_steps" do
-      context "when payment not required" do
-        before { allow(order).to receive_messages payment_required?: false }
-        specify do
-          expect(order.checkout_steps).to eq %w(address delivery confirmation complete)
-        end
-      end
-
-      context "when payment required" do
-        before { allow(order).to receive_messages payment_required?: true }
-        specify do
-          expect(order.checkout_steps).to eq %w(address delivery payment confirmation complete)
-        end
-      end
-    end
-
     it "starts out at cart" do
       expect(order.state).to eq "cart"
     end
@@ -35,9 +17,9 @@ describe Spree::Order::Checkout do
 
     it "cannot transition to address without any line items" do
       expect(order.line_items).to be_blank
-      expect(lambda { order.next! })
-        .to raise_error(StateMachines::InvalidTransition,
-                        /#{Spree.t(:there_are_no_items_for_this_order)}/)
+      expect { order.next! }.to raise_error(
+        StateMachines::InvalidTransition, /#{Spree.t(:there_are_no_items_for_this_order)}/
+      )
     end
 
     context "from address" do
@@ -58,9 +40,9 @@ describe Spree::Order::Checkout do
       context "cannot transition to delivery" do
         context "if there are no shipping rates for any shipment" do
           specify do
-            transition = lambda { order.next! }
-            expect(transition).to raise_error(StateMachines::InvalidTransition,
-                                              /#{Spree.t(:items_cannot_be_shipped)}/)
+            expect{ order.next! }.to raise_error(
+              StateMachines::InvalidTransition, /#{Spree.t(:items_cannot_be_shipped)}/
+            )
           end
         end
       end
@@ -69,6 +51,14 @@ describe Spree::Order::Checkout do
     context "from delivery" do
       before do
         order.state = 'delivery'
+      end
+
+      it "transitions to payment" do
+        allow(order).to receive(:payment_required?).and_return(true)
+        expect(order).to receive(:apply_customer_credit)
+        order.next!
+
+        expect(order.state).to eq "payment"
       end
 
       context "with payment required" do

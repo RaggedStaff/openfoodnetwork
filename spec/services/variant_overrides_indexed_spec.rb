@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe VariantOverridesIndexed do
+RSpec.describe VariantOverridesIndexed do
   subject(:variant_overrides) { described_class.new([variant.id], [distributor.id]) }
 
   let(:distributor) { create(:distributor_enterprise) }

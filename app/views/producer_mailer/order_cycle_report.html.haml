@@ -15,7 +15,7 @@
       = @receival_instructions
 %p
   = t :producer_mail_order_text
-  %table.order-summary
+  %table.order-summary.line-items
     %thead
       %tr
         %th
@@ -40,7 +40,7 @@
             = line_items.first.variant.sku
           - if @distributors_pickup_times.many?
             %td
-              = line_items.first.product.supplier.name
+              = line_items.first.variant.supplier.name
           %td
             = product_and_full_name
           %td.text-right
@@ -77,10 +77,21 @@
           = t :product
         %th.text-right
           = t :quantity
+        - if @display_customer_names
+          %th.text-right
+            = t :first_name
+          %th.text-right
+            = t :last_name
+        - if @display_business_name
+          %th.text-right
+            = t :business_name
         %th.text-right
-          = t :first_name
-        %th.text-right
-          = t :last_name
+          = t '.order_number'
+        - if @display_customer_names
+          %th.text-right
+            = t :phone
+          %th.text-right
+            = t :email
     %tbody
       - @customer_line_items.each do |line_item|
         %tr
@@ -93,10 +104,21 @@
             = line_item[:product_and_full_name]
           %td.text-right
             = line_item[:quantity]
+          - if @display_customer_names
+            %td
+              = line_item[:first_name]
+            %td
+              = line_item[:last_name]
+          - if @display_business_name
+            %td
+              = line_item[:business_name]
           %td
-            = line_item[:first_name]
-          %td
-            = line_item[:last_name]
+            = line_item[:order_number]
+          - if @display_customer_names
+            %td
+              = line_item[:phone]
+            %td
+              = line_item[:email]
 %p
   = t :producer_mail_text_after
 %p

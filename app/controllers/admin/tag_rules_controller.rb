@@ -1,13 +1,47 @@
 # frozen_string_literal: true
 
 module Admin
-  class TagRulesController < Admin::ResourceController
+  class TagRulesController < Spree::Admin::BaseController
     respond_to :json
 
-    respond_override destroy: { json: {
-      success: lambda { render body: nil, status: :no_content }
-    } }
+    def new
+      @index = params[:index]
+      @div_id = params[:div_id]
+      is_default = params[:is_default]
+      @customer_tags = params[:customer_tags]
 
+      status = :ok
+      if permitted_tag_rule_type.include?(params[:rule_type])
+        @default_rule = "TagRule::#{params[:rule_type]}".constantize.new(is_default:)
+      else
+        flash.now[:error] = t(".not_supported_type")
+        status = :internal_server_error
+      end
+
+      respond_with do |format|
+        format.turbo_stream { render :new, status: }
+      end
+    end
+
+    def destroy
+      @rule = TagRule.find(params[:id])
+      @index = params[:index]
+      authorize! :destroy, @rule
+
+      status = :ok
+      if @rule.destroy
+        flash[:success] = Spree.t(:successfully_removed, resource: Spree.t(:tag_rule))
+      else
+        flash.now[:error] = t(".destroy_error")
+        status = :internal_server_error
+      end
+
+      respond_to do |format|
+        format.turbo_stream { render :destroy, status: }
+      end
+    end
+
+    # Used by the tag input autocomplete
     def map_by_tag
       respond_to do |format|
         format.json do
@@ -17,7 +51,40 @@ module Admin
       end
     end
 
+    # Used by the tag input autocomplete to suggest existing variant tags
+    def variant_tag_rules
+      enterprise_ids = enterprises.pluck(:id)
+
+      # Tags already applied to variants, most recently used first
+      variant_ids = Spree::Variant.where(supplier_id: enterprise_ids).select(:id)
+      variant_tags = ActsAsTaggableOn::Tag
+        .joins(:taggings)
+        .where(taggings: { taggable_type: "Spree::Variant", taggable_id: variant_ids })
+        .group("tags.id, tags.name")
+        .order("MAX(taggings.created_at) DESC")
+        .pluck(:name)
+
+      # Tags from FilterVariants tag rules saved for this enterprise, most recently modified first
+      rule_tags = TagRule::FilterVariants.for(enterprise_ids).order(updated_at: :desc)
+        .flat_map do |rule|
+        rule.tags.split(",").map(&:strip)
+      end
+
+      all_tags = (variant_tags + rule_tags).uniq.reject(&:empty?)
+      @tags = filter_tags(all_tags, params[:q].to_s)
+
+      respond_with do |format|
+        format.html { render :variant_tag_rules, layout: false }
+      end
+    end
+
     private
+
+    def filter_tags(tags, query)
+      return tags if query.blank?
+
+      tags.select { |t| t.downcase.include?(query.downcase) }
+    end
 
     def collection_actions
       [:index, :map_by_tag]
@@ -38,6 +105,14 @@ module Admin
       else
         Enterprise.managed_by(spree_current_user)
       end
+    end
+
+    def model_class
+      TagRule
+    end
+
+    def permitted_tag_rule_type
+      %w{FilterOrderCycles FilterPaymentMethods FilterProducts FilterShippingMethods FilterVariants}
     end
   end
 end

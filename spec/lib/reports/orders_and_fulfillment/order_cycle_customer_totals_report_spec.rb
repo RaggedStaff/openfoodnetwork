@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
-
-describe Reporting::Reports::OrdersAndFulfillment::OrderCycleCustomerTotals do
+RSpec.describe Reporting::Reports::OrdersAndFulfillment::OrderCycleCustomerTotals do
   let!(:distributor) { create(:distributor_enterprise, name: "Apple Market") }
   let!(:customer) { create(:customer, enterprise: distributor, user:, code: "JHN") }
   let(:user) { create(:user, email: "john@example.net") }
@@ -29,13 +27,13 @@ describe Reporting::Reports::OrdersAndFulfillment::OrderCycleCustomerTotals do
         distributor:,
         completed_at: order_date,
       ).tap do |order|
-        order.line_items[0].product.supplier.update(name: "Apple Farmer")
-        order.line_items[0].product.update(name: "Apples")
+        order.line_items[0].variant.supplier.update(name: "Apple Farmer")
+        order.line_items[0].update(product_name: "Apples")
         order.line_items[0].variant.update(sku: "APP")
       end
     end
     let(:comparison_report) do
-      File.read(Rails.root.join(report_file_name))
+      Rails.root.join(report_file_name).read
     end
     let(:report_file_name) do
       "spec/fixtures/reports/orders_and_fulfillment/order_cycle_customer_totals_report.csv"
@@ -67,6 +65,32 @@ describe Reporting::Reports::OrdersAndFulfillment::OrderCycleCustomerTotals do
     it 'includes the summary row' do
       expect(report.rows.second.quantity).to eq "TOTAL"
       expect(report.rows.second.date).to eq order.completed_at.strftime("%F %T")
+    end
+
+    context "shipment state" do
+      # by default, shipment state is hidden, so make fields_to_hide empty for this test
+      let(:params) { { q: search_params, fields_to_hide: [] } }
+
+      it 'includes the shipment state' do
+        expect(report.rows.first.shipment_state).to eq order.shipment_state
+      end
+    end
+
+    describe "final weight volume column" do
+      # related to https://github.com/openfoodfoundation/openfoodnetwork/issues/13270
+      # not sure how we got DEPRECATION WARNING: Rails 7.0 has deprecated Enumerable.sum
+      # but these scenarios might be related
+      shared_examples "the report is successfully generated" do |test_case, type|
+        it "if column final_weight_volume is #{test_case}" do
+          order.line_items[0].update!(final_weight_volume: type)
+          expect(report_table.length).to eq(2)
+        end
+      end
+
+      it_behaves_like "the report is successfully generated", "nil", nil
+      it_behaves_like "the report is successfully generated", "an empty value", ""
+      it_behaves_like "the report is successfully generated", "a white space", " "
+      it_behaves_like "the report is successfully generated", "a string", "kilograms"
     end
   end
 
@@ -123,7 +147,7 @@ describe Reporting::Reports::OrdersAndFulfillment::OrderCycleCustomerTotals do
     end
   end
 
-  context 'when a variant override applies' do
+  context 'when a variant override applies', feature: :inventory do
     let!(:order) do
       create(
         :completed_order_with_totals,
@@ -155,6 +179,7 @@ describe Reporting::Reports::OrdersAndFulfillment::OrderCycleCustomerTotals do
           final_weight_volume
           voucher_label
           voucher_amount
+          shipment_state
         ],
         q: {
           completed_at_gt: 1.month.ago.beginning_of_day,

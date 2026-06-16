@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Spree::Order do
+RSpec.describe Spree::Order do
   let(:order) { Spree::Order.new }
   before do
     # Ensure state machine has been re-defined correctly
@@ -21,13 +19,17 @@ describe Spree::Order do
       end
 
       context "when payment processing succeeds" do
-        before { allow(order).to receive_messages process_payments!: true }
-
         it "should finalize order when transitioning to complete state" do
           order.next
-          expect(order.state).to eq "confirmation"
-          expect(order).to receive(:finalize!)
-          order.next!
+
+          expect {
+            order.next!
+          }.to change {
+            order.state
+          }.from("confirmation").to("complete")
+            .and change {
+              order.completed_at
+            }
         end
 
         context "when credit card processing fails" do
@@ -35,9 +37,15 @@ describe Spree::Order do
 
           it "should still complete the order" do
             order.next
-            expect(order.state).to eq "confirmation"
-            order.next
-            expect(order.state).to eq "complete"
+
+            expect {
+              order.next!
+            }.to change {
+              order.state
+            }.from("confirmation").to("complete")
+              .and change {
+                order.completed_at
+              }
           end
         end
       end
@@ -78,11 +86,11 @@ describe Spree::Order do
 
     (Spree::Shipment.state_machine.states.keys - [:pending, :backorder, :ready])
       .each do |shipment_state|
-      it "should be false if shipment_state is #{shipment_state}" do
-        allow(order).to receive_messages completed?: true
-        order.shipment_state = shipment_state
-        expect(order.can_cancel?).to be_falsy
-      end
+        it "should be false if shipment_state is #{shipment_state}" do
+          allow(order).to receive_messages completed?: true
+          order.shipment_state = shipment_state
+          expect(order.can_cancel?).to be_falsy
+        end
     end
   end
 
@@ -100,9 +108,9 @@ describe Spree::Order do
     end
 
     before do
-      allow(order).to receive_messages line_items: [build(:line_item, variant:,
-                                                                      quantity: 2)]
-      allow(order.line_items).to receive_messages find_by_variant_id: order.line_items.first
+      allow(order).to receive_messages line_items: [
+        build(:line_item, variant:, quantity: 2)
+      ]
 
       allow(order).to receive_messages completed?: true
       allow(order).to receive_messages allow_cancel?: true
@@ -111,7 +119,6 @@ describe Spree::Order do
     it "should send a cancel email" do
       # Stub methods that cause side-effects in this test
       allow(shipment).to receive(:cancel!)
-      allow(order).to receive :restock_items!
       mail_message = double "Mail::Message"
       order_id = nil
       expect(Spree::OrderMailer).to receive(:cancel_email) { |*args|
@@ -137,7 +144,6 @@ describe Spree::Order do
         # Stubs methods that cause unwanted side effects in this test
         allow(Spree::OrderMailer).to receive(:cancel_email).and_return(mail_message = double)
         allow(mail_message).to receive :deliver_later
-        allow(order).to receive :restock_items!
         allow(shipment).to receive(:cancel!)
       end
 

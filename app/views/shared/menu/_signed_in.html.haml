@@ -1,9 +1,3 @@
-- if discourse_configured?
-  %li
-    %a{href: main_app.discourse_login_path, target: '_blank'}
-      %span.nav-primary
-        = t 'label_notices'
-
 %li.user-menu.has-dropdown.not-click
 
   %a{href: "#", class: "top-bar--menu-item-with-icon"}
@@ -15,7 +9,7 @@
 
     - if admin_user? or enterprise_user?
       %li
-        %a{href: spree.admin_dashboard_path, target:'_blank'}
+        %a{href: spree.admin_dashboard_path, **new_tab_option}
           %i.ofn-i_021-tools
           = t 'label_administration'
 

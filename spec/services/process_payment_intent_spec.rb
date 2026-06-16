@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe ProcessPaymentIntent do
+RSpec.describe ProcessPaymentIntent do
   let(:service) { described_class.new }
 
   describe "processing a payment intent" do
@@ -17,7 +15,7 @@ describe ProcessPaymentIntent do
       create(
         :payment,
         payment_method:,
-        cvv_response_message: "https://stripe.com/redirect",
+        redirect_auth_url: "https://stripe.com/redirect",
         response_code: "pi_123",
         order:,
         state: "requires_authorization"
@@ -39,7 +37,7 @@ describe ProcessPaymentIntent do
         it "returns false" do
           result = service.call!
 
-          expect(result.ok?).to eq(false)
+          expect(result.success?).to eq(false)
           expect(result.error).to eq("")
         end
 
@@ -58,7 +56,7 @@ describe ProcessPaymentIntent do
         it "returns returns the error message" do
           result = service.call!
 
-          expect(result.ok?).to eq(false)
+          expect(result.success?).to eq(false)
           expect(result.error).to eq("error message")
         end
 
@@ -104,7 +102,7 @@ describe ProcessPaymentIntent do
           service.call!
           payment.reload
           expect(payment.state).to eq("completed")
-          expect(payment.cvv_response_message).to be nil
+          expect(payment.redirect_auth_url).to be nil
         end
 
         it "completes the order" do
@@ -150,7 +148,7 @@ describe ProcessPaymentIntent do
       it "does not return any error message" do
         result = service.call!
 
-        expect(result.ok?).to eq(false)
+        expect(result.success?).to eq(false)
         expect(result.error).to eq("")
       end
 
@@ -173,7 +171,7 @@ describe ProcessPaymentIntent do
       it "returns a failed result" do
         result = service.call!
 
-        expect(result.ok?).to eq(false)
+        expect(result.success?).to eq(false)
         expect(result.error).to eq('The payment could not be completed')
       end
 

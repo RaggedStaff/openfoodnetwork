@@ -9,12 +9,20 @@ module Spree
     include VariantUnits::VariantAndLineItemNaming
     include VariantStock
 
+    self.ignored_columns += ['owner']
     self.belongs_to_required_by_default = false
+
+    # 2 not to be persisted attributes to store preferences.
+    # Values to be set via the UI that can be passed by back to UI
+    # in a not yet persisted variant. Setters are below.
+    attr_reader :on_hand_desired, :on_demand_desired
 
     acts_as_paranoid
 
-    searchable_attributes :sku, :display_as, :display_name
-    searchable_associations :product, :default_price
+    acts_as_taggable
+
+    searchable_attributes :sku, :display_as, :display_name, :primary_taxon_id, :supplier_id
+    searchable_associations :product, :default_price, :primary_taxon, :supplier, :tags
     searchable_scopes :active, :deleted
 
     NAME_FIELDS = ["display_name", "display_as", "weight", "unit_value", "unit_description"].freeze
@@ -23,39 +31,58 @@ module Spree
                        meta_keywords
                        variants_display_as
                        variants_display_name
-                       supplier_name).join('_or_')}_cont".freeze
+                       variants_supplier_name).join('_or_')}_cont".freeze
 
-    belongs_to :product, -> { with_deleted }, touch: true, class_name: 'Spree::Product'
+    belongs_to :product, -> {
+                           with_deleted
+                         }, touch: true, class_name: 'Spree::Product', optional: false,
+                            inverse_of: :variants
     belongs_to :tax_category, class_name: 'Spree::TaxCategory'
     belongs_to :shipping_category, class_name: 'Spree::ShippingCategory', optional: false
+    belongs_to :primary_taxon, class_name: 'Spree::Taxon', touch: true, optional: false
+    belongs_to :supplier, class_name: 'Enterprise', optional: false, touch: true
+    belongs_to :enterprise, optional: true, touch: true
+    belongs_to :hub, class_name: 'Enterprise', optional: true
 
     delegate :name, :name=, :description, :description=, :meta_keywords, to: :product
 
-    has_many :inventory_units, inverse_of: :variant
-    has_many :line_items, inverse_of: :variant
+    has_many :inventory_units, inverse_of: :variant, dependent: nil
+    has_many :line_items, inverse_of: :variant, dependent: nil
 
     has_many :stock_items, dependent: :destroy, inverse_of: :variant
-    has_many :stock_locations, through: :stock_items
     has_many :images, -> { order(:position) }, as: :viewable,
                                                dependent: :destroy,
-                                               class_name: "Spree::Image"
+                                               class_name: "Spree::Image",
+                                               inverse_of: :viewable
     accepts_nested_attributes_for :images
 
     has_one :default_price,
-            -> { with_deleted.where(currency: Spree::Config[:currency]) },
+            -> { with_deleted.where(currency: CurrentConfig.get(:currency)) },
             class_name: 'Spree::Price',
+            inverse_of: :variant,
             dependent: :destroy
     has_many :prices,
              class_name: 'Spree::Price',
              dependent: :destroy
-    delegate :display_price, :display_amount, :price, :price_changed?, :price=,
+    delegate :display_price, :display_amount, :price, :price=,
              :currency, :currency=,
              to: :find_or_build_default_price
 
-    has_many :exchange_variants
+    has_many :exchange_variants, dependent: nil
     has_many :exchanges, through: :exchange_variants
     has_many :variant_overrides, dependent: :destroy
     has_many :inventory_items, dependent: :destroy
+    has_many :semantic_links, as: :subject, dependent: :delete_all
+    has_many :supplier_properties, through: :supplier, source: :properties
+
+    # Linked variants: I may have one or many sources.
+    has_many :variant_links_as_target, class_name: 'VariantLink', foreign_key: :target_variant_id,
+                                       dependent: :delete_all, inverse_of: :target_variant
+    has_many :source_variants, through: :variant_links_as_target, source: :source_variant
+    # I may also have one more many targets.
+    has_many :variant_links_as_source, class_name: 'VariantLink', foreign_key: :source_variant_id,
+                                       dependent: :delete_all, inverse_of: :source_variant
+    has_many :target_variants, through: :variant_links_as_source, source: :target_variant
 
     localize_number :price, :weight
 
@@ -63,24 +90,31 @@ module Spree
     validate :check_currency
     validates :price, numericality: { greater_than_or_equal_to: 0 }, presence: true
     validates :tax_category, presence: true,
-                             if: proc { Spree::Config[:products_require_tax_category] }
+                             if: proc { Spree::Config.products_require_tax_category }
 
+    validates :variant_unit, presence: true
     validates :unit_value, presence: true, if: ->(variant) {
-      %w(weight volume).include?(variant.product&.variant_unit)
+      %w(weight volume).include?(variant.variant_unit)
     }
-
     validates :unit_value, numericality: { greater_than: 0 }, allow_blank: true
-    validates :price, numericality: { greater_than_or_equal_to: 0 }
-
     validates :unit_description, presence: true, if: ->(variant) {
-      variant.product&.variant_unit.present? && variant.unit_value.nil?
+      variant.variant_unit.present? && variant.unit_value.nil?
+    }
+    validates :variant_unit_scale, presence: true, if: ->(variant) {
+      %w(weight volume).include?(variant.variant_unit)
+    }
+    validates :variant_unit_name, presence: true, if: ->(variant) {
+      variant.variant_unit == 'items'
     }
 
     before_validation :set_cost_currency
     before_validation :ensure_shipping_category
     before_validation :ensure_unit_value
-    before_validation :update_weight_from_unit_value, if: ->(v) { v.product.present? }
+    before_validation :update_weight_from_unit_value
     before_validation :convert_variant_weight_to_decimal
+    before_validation :copy_supplier_to_enterprise, if: ->(variant) {
+      variant.supplier_id_changed? || variant.enterprise_id.blank?
+    }
 
     before_save :assign_units, if: ->(variant) {
       variant.new_record? || variant.changed_attributes.keys.intersection(NAME_FIELDS).any?
@@ -89,16 +123,19 @@ module Spree
     after_create :create_stock_items
     around_destroy :destruction
     after_save :save_default_price
+    after_save :update_units, if: -> {
+      saved_change_to_variant_unit? || saved_change_to_variant_unit_name?
+    }
 
     # default variant scope only lists non-deleted variants
-    scope :deleted, lambda { where.not(deleted_at: nil) }
+    scope :deleted, -> { where.not(deleted_at: nil) }
 
     scope :with_order_cycles_inner, -> { joins(exchanges: :order_cycle) }
 
     scope :in_order_cycle, lambda { |order_cycle|
       with_order_cycles_inner.
         merge(Exchange.outgoing).
-        where('order_cycles.id = ?', order_cycle).
+        where(order_cycles: { id: order_cycle }).
         select('DISTINCT spree_variants.*')
     }
 
@@ -110,8 +147,8 @@ module Spree
     }
 
     scope :for_distribution, lambda { |order_cycle, distributor|
-      where('spree_variants.id IN (?)', order_cycle.variants_distributed_by(distributor).
-        select(&:id))
+      where(spree_variants: { id: order_cycle.variants_distributed_by(distributor).
+        select(&:id) })
     }
 
     scope :visible_for, lambda { |enterprise|
@@ -136,19 +173,17 @@ module Spree
         .where("o_inventory_items.id IS NULL OR o_inventory_items.visible = (?)", true)
     }
 
-    scope :stockable_by, lambda { |enterprise|
-      return where("1=0") if enterprise.blank?
-
-      joins(:product).
-        where(spree_products: { id: Spree::Product.stockable_by(enterprise).pluck(:id) })
+    scope :with_properties, lambda { |property_ids|
+      left_outer_joins(:supplier_properties).
+        where(producer_properties: { property_id: property_ids })
     }
 
     # Define sope as class method to allow chaining with other scopes filtering id.
     # In Rails 3, merging two scopes on the same column will consider only the last scope.
     def self.in_distributor(distributor)
       where(id: ExchangeVariant.select(:variant_id).
-                joins(:exchange).
-                where('exchanges.incoming = ? AND exchanges.receiver_id = ?', false, distributor))
+        joins(:exchange).
+        where('exchanges.incoming = ? AND exchanges.receiver_id = ?', false, distributor))
     end
 
     def self.indexed
@@ -158,12 +193,17 @@ module Spree
     def self.active(currency = nil)
       # "where(id:" is necessary so that the returned relation has no includes
       # The relation without includes will not be readonly and allow updates on it
-      where("spree_variants.id in (?)", joins(:prices).
-                                          where(deleted_at: nil).
-                                          where('spree_prices.currency' =>
-                                            currency || Spree::Config[:currency]).
-                                          where.not(spree_prices: { amount: nil }).
-                                          select("spree_variants.id"))
+      where(spree_variants: { id: joins(:prices).
+        where(deleted_at: nil).
+        where('spree_prices.currency' =>
+                                            currency || CurrentConfig.get(:currency)).
+        where.not(spree_prices: { amount: nil }).
+        select("spree_variants.id") })
+    end
+
+    def self.linked_to(semantic_id)
+      includes(:semantic_links).references(:semantic_links)
+        .where(semantic_links: { semantic_id: }).first
     end
 
     def tax_category
@@ -196,6 +236,11 @@ module Spree
       price_in(currency).try(:amount)
     end
 
+    def changed?
+      # We consider the variant changed if associated price is changed (it is saved after_save)
+      super || default_price.changed?
+    end
+
     # can_supply? is implemented in VariantStock
     def in_stock?(quantity = 1)
       can_supply?(quantity)
@@ -205,12 +250,58 @@ module Spree
       Spree::Stock::Quantifier.new(self).total_on_hand
     end
 
+    # Format as per WeightsAndMeasures
+    def variant_unit_with_scale
+      # Our code is based upon English based number formatting with a period `.`
+      scale_clean = ActiveSupport::NumberHelper.number_to_rounded(variant_unit_scale,
+                                                                  precision: nil,
+                                                                  significant: false,
+                                                                  strip_insignificant_zeros: true,
+                                                                  locale: :en)
+      [variant_unit, scale_clean].compact_blank.join("_")
+    end
+
+    def variant_unit_with_scale=(variant_unit_with_scale)
+      values = variant_unit_with_scale.split("_")
+      assign_attributes(
+        variant_unit: values[0],
+        variant_unit_scale: values[1] || nil
+      )
+    end
+
+    # aiming to deal with UI that deals with 0/"0"/1/"1"
+    def on_demand_desired=(val)
+      @on_demand_desired = ActiveModel::Type::Boolean.new.cast(val)
+    end
+
+    def on_hand_desired=(val)
+      @on_hand_desired = ActiveModel::Type::Integer.new.cast(val)
+    end
+
+    # Clone this variant, retaining a 'source' link to it
+    def create_linked_variant(user)
+      # Hub owner is my enterprise which has permission to create variant sourced from that supplier
+      hub_id = EnterpriseRelationship.permitted_by(supplier).permitting(user.enterprises)
+        .with_permission(:create_linked_variants)
+        .pick(:child_id)
+
+      dup.tap do |variant|
+        variant.price = price
+        variant.source_variants = [self]
+        variant.stock_items << Spree::StockItem.new(variant:)
+        variant.hub_id = hub_id
+        variant.on_demand = on_demand
+        variant.on_hand = on_hand
+        variant.save!
+      end
+    end
+
     private
 
     def check_currency
       return unless currency.nil?
 
-      self.currency = Spree::Config[:currency]
+      self.currency = CurrentConfig.get(:currency)
     end
 
     def save_default_price
@@ -222,29 +313,37 @@ module Spree
     end
 
     def set_cost_currency
-      self.cost_currency = Spree::Config[:currency] if cost_currency.blank?
+      self.cost_currency = CurrentConfig.get(:currency) if cost_currency.blank?
     end
 
     def create_stock_items
-      StockLocation.all.find_each do |stock_location|
-        stock_location.propagate_variant(self)
-      end
+      return unless stock_items.empty?
+
+      stock_items.create!
     end
 
     def update_weight_from_unit_value
-      return unless product.variant_unit == 'weight' && unit_value.present?
+      return unless variant_unit == 'weight' && unit_value.present?
 
       self.weight = weight_from_unit_value
     end
 
     def destruction
-      exchange_variants.reload.destroy_all
-      yield
+      transaction do
+        # Even tough Enterprise will touch associated variant distributors when touched,
+        # the variant will be removed from the exchange by the time it's triggered,
+        # so it won't be able to find the deleted variant's distributors.
+        # This why we do it here
+        touch_distributors
+
+        exchange_variants.reload.destroy_all
+        yield
+      end
     end
 
     def ensure_unit_value
-      Bugsnag.notify("Trying to set unit_value to NaN") if unit_value&.nan?
-      return unless (product&.variant_unit == "items" && unit_value.nil?) || unit_value&.nan?
+      Alert.raise("Trying to set unit_value to NaN") if unit_value&.nan?
+      return unless (variant_unit == "items" && unit_value.nil?) || unit_value&.nan?
 
       self.unit_value = 1.0
     end
@@ -253,8 +352,16 @@ module Spree
       self.shipping_category ||= DefaultShippingCategory.find_or_create
     end
 
+    def copy_supplier_to_enterprise
+      self.enterprise_id = supplier_id
+    end
+
     def convert_variant_weight_to_decimal
       self.weight = weight.to_d
+    end
+
+    def touch_distributors
+      Enterprise.distributing_variants(id).each(&:touch)
     end
   end
 end

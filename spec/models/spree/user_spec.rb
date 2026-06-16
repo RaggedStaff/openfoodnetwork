@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Spree::User do
+RSpec.describe Spree::User do
   describe "associations" do
     it { is_expected.to have_many(:owned_enterprises) }
     it { is_expected.to have_many(:webhook_endpoints).dependent(:destroy) }
@@ -19,7 +17,7 @@ describe Spree::User do
             bill_address_attributes: new_bill_address.dup.attributes.merge(
               'id' => old_bill_address.id
             )
-            .except!('created_at', 'updated_at')
+              .except!('created_at', 'updated_at')
           )
 
           expect(user.bill_address.id).to eq old_bill_address.id
@@ -52,7 +50,7 @@ describe Spree::User do
       it "enforces the limit on the number of enterprise owned" do
         expect(u2.owned_enterprises.reload).to eq []
         u2.owned_enterprises << e1
-        expect { u2.save! }.to_not raise_error
+        expect { u2.save! }.not_to raise_error
         expect do
           u2.owned_enterprises << e2
           u2.save!
@@ -92,13 +90,13 @@ describe Spree::User do
 
     it "detects emails without @" do
       user.email = "examplemail.com"
-      expect(user).to_not be_valid
+      expect(user).not_to be_valid
       expect(user.errors.messages[:email]).to include "is invalid"
     end
 
     it "detects backslashes at the end" do
       user.email = "example@gmail.com\\\\"
-      expect(user).to_not be_valid
+      expect(user).not_to be_valid
     end
 
     it "is okay with numbers before the @" do
@@ -111,7 +109,7 @@ describe Spree::User do
       # valid, the network requests slow down tests and could make them flaky.
       expect_any_instance_of(ValidEmail2::Address).to receive(:valid_mx?).and_call_original
       user.email = "example@ho020tmail.com"
-      expect(user).to_not be_valid
+      expect(user).not_to be_valid
     end
   end
 
@@ -164,10 +162,10 @@ describe Spree::User do
     describe "as an enterprise user" do
       it "returns a list of users which manage shared enterprises" do
         expect(u1.known_users).to include u1, u2
-        expect(u1.known_users).to_not include u3
+        expect(u1.known_users).not_to include u3
         expect(u2.known_users).to include u1, u2
-        expect(u2.known_users).to_not include u3
-        expect(u3.known_users).to_not include u1, u2, u3
+        expect(u2.known_users).not_to include u3
+        expect(u3.known_users).not_to include u1, u2, u3
       end
     end
 
@@ -209,11 +207,11 @@ describe Spree::User do
   end
 
   describe '#admin?' do
-    it 'returns true when the user has an admin spree role' do
+    it 'returns true when the user has an admin role' do
       expect(create(:admin_user).admin?).to be_truthy
     end
 
-    it 'returns false when the user does not have an admin spree role' do
+    it 'returns false when the user does not have an admin role' do
       expect(create(:user).admin?).to eq(false)
     end
   end
@@ -266,6 +264,72 @@ describe Spree::User do
       user = Spree::User.new(disabled_at: Time.zone.now)
       user.disabled = '0'
       expect(user.disabled).to be_falsey
+    end
+  end
+
+  describe "#affiliate_enterprises" do
+    let(:user) { create(:user) }
+    let(:affiliate_enterprise) { create(:enterprise) }
+    let(:other_connected_enterprise) { create(:enterprise) }
+    let(:other_enterprise) { create(:enterprise) }
+    subject{ user.affiliate_enterprises }
+
+    before do
+      ConnectedApps::AffiliateSalesData.create(enterprise: affiliate_enterprise, data: true)
+      ConnectedApp.create(enterprise: other_connected_enterprise, data: true)
+    end
+
+    context "user does not have feature" do
+      it { is_expected.to be_empty }
+    end
+
+    context "user has feature affiliate_sales_data" do
+      before do
+        Flipper.enable_actor(:affiliate_sales_data, user)
+        user.reload
+      end
+
+      it "includes only affiliate enterprises" do
+        is_expected.to include affiliate_enterprise
+        is_expected.not_to include other_connected_enterprise
+        is_expected.not_to include other_enterprise
+      end
+    end
+  end
+
+  describe "#can_manage_line_items_in_orders_only?" do
+    let(:producer) { create(:supplier_enterprise) }
+    let(:order) { create(:order, distributor:) }
+
+    subject { user.can_manage_line_items_in_orders_only? }
+
+    context "when user has producer" do
+      let(:user) { create(:user, enterprises: [producer]) }
+
+      context "order containing their product" do
+        before do
+          order.line_items << create(:line_item,
+                                     product: create(:product, supplier_id: producer.id))
+        end
+        context "order distributor allow producer to edit orders" do
+          let(:distributor) do
+            create(:distributor_enterprise, enable_producers_to_edit_orders: true)
+          end
+
+          it { is_expected.to be_truthy }
+        end
+
+        context "order distributor doesn't allow producer to edit orders" do
+          let(:distributor) { create(:distributor_enterprise) }
+          it { is_expected.to be_falsey }
+        end
+      end
+    end
+
+    context "no order containing their product" do
+      let(:user) { create(:user, enterprises: [create(:distributor_enterprise)]) }
+
+      it { is_expected.to be_falsey }
     end
   end
 end

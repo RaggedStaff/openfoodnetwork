@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
-
-describe Api::Admin::OrderCycleSerializer do
+RSpec.describe Api::Admin::OrderCycleSerializer do
   let(:order_cycle) { create(:order_cycle) }
   let(:serializer) {
     Api::Admin::OrderCycleSerializer.new order_cycle,
@@ -22,7 +20,7 @@ describe Api::Admin::OrderCycleSerializer do
     variant_ids = from_json(serializer.editable_variants_for_incoming_exchanges).values.flatten
 
     expect(variant_ids).to include order_cycle.variants.first.id
-    expect(distributor_ids).to_not include order_cycle.distributors.first.id.to_s
+    expect(distributor_ids).not_to include order_cycle.distributors.first.id.to_s
   end
 
   it "serializes the order cycle with editable_variants_for_outgoing_exchanges" do

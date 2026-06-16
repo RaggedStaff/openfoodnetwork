@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe UploadSanitizer do
+RSpec.describe UploadSanitizer do
   describe "#call" do
     let(:upload) do
       File.open("/tmp/unsanitized.csv", 'wb:ascii-8bit') do |f|

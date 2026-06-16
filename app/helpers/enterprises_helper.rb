@@ -12,11 +12,11 @@ module EnterprisesHelper
   end
 
   def available_shipping_methods
-    OrderAvailableShippingMethods.new(current_order, current_customer).to_a
+    Orders::AvailableShippingMethodsService.new(current_order, current_customer).to_a
   end
 
   def available_payment_methods
-    OrderAvailablePaymentMethods.new(current_order, current_customer).to_a
+    Orders::AvailablePaymentMethodsService.new(current_order, current_customer).to_a
   end
 
   def managed_enterprises
@@ -31,7 +31,7 @@ module EnterprisesHelper
 
   def enterprises_options(enterprises)
     enterprises.map { |enterprise|
-      [enterprise.name + ": " + enterprise.address.address1 + ", " + enterprise.address.city,
+      ["#{enterprise.name}: #{enterprise.address.address1}, #{enterprise.address.city}",
        enterprise.id.to_i]
     }
   end
@@ -63,8 +63,11 @@ module EnterprisesHelper
     url = object_url(enterprise)
     name = t(:delete)
     options = {}
-    options[:class] = "delete-resource"
-    options[:data] = { action: 'remove', confirm: enterprise_confirm_delete_message(enterprise) }
+    options[:data] = {
+      turbo: true,
+      'turbo-method': 'delete',
+      'turbo-confirm': enterprise_confirm_delete_message(enterprise)
+    }
     link_to_with_icon 'icon-trash', name, url, options
   end
 

@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe '
+RSpec.describe '
     As a consumer
     I want to see a list of producers
     So that I can shop at hubs distributing their products
@@ -19,10 +19,10 @@ describe '
   let(:taxon_veg) { create(:taxon, name: 'Vegetables') }
 
   let!(:product1) {
-    create(:simple_product, supplier: producer1, primary_taxon: taxon_fruit)
+    create(:simple_product, supplier_id: producer1.id, primary_taxon: taxon_fruit)
   }
   let!(:product2) {
-    create(:simple_product, supplier: producer2, primary_taxon: taxon_veg)
+    create(:simple_product, supplier_id: producer2.id, primary_taxon: taxon_veg)
   }
 
   let(:shop) { create(:distributor_enterprise) }

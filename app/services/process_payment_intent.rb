@@ -5,7 +5,7 @@
 # /checkout; for admin payments and subscription payemnts it's the order url.
 #
 # This class confirms that the payment intent matches what's in our database,
-# marks the payment as complete, and removes the cvv_response_message field,
+# marks the payment as complete, and removes the redirect_auth_url field,
 # which we use to indicate that authorization is required. It also completes the
 # Order, if appropriate.
 
@@ -13,13 +13,13 @@ class ProcessPaymentIntent
   class Result
     attr_reader :error
 
-    def initialize(ok:, error: "")
-      @ok = ok
+    def initialize(success:, error: "")
+      @success = success
       @error = error
     end
 
-    def ok?
-      @ok
+    def success?
+      @success
     end
   end
 
@@ -30,8 +30,8 @@ class ProcessPaymentIntent
   end
 
   def call!
-    return Result.new(ok: false) unless payment.present? && ready_for_capture?
-    return Result.new(ok: true) if already_processed?
+    return Result.new(success: false) unless payment.present? && ready_for_capture?
+    return Result.new(success: true) if already_processed?
 
     process_payment
 
@@ -39,16 +39,16 @@ class ProcessPaymentIntent
       payment.complete_authorization
       payment.clear_authorization_url
 
-      Result.new(ok: true)
+      Result.new(success: true)
     else
       payment.fail_authorization
       payment.clear_authorization_url
-      Result.new(ok: false, error: I18n.t("payment_could_not_complete"))
+      Result.new(success: false, error: I18n.t("payment_could_not_complete"))
     end
   rescue Stripe::StripeError => e
     payment.fail_authorization
     payment.clear_authorization_url
-    Result.new(ok: false, error: e.message)
+    Result.new(success: false, error: e.message)
   end
 
   private
@@ -58,7 +58,7 @@ class ProcessPaymentIntent
   def process_payment
     return unless order.process_payments!
 
-    OrderWorkflow.new(order).complete
+    Orders::WorkflowService.new(order).complete
   end
 
   def ready_for_capture?

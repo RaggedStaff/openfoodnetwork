@@ -12,7 +12,7 @@ module Spree
                     id: "#{model}_#{method}_field")
       end
 
-      def error_message_on(object, method, _options = {})
+      def error_message_on(object, method, options = {})
         object = convert_to_model(object)
         obj = object.respond_to?(:errors) ? object : instance_variable_get("@#{object}")
 
@@ -20,7 +20,7 @@ module Spree
           # rubocop:disable Rails/OutputSafety
           errors = obj.errors[method].map { |err| h(err) }.join('<br />').html_safe
           # rubocop:enable Rails/OutputSafety
-          content_tag(:span, errors, class: 'formError')
+          content_tag(:span, errors, class: 'formError', **options)
         else
           ''
         end
@@ -33,8 +33,6 @@ module Spree
         when :boolean
           hidden_field_tag(name, 0) +
             check_box_tag(name, 1, value, preference_field_options(options))
-        when :string
-          text_field_tag(name, value, preference_field_options(options))
         when :password
           password_field_tag(name, value, preference_field_options(options))
         when :text
@@ -82,26 +80,22 @@ module Spree
         field_options =
           case options[:type]
           when :integer
-            { size: 10, class: 'input_integer', step: 1 }
+            { class: 'input_integer', step: 1 }
           when :decimal
             # Allow any number of decimal places
-            { size: 10, class: 'input_integer', step: :any }
+            { class: 'input_integer', step: :any }
           when :boolean
             {}
-          when :string
-            { size: 10, class: 'input_string fullwidth' }
           when :password
-            { size: 10, class: 'password_string fullwidth' }
+            { class: 'password_string fullwidth' }
           when :text
             { rows: 15, cols: 85, class: 'fullwidth' }
           else
-            { size: 10, class: 'input_string fullwidth' }
+            { class: 'input_string fullwidth' }
           end
 
         field_options.merge!(
-          readonly: options[:readonly],
-          disabled: options[:disabled],
-          size: options[:size]
+          options.slice(:autocomplete, :readonly, :disabled, :size)
         )
       end
 
@@ -112,11 +106,12 @@ module Spree
 
         object.preferences.keys.map { |key|
           preference_label = form.label("preferred_#{key}",
-                                        Spree.t(key.to_s.gsub("_from_list", "")) + ": ")
+                                        "#{Spree.t(key.to_s.gsub('_from_list', ''))}: ")
+          field_options = { type: object.preference_type(key), autocomplete: "off" }
           preference_field = preference_field_for(
             form,
             "preferred_#{key}",
-            { type: object.preference_type(key) }, object
+            field_options, object
           )
           { label: preference_label, field: preference_field }
         }
@@ -124,7 +119,7 @@ module Spree
 
       def link_to_add_fields(name, target, options = {})
         name = '' if options[:no_text]
-        css_classes = options[:class] ? options[:class] + " spree_add_fields" : "spree_add_fields"
+        css_classes = options[:class] ? "#{options[:class]} spree_add_fields" : "spree_add_fields"
         link_to_with_icon('icon-plus',
                           name,
                           'javascript:',
@@ -149,6 +144,10 @@ module Spree
 
       def spree_dom_id(record)
         dom_id(record, 'spree')
+      end
+
+      def inventory_enabled?(enterprises)
+        !feature?(:variant_tag, *enterprises) && feature?(:inventory, *enterprises)
       end
 
       private

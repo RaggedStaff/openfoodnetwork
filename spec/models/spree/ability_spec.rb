@@ -1,29 +1,18 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
 require 'cancan/matchers'
 require 'support/ability_helpers'
 
-describe Spree::Ability do
+RSpec.describe Spree::Ability do
   let(:user) { create(:user) }
   let(:subject) { Spree::Ability.new(user) }
   let(:token) { nil }
-
-  before do
-    user.spree_roles.clear
-  end
-
-  TOKEN = 'token123'
-
-  after(:each) {
-    user.spree_roles = []
-  }
 
   context 'for general resource' do
     let(:resource) { Object.new }
 
     context 'with admin user' do
-      before(:each) { allow(user).to receive(:has_spree_role?).and_return(true) }
+      before(:each) { allow(user).to receive(:admin?).and_return(true) }
       it_should_behave_like 'access granted'
       it_should_behave_like 'index allowed'
     end
@@ -44,8 +33,10 @@ describe Spree::Ability do
     let(:fakedispatch_ability) { Spree::Ability.new(fakedispatch_user) }
 
     context 'with admin user' do
+      let(:user) { create(:admin_user) }
+
       it 'should be able to admin' do
-        user.spree_roles << Spree::Role.find_or_create_by(name: 'admin')
+        user.update!(admin: true)
         expect(subject).to be_able_to :admin, resource
         expect(subject).to be_able_to :index, resource_order
         expect(subject).to be_able_to :show, resource_product
@@ -55,10 +46,10 @@ describe Spree::Ability do
 
     context 'with customer' do
       it 'should not be able to admin' do
-        expect(subject).to_not be_able_to :admin, resource
-        expect(subject).to_not be_able_to :admin, resource_order
-        expect(subject).to_not be_able_to :admin, resource_product
-        expect(subject).to_not be_able_to :admin, resource_user
+        expect(subject).not_to be_able_to :admin, resource
+        expect(subject).not_to be_able_to :admin, resource_order
+        expect(subject).not_to be_able_to :admin, resource_product
+        expect(subject).not_to be_able_to :admin, resource_user
       end
     end
   end
@@ -99,22 +90,15 @@ describe Spree::Ability do
       end
     end
 
-    context 'for Product' do
-      let(:resource) { Spree::Product.new }
-      context 'requested by any user' do
-        it_should_behave_like 'read only'
-      end
-    end
-
     context 'for ProductProperty' do
-      let(:resource) { Spree::Product.new }
+      let(:resource) { Spree::ProductProperty.new }
       context 'requested by any user' do
         it_should_behave_like 'read only'
       end
     end
 
     context 'for Property' do
-      let(:resource) { Spree::Product.new }
+      let(:resource) { Spree::Property.new }
       context 'requested by any user' do
         it_should_behave_like 'read only'
       end
@@ -134,29 +118,8 @@ describe Spree::Ability do
       end
     end
 
-    context 'for StockLocation' do
-      let(:resource) { Spree::StockLocation.new }
-      context 'requested by any user' do
-        it_should_behave_like 'read only'
-      end
-    end
-
-    context 'for StockMovement' do
-      let(:resource) { Spree::StockMovement.new }
-      context 'requested by any user' do
-        it_should_behave_like 'read only'
-      end
-    end
-
     context 'for Taxons' do
       let(:resource) { Spree::Taxon.new }
-      context 'requested by any user' do
-        it_should_behave_like 'read only'
-      end
-    end
-
-    context 'for Taxonomy' do
-      let(:resource) { Spree::Taxonomy.new }
       context 'requested by any user' do
         it_should_behave_like 'read only'
       end
@@ -269,6 +232,24 @@ describe Spree::Ability do
         it { expect(subject.can_manage_enterprises?(user)).to be true }
         it { expect(subject.can_manage_orders?(user)).to be false }
         it { expect(subject.can_manage_order_cycles?(user)).to be false }
+
+        context "with no distributor allows me to edit orders" do
+          it { expect(subject.can_manage_orders?(user)).to be false }
+          it { expect(subject.can_manage_line_items_in_orders?(user)).to be false }
+        end
+
+        context "with any distributor allows me to edit orders containing my product" do
+          before do
+            order = create(
+              :order_with_line_items,
+              line_items_count: 1,
+              distributor: create(:distributor_enterprise, enable_producers_to_edit_orders: true)
+            )
+            order.line_items.first.variant.update!(supplier_id: enterprise_none_producer.id)
+          end
+
+          it { expect(subject.can_manage_line_items_in_orders?(user)).to be true }
+        end
       end
 
       context "as a profile" do
@@ -289,6 +270,7 @@ describe Spree::Ability do
       it { expect(subject.can_manage_products?(user)).to be false }
       it { expect(subject.can_manage_enterprises?(user)).to be false }
       it { expect(subject.can_manage_orders?(user)).to be false }
+      it { expect(subject.can_manage_line_items_in_orders?(user)).to be false }
       it { expect(subject.can_manage_order_cycles?(user)).to be false }
 
       it "can create enterprises straight off the bat" do
@@ -306,9 +288,9 @@ describe Spree::Ability do
     let(:d1) { create(:distributor_enterprise) }
     let(:d2) { create(:distributor_enterprise) }
 
-    let(:p1) { create(:product, supplier: s1) }
-    let(:p2) { create(:product, supplier: s2) }
-    let(:p_related) { create(:product, supplier: s_related) }
+    let(:p1) { create(:product, supplier_id: s1.id) }
+    let(:p2) { create(:product, supplier_id: s2.id) }
+    let(:p_related) { create(:product, supplier_id: s_related.id) }
 
     let(:er1) { create(:enterprise_relationship, parent: s1, child: d1) }
     let(:er2) { create(:enterprise_relationship, parent: d1, child: s1) }
@@ -326,7 +308,6 @@ describe Spree::Ability do
       # create supplier_enterprise1 user without full admin access
       let(:user) do
         user = create(:user)
-        user.spree_roles = []
         s1.enterprise_roles.build(user:).save
         user
       end
@@ -340,6 +321,29 @@ describe Spree::Ability do
           [:admin, :index, :read, :edit, :update, :search, :destroy,
            :delete], for: p1.variants.first
         )
+      end
+
+      context "with mutiple variant with different supplier" do
+        let(:product1) { create(:product, supplier_id: create(:supplier_enterprise).id) }
+        let(:product1_other_variant) { create(:variant, product: product1, supplier: s1) }
+
+        it "is able to read/write their enterprises' products and variants" do
+          product1_other_variant
+
+          is_expected.to have_ability([:admin, :read, :update, :bulk_update, :clone, :destroy],
+                                      for: product1)
+
+          is_expected.to have_ability(
+            [:admin, :index, :read, :edit, :update, :search, :destroy,
+             :delete], for: product1.variants.last
+          )
+
+          # First variant belongs to another supplier
+          is_expected.not_to have_ability(
+            [:admin, :index, :read, :edit, :update, :search, :destroy,
+             :delete], for: product1.variants.first
+          )
+        end
       end
 
       it "should be able to read/write related enterprises' products " \
@@ -360,12 +364,39 @@ describe Spree::Ability do
                                         for: p2.variants.first)
       end
 
+      describe "create_linked_variant" do
+        it "should not be able to create linked variant without permission" do
+          is_expected.not_to have_ability([:create_linked_variant], for: p_related.variants.first)
+        end
+
+        it "should be able to create linked variant when granted permission" do
+          create(:enterprise_relationship, parent: s_related, child: s1,
+                                           permissions_list: [:create_linked_variants])
+
+          is_expected.to have_ability([:create_linked_variant], for: p_related.variants.first)
+        end
+      end
+
       it "should not be able to access admin actions on orders" do
         is_expected.not_to have_ability([:admin], for: Spree::Order)
       end
 
       it "should be able to create a new product" do
         is_expected.to have_ability(:create, for: Spree::Product)
+      end
+
+      it "should be able to read/write their enterprises' products" do
+        is_expected.to have_ability(
+          [:admin, :read, :index, :update, :seo, :group_buy_options, :bulk_update, :clone, :delete,
+           :destroy], for: p1
+        )
+      end
+
+      it "should not be able to read/write other enterprises' products" do
+        is_expected.not_to have_ability(
+          [:admin, :read, :index, :update, :seo, :group_buy_options, :bulk_update, :clone, :delete,
+           :destroy], for: p2
+        )
       end
 
       it "should be able to read/write their enterprises' product variants" do
@@ -424,7 +455,7 @@ describe Spree::Ability do
 
       it "should be able to read some reports" do
         is_expected.to have_ability(
-          [:admin, :index, :show], for: Admin::ReportsController
+          [:admin, :index, :show, :create], for: Admin::ReportsController
         )
         is_expected.to have_ability(
           [:customers, :bulk_coop, :orders_and_fulfillment, :products_and_inventory,
@@ -496,7 +527,6 @@ describe Spree::Ability do
     context "when is a distributor enterprise user" do
       let(:user) do
         user = create(:user)
-        user.spree_roles = []
         d1.enterprise_roles.build(user:).save
         user
       end
@@ -554,7 +584,7 @@ describe Spree::Ability do
         end
       end
 
-      describe "variant overrides" do
+      describe "variant overrides", feature: :inventory do
         let(:vo1) { create(:variant_override, hub: d1, variant: p1.variants.first) }
         let(:vo2) { create(:variant_override, hub: d1, variant: p2.variants.first) }
         let(:vo3) { create(:variant_override, hub: d2, variant: p1.variants.first) }
@@ -617,6 +647,12 @@ describe Spree::Ability do
                                     for: Spree::Payment)
       end
 
+      it "is able to credit a customer" do
+        is_expected.to have_ability([:credit_customer], for: Spree::Order)
+        is_expected.to have_ability([:bulk_credit], for: Spree::Order)
+        is_expected.to have_ability([:credit_customer], for: Spree::Payment)
+      end
+
       it "should be able to read/write Shipments on a product" do
         is_expected.to have_ability([:admin, :index, :read, :create, :edit, :update, :fire],
                                     for: Spree::Shipment)
@@ -660,7 +696,7 @@ describe Spree::Ability do
 
       it "should be able to read some reports" do
         is_expected.to have_ability(
-          [:admin, :index, :show], for: Admin::ReportsController
+          [:admin, :index, :show, :create], for: Admin::ReportsController
         )
         is_expected.to have_ability(
           [:customers, :sales_tax, :group_buys, :bulk_coop, :payments,
@@ -678,6 +714,10 @@ describe Spree::Ability do
 
       it "should be able to access customer actions" do
         is_expected.to have_ability([:admin, :index, :update], for: Customer)
+      end
+
+      it "is able to read/write customer account transaction" do
+        is_expected.to have_ability([:admin, :index, :create], for: CustomerAccountTransaction)
       end
 
       context "for a given order_cycle" do
@@ -703,12 +743,24 @@ describe Spree::Ability do
       it "can request permitted enterprise fees for an order cycle" do
         is_expected.to have_ability([:for_order_cycle], for: EnterpriseFee)
       end
+
+      describe "create_linked_variant" do
+        it "should not be able to create linked variant without permission" do
+          is_expected.not_to have_ability([:create_linked_variant], for: p_related.variants.first)
+        end
+
+        it "should be able to create linked variant when granted permission" do
+          create(:enterprise_relationship, parent: s_related, child: d1,
+                                           permissions_list: [:create_linked_variants])
+
+          is_expected.to have_ability([:create_linked_variant], for: p_related.variants.first)
+        end
+      end
     end
 
     context 'Order Cycle co-ordinator, distributor enterprise manager' do
       let(:user) do
         user = create(:user)
-        user.spree_roles = []
         d1.enterprise_roles.build(user:).save
         user
       end
@@ -747,7 +799,6 @@ describe Spree::Ability do
     context 'enterprise manager' do
       let(:user) do
         user = create(:user)
-        user.spree_roles = []
         s1.enterprise_roles.build(user:).save
         user
       end
@@ -780,6 +831,19 @@ describe Spree::Ability do
       it "has the ability to manage vouchers" do
         is_expected.to have_ability([:admin, :create], for: Voucher)
       end
+
+      describe "create_linked_variant for own enterprise" do
+        it "should not be able to create own sourced variant without permission" do
+          is_expected.not_to have_ability([:create_linked_variant], for: p1.variants.first)
+        end
+
+        it "should be able to create own sourced variant when granted self permission" do
+          create(:enterprise_relationship, parent: s1, child: s1,
+                                           permissions_list: [:create_linked_variants])
+
+          is_expected.to have_ability([:create_linked_variant], for: p1.variants.first)
+        end
+      end
     end
 
     context 'enterprise owner' do
@@ -795,11 +859,10 @@ describe Spree::Ability do
     end
   end
 
-  describe "permissions for variant overrides" do
+  describe "permissions for variant overrides", feature: :inventory do
     let!(:distributor) { create(:distributor_enterprise) }
     let!(:producer) { create(:supplier_enterprise) }
-    let!(:product) { create(:product, supplier: producer) }
-    let!(:variant) { create(:variant, product:) }
+    let!(:variant) { create(:variant, supplier: producer) }
     let!(:variant_override) { create(:variant_override, hub: distributor, variant:) }
 
     subject { user }
@@ -807,7 +870,7 @@ describe Spree::Ability do
     let(:manage_actions) { [:admin, :index, :read, :update, :bulk_update, :bulk_reset] }
 
     describe "when admin" do
-      before { user.spree_roles << Spree::Role.find_or_create_by!(name: 'admin') }
+      let(:user) { create(:admin_user) }
 
       it "should have permission" do
         is_expected.to have_ability(manage_actions, for: variant_override)

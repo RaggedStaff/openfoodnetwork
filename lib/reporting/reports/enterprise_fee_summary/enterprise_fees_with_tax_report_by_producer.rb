@@ -7,7 +7,7 @@ module Reporting
         attr_accessor :permissions
 
         def initialize(user, params = {}, render: false)
-          super(user, params, render:)
+          super
           @permissions = Permissions.new(user)
         end
 
@@ -85,13 +85,14 @@ module Reporting
             query = order
               .all_adjustments
               .enterprise_fee
-              .where(originator_id: enterprise_fees_related_to_incoming_exchanges_ids(order))
+              .joins(:metadata)
+              .where(adjustment_metadata: { enterprise_role: 'supplier' })
 
             if enterprise_fee_filters?
               query = query.where(originator_id: enterprise_fee_filtered_ids)
             end
-            query.group('originator_id')
-              .pluck("originator_id", 'array_agg(id)')
+            query.group('spree_adjustments.id', 'originator_id')
+              .pluck("originator_id", 'array_agg(spree_adjustments.id)')
               .map do |enterprise_fee_id, enterprise_fee_adjustment_ids|
                 {
                   enterprise_fee_id:,
@@ -161,11 +162,9 @@ module Reporting
         # { variant: [enterprise_fee_ids] }
         def enterprise_fees_per_variant(order)
           hash = {}
-          order.order_cycle.exchanges.each do |exchange|
-            exchange.variants.each do |variant|
-              hash[variant] ||= order.order_cycle.coordinator_fee_ids
-              hash[variant] += exchange.enterprise_fee_ids
-            end
+          order.line_items.each do |li|
+            hash[li.variant] ||= order.order_cycle.coordinator_fee_ids
+            hash[li.variant] += li.adjustments.enterprise_fee.map(&:originator_id)
           end
           hash
         end
@@ -233,7 +232,7 @@ module Reporting
                 line_item.supplier_id == supplier_id
               end
 
-            tax_for_enterprise_fees = rows.map(&:tax).sum
+            tax_for_enterprise_fees = rows.map(&:tax).compact.sum
             total_excl_tax = total_fees_excl_tax(items) + line_items_excl_tax(line_items)
             tax = tax_for_enterprise_fees + tax_for_line_items(line_items)
             {
@@ -281,18 +280,18 @@ module Reporting
         end
 
         def line_items_excl_tax(line_items)
-          cost_of_line_items(line_items) - line_items.sum(&:included_tax)
+          cost_of_line_items(line_items) - line_items.map(&:included_tax).compact.sum
         end
 
         def cost_of_line_items(line_items)
-          line_items.sum(&:amount)
+          line_items.map(&:amount).compact.sum
         end
 
         # This query gets called twice for each set of line_items, ideally it would be cached.
         def tax_for_line_items(line_items)
           line_items.map do |line_item|
-            line_item.adjustments.eligible.tax.sum('amount')
-          end.sum
+            line_item.adjustments.eligible.tax.map(&:amount).sum(&:to_f)
+          end.compact.sum
         end
 
         def included_tax_for_order_ids(order_ids, enterprise_fee_ids)

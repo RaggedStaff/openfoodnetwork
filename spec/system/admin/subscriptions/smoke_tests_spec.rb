@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe 'Subscriptions' do
+RSpec.describe 'Subscriptions' do
   include AdminHelper
   include AuthenticationHelper
   include WebHelper
@@ -33,7 +33,7 @@ describe 'Subscriptions' do
           expect(page).to have_content "Just a few more steps before you can begin"
 
           # subscriptions are enabled, instructions are not displayed
-          expect(page).to_not have_content 'Under "Shop Preferences", /
+          expect(page).not_to have_content 'Under "Shop Preferences", /
           enable the Subscriptions option'
 
           # other relevant instructions are displayed
@@ -54,20 +54,20 @@ describe 'Subscriptions' do
         end
         it "the subscriptions tab is not visible" do
           expect(page).to have_current_path "/admin/orders"
-          expect(page).to_not have_link "Subscriptions", href: "/admin/subscriptions"
+          expect(page).not_to have_link "Subscriptions", href: "/admin/subscriptions"
         end
       end
     end
 
     describe "with an inactive order cycle" do
       let!(:customer) { create(:customer, enterprise: shop) }
-      let!(:product1) { create(:product, supplier: shop) }
-      let!(:product2) { create(:product, supplier: shop) }
+      let!(:product1) { create(:product, supplier_id: shop.id) }
+      let!(:product2) { create(:product, supplier_id: shop.id) }
       let!(:variant1) {
-        create(:variant, product: product1, unit_value: '100', price: 12.00)
+        create(:variant, product: product1, unit_value: '100', price: 12.00, supplier: shop)
       }
       let!(:variant2) {
-        create(:variant, product: product2, unit_value: '1000', price: 6.00)
+        create(:variant, product: product2, unit_value: '1000', price: 6.00, supplier: shop)
       }
       let!(:enterprise_fee) { create(:enterprise_fee, amount: 1.75) }
       let!(:order_cycle) {
@@ -122,7 +122,7 @@ describe 'Subscriptions' do
         # update orders close
         find('#order_cycle_orders_close_at').click
 
-        select_datetime_from_datepicker Time.zone.at(Time.zone.local(2040, 10, 24, 17, 0o0, 0o0))
+        select_datetime_from_datepicker Time.zone.at(1.month.from_now)
         find("body").send_keys(:escape)
 
         click_button 'Save'
@@ -146,19 +146,24 @@ describe 'Subscriptions' do
     describe "allowed variants" do
       let!(:customer) { create(:customer, enterprise: shop) }
       let!(:credit_card) { create(:stored_credit_card, user: customer.user) }
-      let!(:shop_product) { create(:product, supplier: shop) }
-      let!(:shop_product2) { create(:product, supplier: shop) }
-      let!(:shop_variant) { create(:variant, product: shop_product, unit_value: "2000") }
-      let!(:shop_variant2) { create(:variant, product: shop_product2, unit_value: "1000") }
+      let!(:shop_product) { create(:product, supplier_id: shop.id) }
+      let!(:shop_product2) { create(:product, supplier_id: shop.id) }
+      let!(:shop_variant) {
+        create(:variant, product: shop_product, unit_value: "2000", supplier: shop)
+      }
+      let!(:shop_variant2) {
+        create(:variant, product: shop_product2, unit_value: "1000", supplier: shop)
+      }
       let!(:permitted_supplier) do
         create(:supplier_enterprise).tap do |supplier|
           create(:enterprise_relationship, child: shop, parent: supplier,
                                            permissions_list: [:add_to_order_cycle])
         end
       end
-      let!(:permitted_supplier_product) { create(:product, supplier: permitted_supplier) }
+      let!(:permitted_supplier_product) { create(:product, supplier_id: permitted_supplier.id) }
       let!(:permitted_supplier_variant) {
-        create(:variant, product: permitted_supplier_product, unit_value: "2000")
+        create(:variant, product: permitted_supplier_product, unit_value: "2000",
+                         supplier: permitted_supplier)
       }
       let!(:incoming_exchange_product) { create(:product) }
       let!(:incoming_exchange_variant) do
@@ -192,7 +197,7 @@ describe 'Subscriptions' do
         # Fill in other details
         fill_in_subscription_basic_details
         click_button "Next"
-        expect(page).to have_content "BILLING ADDRESS"
+        expect(page).to have_content "Billing Address"
         click_button "Next"
 
         # Add products
@@ -237,10 +242,19 @@ describe 'Subscriptions' do
         expect(page).to have_selector "#subscription-line-items .item", count: 4
 
         # Delete an existing product
-        login_as_admin
-        visit spree.admin_products_path
-        within "#p_#{shop_product2.id}" do
-          accept_alert { page.find("[data-powertip=Remove]").click }
+        visit admin_products_url
+
+        product_selector = row_containing_name(shop_product2.name)
+        delete_option_selector = "a[data-controller='modal-link'].delete"
+        delete_button_selector = "input[type=button][value='Delete product']"
+        modal_selector = "div[data-modal-target=modal]"
+
+        within product_selector do
+          page.find(".vertical-ellipsis-menu").click
+          page.find(delete_option_selector).click
+        end
+        within modal_selector do
+          click_button "Delete product"
         end
 
         visit edit_admin_subscription_path(subscription)

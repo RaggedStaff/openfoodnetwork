@@ -8,6 +8,8 @@ mr:
       spree/product: उत्पादन
       spree/shipping_method: शिपिंग पद्धत
     attributes:
+      spree/image:
+        attachment: ॲटॅचमेंट
       spree/order/ship_address:
         address1: "शिपिंग पत्ता (रस्ता + घर क्रमांक )"
         address2: "शिपिंग पत्ता लाईन 2 "
@@ -45,10 +47,12 @@ mr:
       spree/product:
         name: "उत्पादनाचे नांव"
         price: "किंमत"
-        primary_taxon: "उत्पादन श्रेणी"
-        supplier: "पुरवठादार"
+        primary_taxon_id: "उत्पादन श्रेणी"
         shipping_category_id: "शिपिंग श्रेणी"
-        variant_unit: "व्हेरिएंट युनिट"
+      spree/variant:
+        primary_taxon: "उत्पादन श्रेणी"
+        shipping_category_id: "शिपिंग श्रेणी"
+        supplier: "पुरवठादार"
         variant_unit_name: "वेरिएंट युनिटचे नाव"
         unit_value: "युनिट मूल्य"
       spree/credit_card:
@@ -76,8 +80,6 @@ mr:
         white_label_logo_link: "शॉपफ्रंटमध्ये वापरलेल्या लोगोची लिंक"
     errors:
       models:
-        enterprise_fee:
-          inherit_tax_requires_per_item_calculator: "कर श्रेणीचा वारसा मिळवण्यासाठी प्रति-आयटम कॅल्क्युलेटर आवश्यक आहे."
         spree/user:
           attributes:
             email:
@@ -97,34 +99,12 @@ mr:
         variant_override:
           count_on_hand:
             using_producer_stock_settings_but_count_on_hand_set: "उत्पादक स्टॉक सेटिंग्ज वापरल्याने रिक्त असणे आवश्यक आहे"
-            on_demand_but_count_on_hand_set: "मागणी केली असल्यास रिक्त असणे आवश्यक आहे"
             limited_stock_but_no_count_on_hand: "मर्यादित स्टॉकची सक्ती केल्यामुळे निर्दिष्ट करणे आवश्यक आहे"
       messages:
         confirmation: "%{attribute} जुळत नाही"
         blank: "रिक्त असू शकत नाही"
         too_short: "खूप छोटा आहे (किमान %{count} अक्षरे )"
   errors:
-    messages:
-      content_type_invalid: "सामग्री प्रकार अवैध आहे"
-      file_size_out_of_range: "आकार %{file_size} आवश्यक रेंज मध्ये नाही"
-      limit_out_of_range: "एकूण संख्या श्रेणीबाहेर आहे"
-      image_metadata_missing: "वैध इमेज़ नाही"
-      dimension_min_inclusion: "%{width} x %{height} पिक्सेल पेक्षा मोठे किंवा समान असणे आवश्यक आहे."
-      dimension_max_inclusion: "%{width} x %{height} पिक्सेल पेक्षा कमी किंवा समान असणे आवश्यक आहे."
-      dimension_width_inclusion: "रुंदी %{min} आणि %{max} पिक्सेल दरम्यान समाविष्ट केलेली नाही."
-      dimension_height_inclusion: "उंची %{min} आणि %{max} पिक्सेल च्या दरम्यान नाही."
-      dimension_width_greater_than_or_equal_to: "रुंदी %{length} पिक्सेलपेक्षा जास्त किंवा समान असणे आवश्यक आहे."
-      dimension_height_greater_than_or_equal_to: "उंची %{length} पिक्सेल पेक्षा जास्त किंवा समान असणे आवश्यक आहे."
-      dimension_width_less_than_or_equal_to: "रुंदी %{length} पिक्सेल पेक्षा कमी किंवा समान असणे आवश्यक आहे."
-      dimension_height_less_than_or_equal_to: "उंची %{length} पिक्सेल पेक्षा कमी किंवा समान असणे आवश्यक आहे."
-      dimension_width_equal_to: "रुंदी %{length} पिक्सेल इतकी असणे आवश्यक आहे."
-      dimension_height_equal_to: "उंची %{length} पिक्सेल इतकी असणे आवश्यक आहे."
-      aspect_ratio_not_square: "इमेज़ चौरसाकृती असावी"
-      aspect_ratio_not_portrait: "पोर्ट्रेट इमेज़ असणे आवश्यक आहे"
-      aspect_ratio_not_landscape: "लँडस्केप इमेज़ असणे आवश्यक आहे"
-      aspect_ratio_is_not: "%{aspect_ratio}  चा ॲस्पेक्ट रेशो आवश्यक आहे"
-      aspect_ratio_unknown: "ॲस्पेक्ट रेशो अज्ञात आहे"
-      image_not_processable: "वैध इमेज़ नाही"
     not_found:
       title: "आपण शोधत असलेले पृष्ठ अस्तित्वात नाही (404)"
       message_html: "<b>कृपया पुन्हा प्रयत्न करा</b><p> ही तात्पुरती समस्या असू शकते. कृपया मागील स्क्रीनवर परत जाण्यासाठी बॅक बटणावर क्लिक करा किंवा <a href='/'>होम</a> वर परत जा आणि पुन्हा प्रयत्न करा.</p> <b>ग्राहकसेवेशी संपर्क साधा</b><p> समस्या कायम राहिल्यास किंवा तातडीची असल्यास, कृपया आम्हाला त्याबद्दल सांगा. ग्लोबल <a href='https://openfoodnetwork.org/ofn-local/' target='blank'>ओपन फूड नेटवर्क लोकल पेजवरून</a> आमचे संपर्क तपशील शोधा.</p><p> गहाळ पृष्ठ कशाबद्दल आहे याबद्दल आपण शक्य तितके तपशील देऊ शकत असल्यास आम्हाला खूप मदत होईल.</p>"
@@ -134,7 +114,8 @@ mr:
     unprocessable_entity:
       title: "तुम्हाला हवा असलेला बदल नाकारण्यात आला (422)"
       message_html: "<p>तुम्हाला हवा असलेला बदल नाकारण्यात आला. कदाचित तुम्ही असे काहीतरी बदलण्याचा प्रयत्न केला आहे ज्यामध्ये तुम्हाला प्रवेश नाही.<br><h3> <a href='/' >होम मध्ये परता</a></h3></p>"
-    stimulus_reflex_error: "क्षमस्व, पण काहीतरी चुकले आहे.\n\n ही एक तात्पुरती समस्या असू शकते, म्हणून कृपया पुन्हा प्रयत्न करा किंवा पृष्ठ रीलोड करा.\n आम्ही सर्व एरर रेकॉर्ड करतो आणि कदाचित निराकरण करण्यासाठी कार्य करत आहोत.\n समस्या कायम राहिल्यास किंवा तातडीची असल्यास, कृपया आमच्याशी संपर्क साधा."
+    general_error:
+      message: "क्षमस्व, पण काहीतरी चुकले आहे.\n\n ही एक तात्पुरती समस्या असू शकते, म्हणून कृपया पुन्हा प्रयत्न करा किंवा पृष्ठ रीलोड करा.\n आम्ही सर्व एरर रेकॉर्ड करतो आणि कदाचित निराकरण करण्यासाठी कार्य करत आहोत.\n समस्या कायम राहिल्यास किंवा तातडीची असल्यास, कृपया आमच्याशी संपर्क साधा."
   stripe:
     error_code:
       incorrect_number: "कार्ड क्रमांक चुकीचा आहे."
@@ -298,6 +279,9 @@ mr:
     report_failed: |
         हा अहवाल अयशस्वी झाला. कदाचित तो खूप मोठे असल्याने त्यावर प्रक्रिया करता येत नाही.
         आम्ही त्यात लक्ष घालू पण समस्या कायम राहिल्यास कृपया आम्हाला कळवा.
+  backorder_mailer:
+    backorder_failed:
+      product: "उत्पादन"
   enterprise_mailer:
     confirmation_instructions:
       subject: "कृपया %{enterprise} साठी ईमेल पत्त्याची पुष्टी करा"
@@ -313,6 +297,12 @@ mr:
       join_community: "समुदायात सामील व्हा"
     invite_manager:
       subject: "%{enterprise} ने तुम्हाला व्यवस्थापक होण्यासाठी आमंत्रित केले आहे"
+  payment_mailer:
+    authorize_payment:
+      instructions: "तुमच्या %{amount} ते %{distributor} च्या पेमेंटसाठी अतिरिक्त प्रमाणीकरण आवश्यक आहे. तुमचे पेमेंट अधिकृत करण्यासाठी कृपया खालील URL ला भेट द्या:"
+    authorization_required:
+      subject: "पेमेंटसाठी ग्राहकाकडून प्रमाणीकरण आवश्यक आहे"
+      message: "ऑर्डर %{order_number} साठी पेमेंटसाठी ग्राहकाकडून अतिरिक्त प्रमाणीकरण आवश्यक आहे. ग्राहकाला ईमेलद्वारे सूचित केले गेले आहे आणि ते अधिकृत होईपर्यंत पेमेंट प्रलंबित म्हणून दिसून येईल."
   producer_mailer:
     order_cycle:
       subject: "%{producer} साठी सायकल अहवाल ऑर्डर करा"
@@ -464,7 +454,6 @@ mr:
   password_confirmation: पासवर्ड पुष्टीकरण
   reset_password_token: पासवर्ड टोकन रीसेट करा
   expired: कालबाह्य झाले आहे, कृपया नवीन विनंती करा
-  back_to_payments_list: "पेमेंट्स लिस्टकडे परत"
   maestro_or_solo_cards: "मेस्ट्रो/सोलो कार्ड"
   backordered: "बॅकऑर्डर केलेले"
   on_hand: "आता उपलब्ध"
@@ -480,6 +469,7 @@ mr:
     create_and_add_another: "तयार करा आणि दुसरे जोडा"
     create: "तयार करा"
     cancel: "रद्द करा"
+    cancel_order: "रद्द करा"
     resume: "पुन्हा सुरू करा"
     save: "जतन करा"
     edit: "सुधारणे"
@@ -505,6 +495,7 @@ mr:
       columns:
         name: नाव
         unit: युनिट
+        unit_value: युनिट मूल्य
         price: किंमत
         producer: उत्पादक
         category: श्रेणी
@@ -531,6 +522,8 @@ mr:
         clone: क्लोन
       image:
         edit: सुधारित करा
+      product_preview:
+        shop_tab: शॉप
     adjustments:
       skipped_changing_canceled_order: "तुम्ही रद्द केलेली ऑर्डर बदलू शकत नाही."
     begins_at: वाजता सुरू होते
@@ -584,7 +577,6 @@ mr:
     show_n_more: अधिक %{num} दर्शवा
     choose: "निवडा..."
     please_select: कृपया निवडा...
-    column_save_as_default: डीफॉल्ट म्हणून सेव्ह करा
     columns: स्तंभ
     actions: क्रिया
     viewing: "पहात आहे: %{current_view_name}"
@@ -669,6 +661,9 @@ mr:
         balance_due: "शिल्लक देय"
       destroy:
         has_associated_subscriptions: "हटवणे अयशस्वी: या ग्राहकाकडे सक्रिय सबस्क्रिप्शन्स आहेत. त्यांना आधी रद्द करा."
+    customer_account_transaction:
+      index:
+        amount: रक्कम
     contents:
       edit:
         title: सामग्री
@@ -682,6 +677,9 @@ mr:
         your_content: तुमची सामग्री
         user_guide: वापरकर्ता मार्गदर्शक
         map: मॅप
+    dfc_product_imports:
+      index:
+        import: Import करा
     enterprise_fees:
       index:
         title: "एंटरप्राइझ फी"
@@ -735,7 +733,6 @@ mr:
       variants:
         infinity: "अनंत"
         to_order_tip: "ऑर्डरप्रमाणे बनवलेल्या वस्तूंची स्टॉक लेव्हल नसते, जसे की ऑर्डरप्रमाणे बनवलेले ताजे ब्रेडस्. "
-      back_to_products_list: "उत्पादनांच्या सूचीकडे परत"
       editing_product: "उत्पादन संपादित करत आहे"
       tabs:
         product_details: "उत्पादन तपशील"
@@ -747,14 +744,6 @@ mr:
       index:
         header:
           title: मोठ्या प्रमाणात उत्पादने संपादित करा
-        loading: तुमची उत्पादने लोड करत आहे
-      sort:
-        pagination:
-          total_html: "तुमच्या शोध निकषांसाठी <strong>%{total} उत्पादने</strong> आढळली. %{from} ते %{to} दाखवत आहे."
-          per_page:
-            show: दाखवा
-            per_page: "%{num} प्रति पृष्ठ"
-          clear_search: सर्च क्लिअर करा
       filters:
         search_products: उत्पादने शोधा
         all_producers: सर्व उत्पादक
@@ -763,7 +752,15 @@ mr:
           label: उत्पादक
         categories:
           label: श्रेण्या
+        tags:
+          none: कोणतेही नाही
         search: शोधा
+      sort:
+        pagination:
+          per_page:
+            show: दाखवा
+            per_page: "%{num} प्रति पृष्ठ"
+          clear_search: सर्च क्लिअर करा
       no_products:
         no_products_found: कोणतीही उत्पादने आढळली नाहीत
         import_products: अनेक उत्पादने आयात करा
@@ -781,6 +778,10 @@ mr:
             other: "%{count} उत्पादने जतन करणे शक्य नाही. कृपया एरर्सचे पुनरावलोकन करा आणि पुन्हा प्रयत्न करा."
         reset: बदल जतन करू नका
         save: बदल जतन करा
+      variant_row:
+        none_tax_category: कोणतेही नाही
+        category_field_name: "श्रेणी"
+        producer_field_name: "उत्पादक"
     product_import:
       title: उत्पादन आयात
       file_not_found: फाइल सापडली नाही किंवा उघडता आली नाही
@@ -841,7 +842,6 @@ mr:
         no_name: नाव नाही
         blank_enterprise: काही उत्पादनांमध्ये एंटरप्राइझ परिभाषित नाही
         reset_absent?: अनुपलब्ध उत्पादने रीसेट करा
-        reset_absent_tip: फाइलमध्ये उपस्थित नसलेल्या सर्व बाहेर जाणाऱ्या उत्पादनांसाठी स्टॉक शून्यावर सेट करा
         overwrite_all: सर्व ओव्हरराइट करा
         overwrite_empty: रिक्त असल्यास ओव्हरराइट करा
         default_stock: स्टॉक पातळी सेट करा
@@ -1029,12 +1029,6 @@ mr:
         images:
           legend: "इमेजेस्"
           logo: लोगो
-          promo_image_placeholder: 'ही इमेज ''आमच्याबद्दल'' मध्ये प्रदर्शित केली आहे'
-          promo_image_note1: 'कृपया नोंद घ्या:'
-          promo_image_note2: येथे अपलोड केलेली कोणतीही प्रोमो इमेज 1200 x 260 मध्ये क्रॉप केली जाईल.
-          promo_image_note3: प्रोमो इमेज एंटरप्राइझच्या प्रोफाइल पेज आणि पॉप-अपच्या शीर्षस्थानी प्रदर्शित केली जाते.
-          remove_logo: "इमेज काढून टाका"
-          remove_promo_image: "इमेज काढून टाका"
         inventory_settings:
           legend: "इन्व्हेंटरी सेटिंग्ज"
           text1: तुम्ही तुमच्या द्वारे स्टॉक पातळी आणि किमती व्यवस्थापित करण्याचा पर्याय निवडू शकता
@@ -1114,13 +1108,15 @@ mr:
           customer_names_tip: "रिपोर्टस् मध्ये तुमच्या ग्राहकांची नावे पाहण्यासाठी तुमच्या पुरवठादारांना सक्षम करा"
           customer_names_false: "डिसेबल्ड आहे"
           customer_names_true: "सक्रिय केले"
+          customer_contacts_false: "डिसेबल्ड आहे"
+          customer_contacts_true: "सक्रिय केले"
+          producers_edit_orders_false: "डिसेबल्ड आहे"
+          producers_edit_orders_true: "सक्रिय केले"
           shopfront_message: "शॉपफ्रंट संदेश"
           shopfront_message_placeholder: >
               ग्राहकांसाठी स्वागतपर तसेच तुमच्याकडे खरेदी कशी करावी हे स्पष्ट करणारा
               पर्यायी संदेश. येथे मजकूर लिहिल्यास, जेव्हा ग्राहक प्रथम तुमच्या शॉपफ्रंटवर
               येतील तेव्हा तो होम टॅबमध्ये दर्शवला जाईल.
-          shopfront_message_link_tooltip: "लिंक जोडा / संपादित करा"
-          shopfront_message_link_prompt: "कृपया URL प्रविष्ट करा"
           shopfront_closed_message: "शॉपफ्रंट बंद संदेश"
           shopfront_closed_message_placeholder: >
               तुमचे शॉप का बंद आहे आणि/किंवा ते पुन्हा कधी उघडेल याबद्दल अधिक तपशीलवार
@@ -1165,27 +1161,24 @@ mr:
             no_rules_yet: अजून कोणतेही डीफॉल्ट नियम लागू नाहीत
             add_new_button: '+ नवीन डीफॉल्ट नियम जोडा'
           no_tags_yet: 'या एंटरप्राइझला कोणतेही टॅग अजून लागू नाहीत '
-          no_rules_yet: या टॅगवर अद्याप कोणतेही नियम लागू नाहीत
-          for_customers_tagged: 'टॅग केलेल्या ग्राहकांसाठी:'
-          add_new_rule: '+ एक नवीन नियम जोडा'
           add_new_tag: '+ एक नवीन टॅग जोडा'
+          show_hide_variants: 'माझ्या शॉपफ्रंटमधील प्रकार दाखवा किंवा लपवा'
+          show_hide_shipping: 'चेकआउट करताना शिपिंग पद्धती दृश्यमान किंवा अदृश्यमान करा '
+          show_hide_payment: 'चेकआउट करताना पेमेंट पद्धती दृश्यमान किंवा अदृश्यमान करा '
+          show_hide_order_cycles: 'माझ्या शॉपफ्रंटमध्ये ऑर्डर सायकल दृश्यमान किंवा अदृश्यमान करा '
         users:
           legend: "वापरकर्ते"
           email_confirmation_notice_html: "ईमेल पुष्टीकरण प्रलंबित आहे. आम्ही %{email} वर पुष्टीकरण ईमेल पाठवला आहे."
           resend: पुन्हा पाठवा
-          owner: 'मालक'
           contact: "संपर्क करा"
+          owner: 'मालक'
           contact_tip: "ज्या मॅनेजरला ऑर्डर आणि सूचनांचे एंटरप्राइझ ईमेल प्राप्त होतील त्याच्याकडे पुष्टीकृत ईमेल पत्ता असणे आवश्यक आहे."
           owner_tip: या एंटरप्राइझसाठी जबाबदार प्राथमिक वापरकर्ता.
           notifications: सूचना
           notifications_tip: ऑर्डरबद्दल सूचना या ईमेल पत्त्यावर पाठवल्या जातील.
           notifications_placeholder: उदा. prakash@tuffles.com
           notifications_note: 'टीप: वापरण्यापूर्वी नवीन ईमेल पत्त्याची पुष्टी करणे आवश्यक असू शकते'
-          managers: मॅनेजर्स
-          managers_tip: हे एंटरप्राइझ मॅनेज करण्याची परवानगी असलेले इतर वापरकर्ते.
           invite_manager: "मॅनेजरला आमंत्रित करा"
-          invite_manager_tip: "नोंदणी न केलेल्या वापरकर्त्यास साइन अप करण्यासाठी आणि या एंटरप्राइझचे मॅनेजर होण्यासाठी आमंत्रित करा."
-          add_unregistered_user: "नोंदणीकृत नसलेला वापरकर्ता जोडा"
           email_confirmed: "ईमेलची पुष्टी झाली"
           email_not_confirmed: "ईमेलची पुष्टी झाली नाही"
         vouchers:
@@ -1204,15 +1197,14 @@ mr:
         white_label:
           legend: "पांढरे लेबल"
           hide_ofn_navigation: "OFN नेव्हिगेशन लपवा"
-          upload_logo: "शॉपफ्रंटमध्ये  लोगो वापरला"
-          remove_logo: "लोगो काढा"
-          remove_logo_confirm: "तुमची खात्री आहे की तुम्ही हा लोगो काढू इच्छिता?"
-          remove_logo_success: "लोगो काढला"
           white_label_logo_link_label: "शॉपफ्रंटमध्ये वापरलेल्या लोगोची लिंक"
           hide_groups_tab: "शॉपफ्रंटमध्ये ग्रुप्स टॅब लपवा"
           create_custom_tab: "शॉपफ्रंटमध्ये कस्टम टॅब तयार करा"
           custom_tab_title: "कस्टम टॅबसाठी शीर्षक"
           custom_tab_content: "कस्टम टॅबसाठी मजकूर"
+        connected_apps:
+          vine:
+            enable: "किंमत"
       actions:
         edit_profile: सेटिंग्ज
         properties: 'गुणधर्म '
@@ -1265,10 +1257,8 @@ mr:
         contact_name: संपर्क नाव
       edit:
         editing: 'सेटिंग्ज:'
-        back_link: उपक्रमांच्या सूचीकडे परत
       new:
         title: नवे एंटरप्राइज
-        back_link: एंटरप्राइझ लिस्टकडे परता
       welcome:
         welcome_title: ओपन फूड नेटवर्कमध्ये आपले स्वागत आहे!
         welcome_text: आपण यशस्वीरित्या तयार केले आहे
@@ -1276,9 +1266,6 @@ mr:
         choose_starting_point: 'तुमचे पॅकेज निवडा:'
         profile: 'प्रोफाइल'
         producer_profile: 'उत्पादक प्रोफाइल'
-      invite_manager:
-        user_already_exists: "वापरकर्ता आधीपासून अस्तित्वात आहे"
-        error: "काहीतरी चूक झाली"
     order_cycles:
       loading_flash:
         loading_order_cycles: ऑर्डर सायकल लोड करत आहे
@@ -1299,6 +1286,8 @@ mr:
         choose_products_from: "यामधून उत्पादने निवडा:"
         re_notify_producers: उत्पादकांना पुन्हा सूचित करा
         notify_producers_tip: हे प्रत्येक उत्पादकाला त्यांच्या ऑर्डरच्या सूचीचे ईमेल पाठवेल.
+      date_time_warning_modal_content:
+        cancel: 'रद्द करा'
       incoming:
         incoming: "येणारे"
         supplier: "पुरवठादार"
@@ -1430,6 +1419,18 @@ mr:
       searching: शोधत आहे...
       no_matches: कोणतेही जुळले नाहीत
     shared:
+      attachment_field:
+        logo_label: "लोगो"
+        logo_remove: "इमेज काढून टाका"
+        logo_remove_confirm: "तुम्ही पुष्टी केल्यानंतर लगेच लोगो काढला जाईल."
+        promo_image_note1: 'कृपया नोंद घ्या:'
+        promo_image_note2: येथे अपलोड केलेली कोणतीही प्रोमो इमेज 1200 x 260 मध्ये क्रॉप केली जाईल.
+        promo_image_note3: प्रोमो इमेज एंटरप्राइझच्या प्रोफाइल पेज आणि पॉप-अपच्या शीर्षस्थानी प्रदर्शित केली जाते.
+        promo_image_placeholder: 'ही इमेज ''आमच्याबद्दल'' मध्ये प्रदर्शित केली आहे'
+        promo_image_remove: "इमेज काढून टाका"
+        promo_image_remove_confirm: "तुम्ही पुष्टी केल्यानंतर प्रोमो इमेज लगेच काढून टाकली जाईल."
+        white_label_logo_label: "शॉपफ्रंटमध्ये  लोगो वापरला"
+        white_label_logo_remove: "इमेज काढून टाका"
       user_guide_link:
         user_guide: वापरकर्ता मार्गदर्शक
       enterprises_hubs_tabs:
@@ -1472,7 +1473,7 @@ mr:
       not_visible: "%{enterprise} दृश्यमान नाही आणि त्यामुळे मॅप किंवा सर्चेसमध्ये दिस शकत नाही"
     reports:
       deprecated: "हा रिपोर्ट नामंजूर केला आहे आणि भविष्यातील प्रकाशनातून काढला जाईल."
-      hidden: लपलेले
+      hidden_field: "<लपलेले>"
       unitsize: युनिटिसाइज करा
       total: एकूण
       total_items: एकूण वस्तू
@@ -1544,7 +1545,6 @@ mr:
         no_report_type: "कृपया रिपोर्टस् प्रकार निर्दिष्ट करा"
         report_not_found: "रिपोर्ट सापडला नाही"
         missing_ransack_params: "कृपया विनंतीमध्ये रॅनसॅक सर्च पॅराम द्या"
-      hidden_field: "<लपलेले>"
       summary_row:
         total: "एकूण"
       table:
@@ -1929,7 +1929,6 @@ mr:
   label_account: "खाते"
   label_more: "अजून दाखवा"
   label_less: "कमी दाखवा"
-  label_notices: "नोटीस"
   cart_items: "वस्तू"
   cart_headline: "तुमची शॉपिंग कार्ट"
   total: "एकूण"
@@ -1965,7 +1964,6 @@ mr:
       essential_cookies_note: "बर्‍याच कुकीजमध्ये फक्त एक युनिक आयडेंटिफायर असतो, परंतु इतर कोणताही डेटा नसतो, त्यामुळे तुमचा ईमेल ॲड्रेस आणि पासवर्ड कधीही त्यात समाविष्ट नसतो आणि कधीही उघड होत नाही."
       cookie_domain: "द्वारे सेट करा:"
       cookie_session_desc: "पृष्ठ भेटी दरम्यान वापरकर्त्यांना लक्षात ठेवण्यासाठी वेबसाइटला अनुमती देण्यासाठी वापरला जातो, उदाहरणार्थ, तुमच्या कार्टमध्‍ये वस्तू लक्षात ठेवणे."
-      cookie_consent_desc: "कुकीज संचयित करण्यासाठी वापरकर्त्याच्या संमतीची स्थिती राखण्यासाठी वापरला जातो"
       cookie_remember_me_desc: "वापरकर्त्याने त्याला लक्षात ठेवण्याची विनंती वेबसाइटला केली असल्यास वापरले जाते. ही कुकी 12 दिवसांनी आपोआप हटवली जाते. जर एक वापरकर्ता म्हणून तुम्हाला ती कुकी हटवायची असेल, तर तुम्हाला फक्त लॉगआउट करावे लागेल. तुम्‍हाला ती कुकी तुमच्‍या काँप्युटरवर इंस्‍टॉल करायची नसेल तर लॉग इन करताना तुम्ही “रिमेंबर मी” चेकबॉक्स चेक करू नये."
       cookie_openstreemap_desc: "आमच्या अनुकूल ओपन सोर्स मॅपिंग प्रदात्याद्वारे (OpenStreetMap) त्यांच्या सेवांचा दुरुपयोग रोखण्यासाठी दिलेल्या कालावधीत जास्त विनंत्या प्राप्त होणार नाहीत याची खात्री करण्यासाठी वापरला जातो."
       cookie_stripe_desc: "फसवणूक शोधण्यासाठी आमच्या पेमेंट प्रोसेसर Stripe द्वारे गोळा केलेला डेटा https://stripe.com/cookies-policy/legal. सर्व शॉप्स पेमेंट पद्धत म्हणून Stripe वापरत नाहीत परंतु फसवणूक टाळण्यासाठी ती सर्व पृष्ठांवर लागू करणे ही एक चांगली बाब आहे. स्ट्राइप साधारणतः आमची कोणती पृष्ठे त्यांच्या API शी संवाद साधतात याचे अनुमान करतात आणि नंतर काहीही नेहमीपेक्षा वेगळे घडल्यास सूचित करतात. त्यामुळे वापरकर्त्याला पेमेंट पद्धतीची तरतूद करण्यापेक्षा Stripe कुकी सेट केल्यास जास्त फायदा होऊ शकतो. ते काढून टाकल्याने सेवेच्या सुरक्षिततेवर परिणाम होऊ शकतो. तुम्ही Stripe बद्दल अधिक माहिती आणि त्याचे गोपनीयता धोरण https://stripe.com/privacy येथे वाचू शकता."
@@ -1983,13 +1981,6 @@ mr:
       disabling_cookies_ie_link: "https://support.microsoft.com/en-us/help/17442/windows-internet-explorer-delete-manage-cookies"
       disabling_cookies_safari_link: "https://www.apple.com/legal/privacy/en-ww/cookies/"
       disabling_cookies_note: "परंतु हे लक्षात ठेवा की जर तुम्ही Open Food Networkद्वारे वापरल्या जाणार्‍या आवश्यक कुकीज हटवल्या किंवा सुधारित केल्या तर वेबसाइट काम करू शकणार नाही, उदाहरणार्थ, तुम्ही तुमच्या कार्टमध्ये काहीही जमा करू शकणार नाही किंवा चेकआउटही करू शकणार नाही."
-    cookies_banner:
-      cookies_usage: "तुमचे नेव्हिगेशन सहजसोपे आणि सुरक्षित करण्यासाठी आणि आम्ही देत असलेल्या सुविधांमध्ये सुधारणा करण्यासाठी तुम्ही त्या कशा वापरता हे समजून घेण्यास आम्हाला मदत करण्यासाठी ही साइट कुकीज वापरते."
-      cookies_definition: "कुकीज या अतिशय लहान टेक्स्ट फाइल्स असतात ज्या तुम्ही काही वेबसाइटला भेट देता तेव्हा तुमच्या संगणकावर संग्रहित केल्या जातात."
-      cookies_desc: "आम्‍ही तुम्‍हाला ऑनलाइन खाद्यपदार्थ विकण्‍याची/खरेदी करण्‍याची सेवा देऊ करण्‍यासाठी आवश्‍यक असलेल्या कुकीज वापरतो. आम्ही तुमचा कोणताही डेटा विकत नाही. तुम्ही सेवेमध्ये 'लॉग इन' केले असल्यास तुम्ही कोण आहात हे लक्षात ठेवण्यासाठी किंवा तुम्ही लॉग इन केलेले नसले तरीही तुम्ही तुमच्या कार्टमध्ये ठेवलेले वस्तू लक्षात ठेवण्यासाठी आम्ही कुकीज वापरतो. तुम्ही “कुकीज स्वीकारा” क्लिक न करता वेबसाइटवर नेव्हिगेट करत राहिल्यास , आम्ही गृहीत धरतो की वेबसाइटच्या कार्यासाठी आवश्यक असलेल्या कुकीज संचयित करण्यासाठी तुम्ही आम्हाला संमती देत आहात."
-      cookies_policy_link_desc: "तुम्हाला अधिक जाणून घ्यायचे असल्यास, पहा"
-      cookies_policy_link: "कुकीज धोरण"
-      cookies_accept_button: "कुकीज स्वीकारा"
   home_shop: खरेदी करा
   brandstory_headline: "सेंद्रिय आणि स्थानिक अन्न खरेदी करा."
   brandstory_intro: "स्थानिक शेतकरी आणि अन्न उत्पादक शोधा."
@@ -2000,12 +1991,10 @@ mr:
   brandstory_part5_strong: "आम्ही त्याला ओपन फूड नेटवर्क इंडिया किंवा ओएफएन इंडिया म्हणतो."
   brandstory_part6: "जर तुम्ही शेतकरी, शेतकरी बाजार, फूड को-ऑप किंवा फूड हब म्हणून चांगले अन्न विकत असाल- तर OFN India हा तुमचा सर्वोत्तम पर्याय आहे."
   system_headline: "OFN वर विक्री कशी कराल - ३ सोप्या स्टेप्स."
-  system_step1: "1. नविन अकाउंट बनवा"
-  system_step1_text: "• तुमच्या कृषि उद्योगाचे किंवा दुकानाचे नाव, वर्णन आणि संपर्क तपशील प्रविष्ट करा • फोटो आणि सोशल मीडिया तपशील प्रविष्ट करा"
-  system_step2: "2. तुमची उत्पादनांची लिस्ट बनवा"
-  system_step2_text: "तुमच्या दुकानात - तुमची स्वतःची आणि/किंवा तुमच्या आजूबाजूच्या इतर उत्पादकांची उत्पादने प्रविष्ट करा. प्रतिमा, वर्णन, किमती, स्टॉक level, वजन आणि मापे सेट करा."
-  system_step3: "3. पिक-अप / डिलिव्हरी"
-  system_step3_text: "पेमेंट पद्धती सेट करा. एक किंवा एका पेक्षा अनेक पिक-अप पॉइंट आणि वितरण तपशील तयार करा. आवर्ती ऑर्डर आणि नियमित वितरण व्यवस्था तयार करा."
+  system_step1_html: "1. नविन अकाउंट बनवा"
+  system_step2_html: "2. तुमची उत्पादनांची लिस्ट बनवा"
+  system_step2_text_html: "तुमच्या दुकानात - तुमची स्वतःची आणि/किंवा तुमच्या आजूबाजूच्या इतर उत्पादकांची उत्पादने प्रविष्ट करा. प्रतिमा, वर्णन, किमती, स्टॉक level, वजन आणि मापे सेट करा."
+  system_step3_text_html: "पेमेंट पद्धती सेट करा. एक किंवा एका पेक्षा अनेक पिक-अप पॉइंट आणि वितरण तपशील तयार करा. आवर्ती ऑर्डर आणि नियमित वितरण व्यवस्था तयार करा."
   cta_headline: "एक आधुनिक अन्नधान्य खरेदी आणि विक्री व्यवस्था. "
   cta_label: "मी तयार आहे"
   stats_headline: "आम्ही एक नवीन अन्नधान्य प्रणाली तयार करत आहोत."
@@ -2069,10 +2058,8 @@ mr:
   email_confirmed: "तुमच्या ईमेल पत्त्याची पुष्टी केल्याबद्दल धन्यवाद."
   email_confirmation_activate_account: "आम्ही तुमचे नवीन खाते सक्रिय करण्यापूर्वी, आम्हाला तुमच्या ईमेल पत्त्याची पुष्टी करणे आवश्यक आहे."
   email_confirmation_greeting: "नमस्कार, %{contact} !"
-  email_confirmation_profile_created: "%{name} साठी प्रोफाइल यशस्वीरित्या तयार केले गेले आहे! तुमचे प्रोफाइल सक्रिय करण्यासाठी आम्हाला या ईमेल पत्त्याची पुष्टी करणे आवश्यक आहे."
   email_confirmation_click_link: "कृपया तुमच्या ईमेलची पुष्टी करण्यासाठी आणि तुमची प्रोफाइल बनवणे सुरू ठेवण्यासाठी खालील लिंकवर क्लिक करा."
   email_confirmation_link_label: "या ईमेल पत्त्याची पुष्टी करा »"
-  email_confirmation_help_html: "तुमच्या ईमेलची पुष्टी केल्यानंतर तुम्ही या एंटरप्राइझच्या तुमच्या अ‍ॅडमिनिस्ट्रेशन खात्यात प्रवेश करू शकता. %{sitename} च्या सुविधांबद्दल अधिक जाणून घेण्यासाठी आणि तुमचे प्रोफाइल किंवा ऑनलाइन स्टोअर वापरणे सुरू करण्यासाठी %{link} पहा."
   email_confirmation_notice_unexpected: "तुम्हाला हा संदेश मिळाला आहे कारण तुम्ही %{sitename} वर साइन अप केले आहे किंवा तुमच्या ओळखीच्या व्यक्तीने साइन अप करण्यासाठी आमंत्रित केले आहे. तुम्हाला हा ईमेल का मिळत आहे हे माहीत नसल्यास, कृपया %{contact} वर लिहा."
   email_social: "आमच्याशी कनेक्ट व्हा:"
   email_contact: "आम्हाला ईमेल करा:"
@@ -2304,7 +2291,6 @@ mr:
   shops_signup_help: आम्ही मदत करण्यास तयार आहोत.
   shops_signup_help_text: 'तुम्हाला चांगल्या रिटर्नची गरज आहे. तुम्हाला नवीन खरेदीदार आणि लॉजिस्टिक भागीदारांची आवश्यकता आहे. तुम्हाला तुमचे उत्पादन घाऊक, किरकोळ आणि घरगुती स्तरावर पोहोचायला हवे आहे. '
   shops_signup_detail: येथे तपशील दिला आहे.
-  orders: "आदेश"
   orders_fees: "फीज्..."
   orders_edit_title: "शॉपिंग कार्ट"
   orders_edit_headline: "तुमची शॉपिंग कार्ट"
@@ -2665,26 +2651,14 @@ mr:
   spree_admin_enterprises_fees: "एंटरप्राइझ फी"
   spree_admin_enterprises_none_create_a_new_enterprise: "नवीन एंटरप्राइझ तयार करा"
   spree_admin_enterprises_none_text: "तुमच्याकडे अजून कोणतेही एंटरप्राइझेस नाहीत"
-  spree_admin_enterprises_tabs_hubs: "हब्स"
   spree_admin_enterprises_producers_manage_products: "उत्पादने मॅनेज करा"
   spree_admin_enterprises_create_new_product: "नवीन उत्पादन तयार करा"
-  spree_admin_single_enterprise_alert_mail_confirmation: "कृपया ईमेल पत्त्याची पुष्टी करा"
-  spree_admin_single_enterprise_alert_mail_sent: "आम्ही यांना ईमेल पाठवला आहे"
-  spree_admin_overview_action_required: "कृती आवश्यक"
-  spree_admin_overview_check_your_inbox: "पुढील सूचनांसाठी कृपया तुमचा इनबॉक्स पहा. धन्यवाद!"
-  spree_admin_unit_value: युनिट मूल्य
-  spree_admin_unit_description: युनिटचे वर्णन
-  spree_admin_variant_unit: व्हेरिएंट युनिट
-  spree_admin_variant_unit_scale: व्हेरिएंट युनिट स्केल
   spree_admin_supplier: पुरवठादार
-  spree_admin_product_category: उत्पादन वर्ग
-  spree_admin_variant_unit_name: व्हेरिएंट युनिट नाव
   unit_name: "युनिट नाव"
   change_package: "पॅकेज बदला"
   spree_admin_single_enterprise_hint: "सूचना: लोकांना तुम्हाला शोधण्याची अनुमती देण्यासाठी, या अंतर्गत तुमची दृश्यमानता चालू करा"
   spree_admin_eg_pickup_from_school: "उदा. 'प्राथमिक शाळेतून पिक-अप'"
   spree_admin_eg_collect_your_order: "उदा. 'कृपया 123 सरदार वल्लभभाई पटेल रोड, सुरत, 301070 वरून तुमची ऑर्डर प्राप्त करा'"
-  spree_classification_primary_taxon_error: "टॅक्सन %{taxon} हा %{product} चा प्राथमिक टॅक्सन आहे आणि तो हटवला जाऊ शकत नाही"
   spree_order_availability_error: "वितरक किंवा ऑर्डर सायकल तुमच्या कार्ट मधील उत्पादने पुरवू शकत नाही"
   spree_order_populator_error: "तो वितरक किंवा ऑर्डर सायकल तुमच्या कार्टमधील सर्व उत्पादने पुरवू शकत नाही. कृपया दुसरा वितरक किंवा दुसरी ऑर्डर सायकल निवडा."
   spree_order_cycle_error: "कृपया या ऑर्डरसाठी ऑर्डर सायकल निवडा."
@@ -2787,7 +2761,6 @@ mr:
   report_header_paid: पैसे दिले?
   report_header_delivery: डिलिव्हरी?
   report_header_shipping: शिपिंग
-  report_header_shipping_method: 'शिपिंग पद्धत '
   report_header_shipping_instructions: शिपिंग सूचना
   report_header_ship_street: शिप स्ट्रीट
   report_header_ship_street_2: शिप स्ट्रीट 2
@@ -2836,6 +2809,7 @@ mr:
   report_header_quantity: प्रमाण
   report_header_max_quantity: कमाल प्रमाण
   report_header_variant: प्रकार
+  report_header_variant_unit_name: वेरिएंट युनिटचे नाव
   report_header_variant_value: भिन्न मूल्य
   report_header_variant_unit: व्हेरिएंट युनिट
   report_header_total_available: एकूण उपलब्ध
@@ -2909,6 +2883,8 @@ mr:
   report_header_total_excl_vat: "एकूण करा व्यतिरिक्त ( %{currency_symbol} )"
   report_header_total_incl_vat: "एकूण करा समवेत ( %{currency_symbol} )"
   report_header_temp_controlled: TempControlled?
+  report_header_shipment_state: "शिपमेंट स्थिती"
+  report_header_shipping_method: "शिपिंग पद्धत "
   report_header_is_producer: उत्पादक?
   report_header_not_confirmed: पुष्टी नाही
   report_header_gst_on_income: उत्पन्नावर जीएसटी
@@ -3002,7 +2978,6 @@ mr:
   order_cycles_no_permission_to_coordinate_error: "तुमच्या कोणत्याही एंटरप्राइझला ऑर्डर सायकल को-ऑर्डिनेट करण्याची परवानगी नाही"
   order_cycles_no_permission_to_create_error: "तुम्हाला त्या एंटरप्राइझद्वारे  को-ऑर्डिनेट केलेल्या ऑर्डर सायकल तयार करण्याची परवानगी नाही"
   order_cycle_closed: "तुम्ही निवडलेले ऑर्डर सायकल नुकतेच बंद झाले आहे. कृपया पुन्हा प्रयत्न करा!"
-  back_to_orders_list: "ऑर्डर सूचीकडे परत"
   no_orders_found: "कोणत्याही ऑर्डर आढळल्या नाहीत"
   order_information: "ऑर्डर माहिती"
   new_payment: "नवीन पेमेंट"
@@ -3181,18 +3156,6 @@ mr:
           loading_variants: "प्रकार लोड करत आहे"
           no_variants: "या उत्पादनासाठी कोणतेही प्रकार उपलब्ध नाहीत ( इन्व्हेंटरी सेटिंग्जद्वारे अदृश्यमान केलेले)."
           some_variants_hidden: "(काही प्रकार इन्व्हेंटरी सेटिंग्जद्वारे अदृश्यमान केले जाऊ शकतात)"
-      tag_rules:
-        shipping_method_tagged_top: "शिपिंग पद्धती टॅग केल्या आहेत"
-        shipping_method_tagged_bottom: "आहेत:"
-        payment_method_tagged_top: "पेमेंट पद्धती टॅग केल्या आहेत"
-        payment_method_tagged_bottom: "आहेत:"
-        order_cycle_tagged_top: "ऑर्डर सायकल टॅग केली"
-        order_cycle_tagged_bottom: "आहेत:"
-        inventory_tagged_top: "इन्व्हेंटरी प्रकार टॅग केले"
-        inventory_tagged_bottom: "आहेत:"
-      new_tag_rule_dialog:
-        select_rule_type: "नियम प्रकार निवडा:"
-        add_rule: "नियम जोडा"
       enterprise_fees:
         inherit_from_product: "उत्पादनाकडून मिळवा"
       orders:
@@ -3279,10 +3242,6 @@ mr:
       enterprises:
         form:
           images:
-            removed_logo_successfully: "लोगो यशस्वीरित्या काढला"
-            immediate_logo_removal_warning: "तुम्ही पुष्टी केल्यानंतर लगेच लोगो काढला जाईल."
-            removed_promo_image_successfully: "प्रोमो इमेज यशस्वीरित्या काढली"
-            immediate_promo_image_removal_warning: "तुम्ही पुष्टी केल्यानंतर प्रोमो इमेज लगेच काढून टाकली जाईल."
             immediate_terms_and_conditions_removal_warning: "तुम्ही पुष्टी केल्यानंतर अटी आणि नियम फाइल ताबडतोब काढून टाकली जाईल."
             removed_terms_and_conditions_successfully: "अटी आणि नियम फाइल यशस्वीरित्या काढली"
     insufficient_stock: " उपलब्ध स्टॉक अपुरा आहे, फक्त %{on_hand} शिल्लक आहे"
@@ -3292,7 +3251,6 @@ mr:
           तुम्ही खरेदी करत असताना, तुमच्या कार्टमधील एक किंवा अधिक उत्पादनांसाठी स्टॉक
           पातळी कमी झाली आहे. काय बदलले आहे ते येथे पहा:
       now_out_of_stock: आता साठा संपला आहे.
-      only_n_remainging: "आता फक्त %{num} शिल्लक आहे."
     shopfront:
       variant:
         add_to_cart: "जमा करा"
@@ -3325,13 +3283,6 @@ mr:
       some_trouble: "मला सेव्ह करण्यात काही अडचण आली: %{errors}"
       changing_on_hand_stock: उपलब्ध स्टॉकची पातळी बदलत आहे...
       stock_reset: स्टॉक्स डीफॉल्टवर रीसेट केले.
-    tag_rules:
-      show_hide_variants: 'माझ्या शॉपफ्रंटमधील प्रकार दाखवा किंवा लपवा'
-      show_hide_shipping: 'चेकआउट करताना शिपिंग पद्धती दृश्यमान किंवा अदृश्यमान करा '
-      show_hide_payment: 'चेकआउट करताना पेमेंट पद्धती दृश्यमान किंवा अदृश्यमान करा '
-      show_hide_order_cycles: 'माझ्या शॉपफ्रंटमध्ये ऑर्डर सायकल दृश्यमान किंवा अदृश्यमान करा '
-      visible: दृश्यमान
-      not_visible: अदृश्य
     services:
       unsaved_changes_message: सेव्ह न केलेले बदल सध्या अस्तित्वात आहेत, आता सेव्ह करायचे अथवा नाही?
       save: सेव्ह करा
@@ -3347,6 +3298,8 @@ mr:
           हे अपलोड केलेल्या फाइलमध्ये उपस्थित नसलेल्या एंटरप्राइझसाठी
           सर्व उत्पादनांचा साठा शून्यावर सेट करेल.
     order_cycles:
+      unsaved_changes: "तुमच्याकडे सेव्ह न केलेले बदल आहेत"
+      bulk_save_error: "क्षमस्व ! तुमचे बदल मी सेव्ह करू शकलो नाही."
       create_failure: "ऑर्डर सायकल तयार करण्यात अयशस्वी"
       update_success: 'तुमची ऑर्डर सायकल अपडेट केली गेली आहे.'
       update_failure: "ऑर्डर सायकल अपडेट करण्यात अयशस्वी"
@@ -3374,6 +3327,8 @@ mr:
           आमच्या पेमेंट गेटवेमध्ये तुमचे कार्ड सेट करताना समस्या आली.
           कृपया पृष्ठ रीफ्रेश करा आणि पुन्हा प्रयत्न करा, जर ते दुसऱ्यांदा अयशस्वी झाले,
           कृपया मदतीसाठी आमच्याशी संपर्क साधा.
+    trix:
+      urlPlaceholder: "कृपया URL प्रविष्ट करा"
   inflections:
     each:
       one: "प्रत्येक"
@@ -3435,9 +3390,6 @@ mr:
     pot:
       one: "भांडे"
       other: "भांडी"
-    bundle:
-      one: "मोळी"
-      other: "बंडले"
     flask:
       one: "फ्लास्क"
       other: "फ्लास्कस्"
@@ -3447,6 +3399,9 @@ mr:
     sack:
       one: "गोणी"
       other: "पोती"
+    bundle:
+      one: "मोळी"
+      other: "बंडले"
   producers:
     signup:
       start_free_profile: "विनामूल्य प्रोफाइलसह प्रारंभ करा आणि जेव्हा तुम्ही तयार असाल तेव्हा विस्तार करा!"
@@ -3569,7 +3524,6 @@ mr:
     more: "अधिक"
     new_adjustment: "नवीन समायोजन"
     new_tax_category: "नवीन कर श्रेणी"
-    new_taxon: "नवीन टॅक्सन"
     new_user: "नवीन वापरकर्ता"
     no_pending_payments: "कोणतीही प्रलंबित देयके नाहीत"
     none: "कोणतेही नाही"
@@ -3581,16 +3535,8 @@ mr:
     rma_credit: "RMA क्रेडिट"
     refund: "परतावा"
     server_error: "सर्व्हर त्रुटी"
-    shipping_method_names:
-      UPS Ground: "UPS  ग्राउंड"
-      pick_up: "शेतात पिक-अप"
-      delivery: "स्वाक्षरी, सीलबंद, वितरित"
     start_date: "प्रारंभ तारीख"
     successfully_removed: "यशस्वीरित्या काढले"
-    taxonomy_edit: "वर्गीकरण संपादन"
-    taxonomy_tree_error: "वर्गीकरण वृक्ष त्रुटी"
-    taxonomy_tree_instruction: "वर्गीकरण वृक्ष सूचना"
-    tree: "वृक्ष"
     updating: "अपडेट करत आहे"
     your_order_is_empty_add_product: "तुमची ऑर्डर रिकामी आहे, कृपया उत्पादन शोधा आणि वर समाविष्ट करा"
     add_product: "उत्पादन जोडा"
@@ -3687,7 +3633,6 @@ mr:
     tax_rate_amount_explanation: "कर दर ही गणना करण्यात मदत करण्यासाठीची दशांश रक्कम आहे, (म्हणजे कर दर 5% असल्यास 0.05 प्रविष्ट करा)"
     included_in_price: "किंमतीमध्ये समाविष्ट आहे"
     show_rate_in_label: "लेबलमध्ये दर दर्शवा"
-    back_to_tax_rates_list: "कर दर सूचीकडे परत"
     tax_settings: "कर सेटिंग्ज"
     zones: "क्षेत्रे"
     new_zone: "नवीन क्षेत्र"
@@ -3700,14 +3645,10 @@ mr:
     iso_name: "आयएसओ नाव"
     states_required: "राज्ये आवश्यक"
     editing_country: "संपादन देश"
-    back_to_countries_list: "देशांच्या यादीकडे परत"
     states: "राज्ये"
     abbreviation: "संक्षेप"
     new_state: "नवीन राज्य"
     payment_methods: "पेमेंट पद्धती"
-    taxonomies: "वर्गीकरण"
-    new_taxonomy: "नवीन वर्गीकरण"
-    back_to_taxonomies_list: "वर्गीकरण सूचीकडे परत जा"
     shipping_methods: "शिपिंग पद्धती"
     shipping_method: "शिपिंग पद्धत "
     shipment: "शिपमेंट"
@@ -3827,6 +3768,8 @@ mr:
         customers: "ग्राहक"
         groups: "गट"
         oidc_settings: "OIDC सेटिंग्ज"
+        product_import: "Import करा"
+        payment_methods: "पेमेंट पद्धती"
       product_properties:
         index:
           inherits_properties_checkbox_hint: "%{supplier} कडून गुणधर्म मिळवायचे? (वर ओव्हरराईड केल्याशिवाय)"
@@ -3857,7 +3800,6 @@ mr:
           continue: "सुरू ठेवा "
         new:
           new_return_authorization: "रिटर्न अधिकृतता"
-          back_to_return_authorizations_list: "रिटर्न अधिकृतता सूचीकडे परता"
           continue: "सुरू ठेवा "
         edit:
           receive: "प्राप्त"
@@ -4044,9 +3986,7 @@ mr:
         providers:
           provider: "प्रदाता"
           check: "रोख/EFT/इ. (स्वयंचलित प्रमाणीकरण आवश्यक नसलेली पेमेंट्स)"
-          pin: "पेमेंट्स पिन करा"
           paypalexpress: "PayPal Express"
-          stripeconnect: "Stripe"
           stripesca: "Stripe SCA"
       payments:
         source_forms:
@@ -4105,8 +4045,6 @@ mr:
       reports:
         table:
           select_and_search: "फिल्टर निवडा आणि तुमचा डेटा ॲक्सेस करण्यासाठी %{option} वर क्लिक करा."
-        customer_names_message:
-          customer_names_tip: "जर तुम्ही पुरवलेल्या ऑर्डर्स ग्राहकांची नावे लपवली गेली असतील, तर तुम्ही वितरकाशी संपर्क साधू शकता आणि ते त्यांच्या पुरवठादारांना ग्राहकांची नावे पाहण्याची परवानगी देण्यासाठी त्यांची शॉप प्राधान्ये अपडेट करतील का ते विचारू शकता."
         products_and_inventory:
           all_products:
             message: "नोंदवलेली स्टॉक पातळी केवळ पुरवठादारांच्या उत्पादन सूचीमधून आहे. जर तुम्ही तुमच्या स्टॉकचे प्रमाण मॅनेज करण्यासाठी इन्व्हेंटरी वापरत असाल तर या मूल्यांना हा रिपोर्ट विचारात घेणार नाही."
@@ -4125,7 +4063,6 @@ mr:
         form:
           disabled: "डिसेबल्ड आहे?"
           email: "ईमेल"
-          roles: "भूमिका"
           enterprise_limit: "एंटरप्राइझ मर्यादा"
           confirm_password: "पासवर्डची पुष्टी करा"
           password: "पासवर्ड"
@@ -4148,12 +4085,14 @@ mr:
           new_variant: "नवीन प्रकार"
         form:
           sku: "SKU"
-          price: "किंमत"
           unit_price: "युनिट किंमत"
           display_as: "म्हणून प्रदर्शित करा"
           display_name: "डिस्प्ले नाव"
           display_as_placeholder: 'उदा. 2 किलो'
           display_name_placeholder: 'उदा. टोमॅटो'
+          price: किंमत
+          unit_value: युनिट मूल्य
+          variant_category: श्रेणी
         autocomplete:
           out_of_stock: "स्टॉक संपला"
           producer_name: "उत्पादक"
@@ -4163,6 +4102,7 @@ mr:
           terms_of_service: "सेवा अटी"
         sortable_header:
           name: "नाव"
+          on_hand: "आता उपलब्ध"
           number: "क्रमांक"
           completed_at: "येथे पूर्ण झाले"
           state: "राज्य"
@@ -4177,7 +4117,6 @@ mr:
       general_settings:
         edit:
           legal_settings: "कायदेशीर सेटिंग्ज"
-          cookies_consent_banner_toggle: "कुकीज संमती बॅनर प्रदर्शित करा"
           privacy_policy_url: "गोपनीयता धोरण URL"
           enterprises_require_tos: "एंटरप्राइझने सेवा अटी स्वीकारणे आवश्यक आहे"
           shoppers_require_tos: "खरेदीदारांनी सेवा अटी स्वीकारल्या पाहिजेत"
@@ -4267,13 +4206,6 @@ mr:
         subject: "पासवर्ड सूचना रीसेट करा"
       confirmation_instructions:
         subject: "कृपया तुमच्या OFN खात्याची पुष्टी करा"
-    payment_mailer:
-      authorize_payment:
-        subject: "कृपया तुमचे पेमेंट OFN वर %{distributor} वर अधिकृत करा"
-        instructions: "तुमच्या %{amount} ते %{distributor} च्या पेमेंटसाठी अतिरिक्त प्रमाणीकरण आवश्यक आहे. तुमचे पेमेंट अधिकृत करण्यासाठी कृपया खालील URL ला भेट द्या:"
-      authorization_required:
-        subject: "पेमेंटसाठी ग्राहकाकडून प्रमाणीकरण आवश्यक आहे"
-        message: "ऑर्डर %{order_number} साठी पेमेंटसाठी ग्राहकाकडून अतिरिक्त प्रमाणीकरण आवश्यक आहे. ग्राहकाला ईमेलद्वारे सूचित केले गेले आहे आणि ते अधिकृत होईपर्यंत पेमेंट प्रलंबित म्हणून दिसून येईल."
     shipment_mailer:
       shipped_email:
         dear_customer: "प्रिय ग्राहक,"
@@ -4336,13 +4268,10 @@ mr:
       webhook_endpoints:
         title: वेबहुक एंडपॉइंट्स
         description: सिस्टम मधील इव्हेंट्स बाह्य सिस्टम्सवर वेबहुक ट्रिगर करू शकतात.
-        event_types:
-          order_cycle_opened: ऑर्डर सायकल उघडली
         event_type:
           header: कार्यक्रमाचा प्रकार
         url:
           header: एंडपॉइंट URL
-          create_placeholder: रिमोट वेबहुक एंडपॉइंटची URL एंटर करा
       developer_settings:
         title: विकासक सेटिंग्ज
       form:
@@ -4362,6 +4291,8 @@ mr:
         transaction_history: व्यवहार इतिहास
         authorisation_required: अधिकृतता आवश्यक
         authorise: अधिकृत करा
+      customer_account_transactions:
+        amount: रक्कम
       open_orders:
         order: ऑर्डर करा
         shop: शॉप
@@ -4410,7 +4341,6 @@ mr:
       key_cleared: "Key क्लिअर केली"
       shipment:
         cannot_ready: "शिपमेंट तयार करू शकत नाही."
-      invalid_taxonomy_id: "अवैध वर्गीकरण आयडी."
       toggle_api_key_view: "वापरकर्त्यासाठी API key दृश्य दर्शवा"
     activerecord:
       models:
@@ -4469,3 +4399,10 @@ mr:
     pagination:
       next: पुढील
       previous: मागील
+    tag_rule_group_form:
+      for_customers_tagged: 'टॅग केलेल्या ग्राहकांसाठी:'
+      add_new_rule: '+ एक नवीन नियम जोडा'
+      no_rules_yet: या टॅगवर अद्याप कोणतेही नियम लागू नाहीत
+    webhook_endpoint_form:
+      url:
+        create_placeholder: रिमोट वेबहुक एंडपॉइंटची URL एंटर करा

@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Spree::UsersController, type: :controller do
+RSpec.describe Spree::UsersController do
   routes { Spree::Core::Engine.routes }
 
   include AuthenticationHelper
@@ -33,7 +31,7 @@ describe Spree::UsersController, type: :controller do
       get :show
 
       expect(orders).to include d1o1, d1o2
-      expect(orders).to_not include d1_order_for_u2, d1o3, d2o1
+      expect(orders).not_to include d1_order_for_u2, d1o3, d2o1
       expect(shops).to include distributor1
 
       # Doesn't return orders for irrelevant distributors" do
@@ -52,22 +50,6 @@ describe Spree::UsersController, type: :controller do
       expect(outstanding_balance_query).to receive(:call) { Spree::Order.none }
 
       spree_get :show
-    end
-  end
-
-  describe "#registered_email" do
-    routes { Openfoodnetwork::Application.routes }
-
-    let!(:user) { create(:user) }
-
-    it "returns ok (200) if email corresponds to a registered user" do
-      post :registered_email, params: { email: user.email }
-      expect(response).to have_http_status(:ok)
-    end
-
-    it "returns not_found (404) if email does not correspond to a registered user" do
-      post :registered_email, params: { email: 'nonregistereduser@example.com' }
-      expect(response).to have_http_status(:not_found)
     end
   end
 

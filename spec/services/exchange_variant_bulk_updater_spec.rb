@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe ExchangeVariantBulkUpdater do
+RSpec.describe ExchangeVariantBulkUpdater do
   let!(:first_variant) { create(:variant) }
   let!(:second_variant) { create(:variant) }
   let!(:third_variant) { create(:variant) }

@@ -36,7 +36,7 @@ module Spree
         end
 
         @object.touch :deleted_at
-        flash[:success] = flash_message_for(@object, :successfully_removed)
+        flash[:success] = Spree.t(:successfully_removed)
 
         respond_with(@object) do |format|
           format.html { redirect_to collection_url }
@@ -104,7 +104,7 @@ module Spree
 
         return unless shipping_fees
 
-        shipping_fees.each do |_, shipping_amount|
+        shipping_fees.each_value do |shipping_amount|
           unless shipping_amount.nil? || Float(shipping_amount, exception: false)
             flash[:error] = I18n.t(:calculator_preferred_value_error)
             return redirect_to location_after_save

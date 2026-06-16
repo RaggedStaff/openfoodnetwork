@@ -1,0 +1,154 @@
+# frozen_string_literal: true
+
+require "taler"
+
+module Spree
+  class PaymentMethod
+    # GNU Taler is a distributed, open source payment system.
+    # You need a hosted Taler backend server to process payments.
+    #
+    # For testing, you can use the official demo backend:
+    #
+    # - Merchant UX: https://backend.demo.taler.net
+    # - Username: sandbox
+    # - Password: sandbox
+    #
+    # Configure this payment method for testing with:
+    #
+    # - instance_url: https://backend.demo.taler.net/instances/sandbox
+    # - password: sandbox
+    class Taler < PaymentMethod
+      # Demo backend instances will use the KUDOS currency.
+      DEMO_PREFIX = "https://backend.demo.taler.net/instances"
+
+      preference :instance_url, :string
+      preference :password, :password
+
+      def actions
+        %w[credit void]
+      end
+
+      def can_void?(payment)
+        # The source can be another payment. Then this is an offset payment
+        # like a credit record. We can't void a refund.
+        payment.source == self && payment.state == "completed"
+      end
+
+      def can_credit?(payment)
+        return false unless payment.completed?
+        return false unless payment.order.payment_state == 'credit_owed'
+
+        payment.credit_allowed.positive?
+      end
+
+      # Name of the view to display during checkout
+      def method_type
+        "check" # empty view
+      end
+
+      def external_gateway?
+        true
+      end
+
+      # The backend provides this URL. It can look like this:
+      # https://backend.demo.taler.net/instances/blog/orders/2026..?token=S8Y..&session_id=b0b..
+      def external_payment_url(options)
+        order = options.fetch(:order)
+        payment = load_payment(order)
+
+        payment.source ||= self
+        payment.response_code ||= create_taler_order(payment)
+        payment.save! if payment.changed?
+
+        taler_order.status_url
+      end
+
+      # Main method called by Spree::Payment::Processing during checkout
+      # when the user is redirected back to the app.
+      #
+      # The payment has already been made and we need to verify the success.
+      def purchase(_money, _source, gateway_options)
+        payment = gateway_options[:payment]
+
+        return unless payment.response_code
+
+        taler_order = taler_order(id: payment.response_code)
+        status = taler_order.fetch("order_status")
+        success = (status == "paid")
+        message = I18n.t(status, default: status, scope: "taler.order_status")
+
+        ActiveMerchant::Billing::Response.new(success, message)
+      end
+
+      def credit(money, response_code, gateway_options)
+        amount = money / 100 # called with cents
+        payment = gateway_options[:payment]
+        taler_order = taler_order(id: response_code)
+        status = taler_order.fetch("order_status")
+
+        raise "Unsupported action" if status != "paid"
+
+        taler_amount = "KUDOS:#{amount}"
+        taler_order.refund(refund: taler_amount, reason: "credit")
+
+        spree_money = Spree::Money.new(amount, currency: payment.currency).to_s
+        PaymentMailer.refund_available(spree_money, payment, taler_order.status_url).deliver_later
+
+        ActiveMerchant::Billing::Response.new(true, "Refund initiated")
+      end
+
+      def void(response_code, gateway_options)
+        payment = gateway_options[:payment]
+        taler_order = taler_order(id: response_code)
+        status = taler_order.fetch("order_status")
+
+        if status == "claimed"
+          return ActiveMerchant::Billing::Response.new(true, "Already expired")
+        end
+
+        raise "Unsupported action" if status != "paid"
+
+        amount = taler_order.fetch("contract_terms")["amount"]
+        taler_order.refund(refund: amount, reason: "void")
+
+        spree_money = payment.money.to_s
+        PaymentMailer.refund_available(spree_money, payment, taler_order.status_url).deliver_later
+
+        ActiveMerchant::Billing::Response.new(true, "Refund initiated")
+      end
+
+      private
+
+      def load_payment(order)
+        order.payments.checkout.where(payment_method: self).last
+      end
+
+      def create_taler_order(payment)
+        # We are ignoring currency for now so that we can test with the
+        # current demo backend only working with the KUDOS currency.
+        taler_amount = "#{currency(payment)}:#{payment.amount}"
+        urls = Rails.application.routes.url_helpers
+        fulfillment_url = urls.payment_gateways_confirm_taler_url(payment_id: payment.id)
+        taler_order.create(
+          amount: taler_amount,
+          summary: I18n.t("payment_method_taler.order_summary"),
+          fulfillment_url:,
+        )
+      end
+
+      def taler_order(id: nil)
+        @taler_order ||= ::Taler::Order.new(
+          backend_url: preferred_instance_url,
+          password: preferred_password,
+          id:,
+        )
+      end
+
+      def currency(payment)
+        return "KUDOS" if preferred_instance_url.starts_with?(DEMO_PREFIX)
+
+        payment.order.currency
+      end
+    end
+  end
+end

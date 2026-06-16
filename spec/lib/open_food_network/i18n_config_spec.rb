@@ -1,10 +1,9 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
 require 'open_food_network/i18n_config'
 
 module OpenFoodNetwork
-  describe I18nConfig do
+  RSpec.describe I18nConfig do
     before do
       # Allow non-stubbed calls to ENV to proceed
       allow(ENV).to receive(:[]).and_call_original

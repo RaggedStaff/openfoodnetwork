@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe EnterpriseFeeAdjustments do
+RSpec.describe EnterpriseFeeAdjustments do
   let(:tax_rate) { create(:tax_rate, amount: 0.1) }
   let(:line_item) { create(:line_item) }
   let(:line_item2) { create(:line_item) }

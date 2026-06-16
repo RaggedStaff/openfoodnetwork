@@ -1,25 +1,45 @@
 // Some fixes for fontwesome stylesheets
-[class^="icon-"], [class*=" icon-"] {
+[class*="icon-"] {
   &:before {
     padding-right: 5px;
   }
 
-  &.button, &.icon_link {
-    width: auto;
-
+  &.button,
+  &.icon_link {
     &:before {
-      padding-top: 3px;
+      padding-right: 8px;
     }
   }
 }
 
-.icon-email:before    { @extend .icon-envelope, :before; }
-.icon-resend_authorization_email:before    { @extend .icon-envelope, :before; }
-.icon-resume:before   { @extend .icon-refresh, :before; }
+// for the button tagname as well
+button[class*="icon-"] {
+  &:before {
+    padding-right: 8px;
+  }
+}
+
+.icon-email:before {
+  @extend .icon-envelope, :before;
+}
+.icon-resend_authorization_email:before {
+  @extend .icon-envelope, :before;
+}
+.icon-resume:before {
+  @extend .icon-refresh, :before;
+}
 
 .icon-cancel:before,
-.icon-void:before     { @extend .icon-remove, :before;   }
+.icon-void:before,
+.icon-internal_void:before {
+  @extend .icon-remove, :before;
+}
 
 .icon-capture,
-.icon-capture_and_complete_order  { @extend .icon-ok }
-.icon-credit:before   { @extend .icon-ok, :before ;      }
+.icon-capture_and_complete_order {
+  @extend .icon-ok;
+}
+
+.icon-credit:before {
+  @extend .icon-ok, :before;
+}

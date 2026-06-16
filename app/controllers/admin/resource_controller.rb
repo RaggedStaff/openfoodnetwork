@@ -61,7 +61,7 @@ module Admin
 
     def destroy
       if @object.destroy
-        flash[:success] = flash_message_for(@object, :successfully_removed)
+        flash[:success] = Spree.t(:successfully_removed)
         respond_with(@object) do |format|
           format.html { redirect_to collection_url }
           format.js   { render partial: "spree/admin/shared/destroy" }
@@ -76,7 +76,7 @@ module Admin
     protected
 
     def resource_not_found
-      flash[:error] = flash_message_for(model_class.new, :not_found)
+      flash[:error] = Spree.t(:not_found)
       redirect_to collection_url
     end
 
@@ -146,7 +146,7 @@ module Admin
       return nil if parent_data.blank?
 
       @parent ||= parent_data[:model_class].
-        public_send("find_by", parent_data[:find_by] => params["#{model_name}_id"])
+        find_by(parent_data[:find_by] => params["#{model_name}_id"])
       instance_variable_set("@#{model_name}", @parent)
     end
 
@@ -229,7 +229,7 @@ module Admin
     end
 
     def member_action?
-      !collection_actions.include? action
+      collection_actions.exclude? action
     end
 
     def new_actions

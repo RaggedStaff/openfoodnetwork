@@ -4,7 +4,8 @@ module Spree
   class InventoryUnit < ApplicationRecord
     self.belongs_to_required_by_default = false
 
-    belongs_to :variant, -> { with_deleted }, class_name: "Spree::Variant"
+    belongs_to :variant, -> { with_deleted }, class_name: "Spree::Variant",
+                                              inverse_of: :inventory_units
     belongs_to :order, class_name: "Spree::Order"
     belongs_to :shipment, class_name: "Spree::Shipment"
     belongs_to :return_authorization, class_name: "Spree::ReturnAuthorization",
@@ -35,18 +36,6 @@ module Spree
       end
     end
 
-    # This was refactored from a simpler query because the previous implementation
-    # lead to issues once users tried to modify the objects returned. That's due
-    # to ActiveRecord `joins(shipment: :stock_location)` only return readonly
-    # objects
-    #
-    # Returns an array of backordered inventory units as per a given stock item
-    def self.backordered_for_stock_item(stock_item)
-      backordered_per_variant(stock_item).select do |unit|
-        unit.shipment.stock_location == stock_item.stock_location
-      end
-    end
-
     def self.finalize_units!(inventory_units)
       inventory_units.map do |iu|
         iu.update_columns(
@@ -57,8 +46,7 @@ module Spree
     end
 
     def find_stock_item
-      Spree::StockItem.find_by(stock_location_id: shipment.stock_location_id,
-                               variant_id:)
+      Spree::StockItem.find_by(variant_id:)
     end
 
     private

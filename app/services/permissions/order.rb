@@ -15,17 +15,31 @@ module Permissions
     # needed for queries showing line items per producer.
     def visible_orders
       orders = Spree::Order.
-        with_line_items_variants_and_products_outer.
+        with_line_items_variants_outer.
         where(visible_orders_where_values)
 
       filtered_orders(orders)
     end
 
+    def managed_or_coordinated_orders_where_clause
+      Spree::Order.where(
+        managed_orders_where_values.or(coordinated_orders_where_values)
+      )
+    end
+
     # Any orders that the user can edit
     def editable_orders
-      orders = Spree::Order.
-        where(managed_orders_where_values.
-          or(coordinated_orders_where_values))
+      orders = if @user.admin?
+                 # It returns all orders if the user is an admin
+                 managed_or_coordinated_orders_where_clause
+               else
+                 Spree::Order.joins(:distributor).where(
+                   id: produced_orders.select(:id),
+                   distributor: { enable_producers_to_edit_orders: true }
+                 ).or(
+                   managed_or_coordinated_orders_where_clause
+                 )
+               end
 
       filtered_orders(orders)
     end
@@ -36,7 +50,20 @@ module Permissions
 
     # Any line items that I can edit
     def editable_line_items
-      Spree::LineItem.where(order_id: editable_orders.select(:id))
+      managed_or_coordinated_line_items_where_clause = Spree::LineItem.where(
+        order_id: filtered_orders(managed_or_coordinated_orders_where_clause).select(:id)
+      )
+
+      if @user.admin?
+        # It returns all line_items if the user is an admin
+        managed_or_coordinated_line_items_where_clause
+      else
+        Spree::LineItem.editable_by_producers(
+          @permissions.managed_enterprises.select("enterprises.id")
+        ).or(
+          managed_or_coordinated_line_items_where_clause
+        )
+      end
     end
 
     private
@@ -79,11 +106,18 @@ module Permissions
         reduce(:and)
     end
 
+    def produced_orders
+      Spree::Order.with_line_items_variants_outer.
+        where(
+          spree_variants: { supplier_id: @permissions.managed_enterprises.select("enterprises.id") }
+        )
+    end
+
     def produced_orders_where_values
-      Spree::Order.with_line_items_variants_and_products_outer.
+      Spree::Order.with_line_items_variants_outer.
         where(
           distributor_id: granted_distributor_ids,
-          spree_products: { supplier_id: enterprises_with_associated_orders }
+          spree_variants: { supplier_id: enterprises_with_associated_orders }
         ).
         where_clause.__send__(:predicates).
         reduce(:and)

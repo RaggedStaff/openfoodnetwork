@@ -7,7 +7,7 @@ module Reporting
         attr_accessor :permissions, :parameters
 
         def initialize(user, params = {}, render: false)
-          super(user, params, render:)
+          super
           @parameters = Parameters.new(params.fetch(:q, {}))
           @parameters.validate!
           @permissions = Permissions.new(user)
@@ -23,7 +23,7 @@ module Reporting
         end
 
         def message
-          I18n.t("spree.admin.reports.customer_names_message.customer_names_tip")
+          I18n.t("spree.admin.reports.hidden_customer_details_tip")
         end
 
         def query_result
@@ -46,9 +46,9 @@ module Reporting
         # This report calculate data in a different way, so we just encapsulate the result
         # in the columns method
         def columns
-          data_attributes.map { |field|
+          data_attributes.to_h { |field|
             [field.to_sym, proc { |data| data.public_send(field) }]
-          }.to_h
+          }
         end
 
         private

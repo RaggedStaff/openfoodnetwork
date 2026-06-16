@@ -2,9 +2,9 @@
 
 require_relative "../spec_helper"
 
-describe DfcLoader do
+RSpec.describe DfcLoader do
   it "prepares the DFC Connector to provide DFC object classes for export" do
-    tomato = DataFoodConsortium::Connector::SuppliedProduct.new(
+    tomato = DataFoodConsortium::ConnectorV1::SuppliedProduct.new(
       "https://openfoodnetwork.org/tomato",
       name: "Tomato",
       description: "Awesome tomato",
@@ -20,5 +20,11 @@ describe DfcLoader do
       *%w(@context @type dfc-b:name dfc-b:description)
     )
     expect(result["dfc-b:name"]).to eq "Tomato"
+  end
+
+  it "loads vocabularies" do
+    terms = DfcLoader.vocabulary("vocabulary")
+    expect(terms.STATES.ORDERSTATE.HELD.semanticId)
+      .to eq "https://github.com/datafoodconsortium/taxonomies/releases/latest/download/vocabulary.rdf#Held"
   end
 end

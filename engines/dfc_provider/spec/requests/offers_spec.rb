@@ -2,18 +2,18 @@
 
 require_relative "../swagger_helper"
 
-describe "Offers", type: :request, swagger_doc: "dfc.yaml", rswag_autodoc: true do
+RSpec.describe "Offers", swagger_doc: "dfc.yaml" do
   let!(:user) { create(:oidc_user) }
   let!(:enterprise) { create(:distributor_enterprise, id: 10_000, owner: user) }
   let!(:product) {
     create(
       :product,
       id: 90_000,
-      supplier: enterprise, name: "Pesto", description: "Basil Pesto",
+      name: "Pesto", description: "Basil Pesto",
       variants: [variant],
     )
   }
-  let(:variant) { build(:base_variant, id: 10_001, unit_value: 1) }
+  let(:variant) { build(:base_variant, id: 10_001, unit_value: 1, supplier: enterprise) }
 
   before { login_as user }
 
@@ -47,30 +47,11 @@ describe "Offers", type: :request, swagger_doc: "dfc.yaml", rswag_autodoc: true 
       }
 
       let(:id) { variant.id }
-      let(:offer) { offer_example }
-      let(:offer_example) { |example|
+      let(:offer) { |example|
         example.metadata[:operation][:parameters].first[:schema][:example]
       }
 
       response "204", "success" do
-        context "with missing stockLimitation" do
-          let(:offer) {
-            offer_example.dup.tap do |o|
-              o.delete(:'dfc-b:stockLimitation')
-            end
-          }
-
-          it "sets the variant to on demand" do |example|
-            pending "DFC Connector needs to support unset values."
-
-            expect {
-              submit_request(example.metadata)
-              variant.reload
-            }.to change { variant.on_demand }.to(true)
-              .and change { variant.on_hand }.by(0)
-          end
-        end
-
         it "updates a variant" do |example|
           expect {
             submit_request(example.metadata)

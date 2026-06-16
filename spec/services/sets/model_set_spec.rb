@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Sets::ModelSet do
+RSpec.describe Sets::ModelSet do
   describe "updating" do
     it "creates new models" do
       attrs = { collection_attributes: { '1' => { name: "Fantasia", iso_name: "FAN" },
@@ -79,7 +77,7 @@ describe Sets::ModelSet do
         expect(subject.errors.full_messages).to eq ["Product Name can't be blank"]
 
         expect(subject.invalid).to     include product_a
-        expect(subject.invalid).to_not include product_b
+        expect(subject.invalid).not_to include product_b
       end
     end
   end

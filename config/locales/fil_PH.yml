@@ -27,10 +27,12 @@ fil_PH:
       spree/product:
         name: "pangalan ng produkto"
         price: "Presyo"
-        primary_taxon: "Kategorya ng Produkto"
-        supplier: "Supplier"
+        primary_taxon_id: "Kategorya ng Produkto"
         shipping_category_id: "Kategorya ng Pagpapadala"
-        variant_unit: "Yunit ng variant"
+      spree/variant:
+        primary_taxon: "Kategorya ng Produkto"
+        shipping_category_id: "Kategorya ng Pagpapadala"
+        supplier: "Supplier"
         variant_unit_name: "pangalan ng yunit ng variant"
       spree/credit_card:
         base: "Credit Card"
@@ -58,7 +60,6 @@ fil_PH:
         variant_override:
           count_on_hand:
             using_producer_stock_settings_but_count_on_hand_set: "ay dapat blanko sapagkat ginagamit ang stock settings ng producer"
-            on_demand_but_count_on_hand_set: "ay dapat blanko kung on demand"
             limited_stock_but_no_count_on_hand: "ay dapat matukoy sapagkat ipipilit ang limitadong stock"
       messages:
         blank: "hindi maaaring iwanang blanko"
@@ -127,6 +128,9 @@ fil_PH:
     integer_array_validator:
       not_array_error: "ay dapat na pagpipilian"
       invalid_element_error: "ay dapat naglalaman lamang ng valid na integers"
+  backorder_mailer:
+    backorder_failed:
+      product: "Produkto"
   enterprise_mailer:
     confirmation_instructions:
       subject: "Kumpirmahin ang email address para sa %{enterprise}"
@@ -276,7 +280,6 @@ fil_PH:
   password_confirmation: Kumpirmasyon ng password
   reset_password_token: i-reset ang password token
   expired: ay expired na, magrequest ng bago
-  back_to_payments_list: "bumalik sa listahan ng mga bayad"
   maestro_or_solo_cards: "Maestro/Solo cards"
   backordered: "na-backorder"
   on_hand: "on hand"
@@ -287,6 +290,7 @@ fil_PH:
     create_and_add_another: "Gumawa at magdagdag ng isa pa"
     create: "gumawa"
     cancel: "kanselahin"
+    cancel_order: "kanselahin"
     save: "i-save"
     edit: "i-edit"
     update: "i-update"
@@ -302,6 +306,7 @@ fil_PH:
           title: Mga Producer
         colums: hanay
       columns:
+        image: larawan
         name: Pangalan
         unit: yunit
         price: Presyo
@@ -314,6 +319,7 @@ fil_PH:
         inherits_properties: "gayahin ang mga katangian?"
         import_date: "petsa ng pag-import"
         actions: mga  kilos
+        tags: tags
       columns_selector:
         unit: yunit
         price: Presyo
@@ -329,8 +335,11 @@ fil_PH:
         edit: i-edit
         clone: Gayahin
         delete: Tanggalin
+        remove: Tanggalin
       image:
         edit: i-edit
+      product_preview:
+        shop_tab: Shop
     begins_at: nagsimula sa
     begins_on: nagsisimula sa
     customer: Customer
@@ -380,7 +389,6 @@ fil_PH:
     show_n_more: Ipakita%{num}pa
     choose: "pumili..."
     please_select: pumili
-    column_save_as_default: i-save bilang default
     columns: hanay
     actions: mga  kilos
     viewing: "Tinitignan: %{current_view_name}"
@@ -444,6 +452,11 @@ fil_PH:
         confirm_delete: "siguradong tatanggalin na?"
         search_by_email: "hanapin gamit ang email/code..."
         guest_label: "Guest checkout"
+    customer_account_transaction:
+      index:
+        description: paglalarawan
+        amount: Halaga
+        running_balance: tumatakbong balanse
     contents:
       edit:
         title: nilalaman
@@ -457,6 +470,11 @@ fil_PH:
         your_content: ang iyong nilalaman
         user_guide: gabay sa gumagamit
         map: Mapa
+    dfc_product_imports:
+      index:
+        update: i-update
+        new: Bago
+        import: ilipat
     enterprise_fees:
       index:
         title: "fees para sa Enterprise"
@@ -510,7 +528,6 @@ fil_PH:
       variants:
         infinity: "walang katapusan"
         to_order_tip: "ang mga item na made to order ay hindi maaaring i-set ng lebel ng stock, tulad ng mga tinapay na ginagawa lamang kapag may order."
-      back_to_products_list: "bumalik sa listahan ng mga produkto"
       editing_product: "ine-edit ang mga produkto"
       tabs:
         product_details: "mga detalye ng produkto"
@@ -527,11 +544,18 @@ fil_PH:
           label: Mga Producer
         categories:
           label: mga kategorya
+        tags:
+          label: tags
+          none: wala
         search: hanapin
-      table:
+      product_variant_row:
         new_variant: bagong uri
-      edit_image:
-        close: bumalik
+      variant_row:
+        none_tax_category: wala
+        category_field_name: "kategorya"
+        tax_category_field_name: "kategorya ng tax"
+        producer_field_name: "Producer"
+        add_a_tag: magdagdag ng tag
     product_import:
       title: paglipat ng produkto
       file_not_found: 'ang file ay hindi mahanap o mabuksan '
@@ -589,7 +613,6 @@ fil_PH:
         no_name: walang pangalan
         blank_enterprise: ang ibang mga produkto ay walang tinutukoy na enterprise
         reset_absent?: i-reset ang mga nawawalang produkto
-        reset_absent_tip: i-set ang stock sa zero ng lahat ng mga produkto na hindi makikita sa file
         overwrite_all: sulatan lahat
         overwrite_empty: sulatan kung walang nakalagay
         default_stock: i-set ang lebel ng stock
@@ -744,12 +767,6 @@ fil_PH:
         images:
           legend: "mga larawan"
           logo: Logo
-          promo_image_placeholder: 'ang larawan na ito ay makikita sa "tungkol sa amin"'
-          promo_image_note1: 'TANDAAN:'
-          promo_image_note2: ang kahit anong larawan na ilalagay dito ay maka-crop sa 1200 x 260.
-          promo_image_note3: ang promo na larawan ay makikita sa itaas na bahagi sa pahina ng profile ng enterprise at pop-ups.
-          remove_logo: "alisin ang larawan"
-          remove_promo_image: "alisin ang larawan"
         inventory_settings:
           legend: "mga setting para sa imbentaryo"
           text1: maaari mong piliin na pamahalaan ang lebel ng mga stock at presyo sa iyong
@@ -823,14 +840,16 @@ fil_PH:
           enable_subscriptions_true: "pinagana"
           customer_names_false: "huwag paganahin"
           customer_names_true: "pinagana"
+          customer_contacts_false: "huwag paganahin"
+          customer_contacts_true: "pinagana"
+          producers_edit_orders_false: "huwag paganahin"
+          producers_edit_orders_true: "pinagana"
           shopfront_message: "mensahe sa Shopfront"
           shopfront_message_placeholder: >
               opsyonal na mensahe para sa pagbati sa mga customer at pagpapaliwanag
               kung paano mamili sa inyong shop. kung ang teksto ay ipinasok dito,
               ito ay makikita sa home tab kapag ang customer ay nasa loob na ng inyong
               shopfront.
-          shopfront_message_link_tooltip: "ilagay/ i-edit ang link"
-          shopfront_message_link_prompt: "ipasok ang URL na ilalagay"
           shopfront_closed_message: "pagsasarang mensahe ng Shopfront"
           shopfront_closed_message_placeholder: >
               isang mensahe na nagbibigay ng mas detalyadong paliwanag kung bakit
@@ -869,34 +888,36 @@ fil_PH:
             no_rules_yet: wala pang default na panuntunan na ginagamit
             add_new_button: '+ magdagdag ng bagong default na panuntunan'
           no_tags_yet: walang pang tag na magagamit sa enterprise na ito
-          no_rules_yet: wala pang panuntunan na magagamit sa tag na ito
-          for_customers_tagged: 'Para sa mga customer na naka-tag:'
-          add_new_rule: '+ magdagdag ng bagong panuntunan'
           add_new_tag: '+ Magdagdag ng bagong tag'
+          show_hide_variants: 'ipakita o itago ang mga variant sa aking Shopfront'
+          show_hide_shipping: 'ipakita o itago ang mga paraan ng pagpapadala sa checkout'
+          show_hide_payment: 'ipakita o itago ang mga paraan ng pagbabayad sa checkout'
+          show_hide_order_cycles: 'ipakita o itago ang mga order cycle sa aking shopfront'
         users:
           legend: "mga gumagamit"
           email_confirmation_notice_html: "ang kumpirmasyon ng email ay nakabinbin pa. kami ay nagpadala ng kumpirmasyon ng email sa %{email}."
           resend: Ipadala muli
-          owner: 'May-ari'
           contact: "Makipag-usap"
+          owner: 'May-ari'
           contact_tip: "ang tagapamahala na makakatanggap ng enterprise emails para sa mga order at mga abiso. kailangang may kumpirmadong email address."
           owner_tip: ang pangunahing gumagamit na responsable sa enterprise na ito.
           notifications: mga abiso
           notifications_tip: ang mga abiso tungkol sa mga order ay ipapadala sa email address na ito.
           notifications_placeholder: hal. gustav@truffles.com
           notifications_note: 'Tandaan: ang bagong email address ay kailangang kumpirmado bago magamit'
-          managers: Tagapamahala
-          managers_tip: ang ibang gagamit na may permisong pamahalaan ang enterprise na ito.
           invite_manager: "Mag-imbita ng Tagapamahala"
-          invite_manager_tip: "mag-imbita ng hindi rehistradong user na mag-sign-up at maging tagapamahala ng enterprise na ito."
-          add_unregistered_user: "magdagdag ng hindi rehistradong user"
           email_confirmed: "ang email ay kumpirmado na"
           email_not_confirmed: "ang email ay hindi pa kumpirmado"
         vouchers:
           rate: antas
           customers: Customer
         connected_apps:
-          loading: "naglo-load"
+          affiliate_sales_data:
+            loading: "naglo-load"
+          discover_regen:
+            loading: "naglo-load"
+          vine:
+            enable: "Kumonekta"
       actions:
         edit_profile: Settings
         properties: mga katangian
@@ -949,10 +970,8 @@ fil_PH:
         contact_name: Contact name
       edit:
         editing: 'Settings:'
-        back_link: bumalik sa listahan ng mga enterprise
       new:
         title: bagong enterprise
-        back_link: bumalik sa listahan ng mga enterprise
       welcome:
         welcome_title: Welcome sa Open Food Network!
         welcome_text: matagumpay mong nagawa ang
@@ -960,9 +979,6 @@ fil_PH:
         choose_starting_point: 'pumili ng package:'
         profile: 'profile'
         producer_profile: 'Profile ng Producer'
-      invite_manager:
-        user_already_exists: "ang user ay rehistrado na"
-        error: "may nangyaring mali"
     order_cycles:
       loading_flash:
         loading_order_cycles: NILO-LOAD ANG MGA ORDER CYCLE
@@ -987,6 +1003,8 @@ fil_PH:
         back_to_list: "bumalik sa listahan"
         save_and_back_to_list: "i-save at bumalik sa listahan"
         choose_products_from: "pumili ng mga produkto mula sa:"
+      date_time_warning_modal_content:
+        cancel: 'kanselahin'
       incoming:
         incoming: "paparating"
         supplier: "Supplier"
@@ -1102,6 +1120,17 @@ fil_PH:
       resume:
         could_not_resume_the_order: hindi maipagpatuloy ang order
     shared:
+      attachment_field:
+        logo_label: "Logo"
+        logo_remove: "alisin ang larawan"
+        logo_remove_confirm: "ang logo ay tatanggalin agad pagkatapos mong magkumpirma."
+        promo_image_note1: 'TANDAAN:'
+        promo_image_note2: ang kahit anong larawan na ilalagay dito ay maka-crop sa 1200 x 260.
+        promo_image_note3: ang promo na larawan ay makikita sa itaas na bahagi sa pahina ng profile ng enterprise at pop-ups.
+        promo_image_placeholder: 'ang larawan na ito ay makikita sa "tungkol sa amin"'
+        promo_image_remove: "alisin ang larawan"
+        promo_image_remove_confirm: "ang promo na larawan ay tatanggalin agad pagkatapos mong magkumpirma."
+        white_label_logo_remove: "alisin ang larawan"
       user_guide_link:
         user_guide: gabay sa gumagamit
       enterprises_hubs_tabs:
@@ -1141,7 +1170,6 @@ fil_PH:
       email_confirmation: "ang kumpirmasyon ng email ay nakabinbin pa. kami ay nagpadala ng kumpirmasyon ng email sa %{email}."
       not_visible: "%{enterprise}ay hindi nakikita kaya hindi matagpuan sa mapa o sa kahit saang paghahanap"
     reports:
-      hidden: NAKATAGO
       unitsize: LAKI KADA YUNIT
       total: KABUUAN
       total_items: KABUUAN NG MGA ITEM
@@ -1300,6 +1328,11 @@ fil_PH:
     schedules:
       destroy:
         associated_subscriptions_error: ang iskedyul na ito ay hindi maialis sapagkat ito ay nauugnay sa ibang mga subscription.
+    user_invitations:
+      new:
+        back: bumalik
+        email: Email
+        invite: mag-imbita
     vouchers:
       new:
         back: bumalik
@@ -1310,6 +1343,9 @@ fil_PH:
         stripe_connect_cancelled: "koneksyon sa Stripe ay kinansel"
         stripe_connect_success: "matagumpay na nakonekta ang stripe account"
         stripe_connect_fail: paumanhin, ang koneksyon ng inyong Stripe account ay hindi nagtagumpay
+        remove_logo_success: "matagumpay na natanggal ang logo"
+        remove_promo_image_success: "ang promo na larawan ay matagumpay na natanggal"
+        remove_white_label_logo_success: "matagumpay na natanggal ang logo"
       stripe_connect_settings:
         resource: pagsasaayos ng pagkonekta sa Stripe
   api:
@@ -1510,7 +1546,6 @@ fil_PH:
   label_account: "Account"
   label_more: "ipakita ang iba pa"
   label_less: "huwag ipakita ang lahat"
-  label_notices: "mga abiso"
   cart_items: "mga item"
   cart_headline: "Ang iyong shopping cart"
   total: "kabuuan"
@@ -1546,7 +1581,6 @@ fil_PH:
       essential_cookies_note: "karamihan sa mga cookies ay naglalaman lamang ng natatanging pagkakakilanlan at wala ng iba, kung kaya ang iyong email address at password halimbawa ay hindi kailanman mai-se-save at maipapalam sa iba."
       cookie_domain: "Sinet ng:"
       cookie_session_desc: "ginagamit upang payagan ang website na matandaan ang mga gumagamit kapag dumadalaw sa pahina, halimbawa, alalahanin ang mga item na nasa cart."
-      cookie_consent_desc: "ginagamit upang mapanatili ang status ng permiso ng gumagamit sa pag-store ng cookies"
       cookie_remember_me_desc: "ginagamit  kapag ang user ay humingi ng pahintulot na siya ay maalala. ang cookie na ito ay awtomatikong nabubura makalipas ang 12 araw. kung bilang gumagamit ay nais mong mabura ang cookie, kailangan mo lamang maglog-out. kung hindi mo nais na mailagay ang cookie sa iyong computer, hindi mo dapat lagyan ng check ang \"alalahanin ako\" na kahon kapag nagla-log-in."
       cookie_openstreemap_desc: "ay ginagamit ng tagapagbigay sa atin ng serbisyo ukol sa open source mapping(OpennStreetMap) para masiguradong hindi ito makakatanggap ng maraming request sa tinakdang oras, at upang maiwasan na din ang pag-abuso sa kanilang serbisyo."
       cookie_stripe_desc: "Mga data na nakolekta ng Stripe, ang tagaproseso para sa bayad, upang magamit sa pag-detect ng fraud https://stripe.com/cookies-policy/legal. hindi lahat ng shop ay gumagamit ng Stripe bilang paraan ng pagbabayad ngunit iminumungkahi namin itong gamitin sa lahat ng pahina upang maiwasan ang fraud at ilegal na pagkuha ng iyong impormasyon."
@@ -1564,13 +1598,6 @@ fil_PH:
       disabling_cookies_ie_link: "https://support.microsoft.com/en-us/help/17442/windows-internet-explorer-delete-manage-cookies"
       disabling_cookies_safari_link: "https://www.apple.com/legal/privacy/en-ww/cookies/"
       disabling_cookies_note: "Ngunit dapat mong malaman na kapag binura o binago mo ang kinakailangang cookies na ginagamit ng Open Food Network, ang website ay hindi gagana at, halimbawa, hindi ka maaring makapaglagay sa iyong cart upang makapagcheckout."
-    cookies_banner:
-      cookies_usage: "ang site na ito ay gumagamit ng mga cookies upang maging mas ligtas at madali ang paggamit ng site. nakakatulong din ito sa amin upang maintindihan kung paano ang inyong paggamit para mas maging maayos ang serbisyong aming ibibigay sa inyo."
-      cookies_definition: "ang mga cookies ay maliliit na text files na naiimbak sa iyong computer kapag bumibisita ka sa mga website"
-      cookies_desc: "ginagamit lang namin ang mga cookies na kinakailangan para sa pagbibigay ng serbisyo ng pagbebenta/pamimili ng pagkain gamit ang internet. Hindi namin gagamitin ang inyong data para kumita. ang pangunahing dahilan sa paggamit ng cookies ay para matandaan kung sino ka kapag ikaw ay naglog-in sa serbisyo at upang panatilihin ang mga item na nilagay mo sa iyong cart habang ikaw ay hindi pa nakalog-in. kung ikaw ay gumagamit ng website ng hindi pinipindot ang \"tanggapin ang cookies\", ipapalagay namin na binibigyan mo kami ng pahintulot na i-save ang mga cookies na lubhang mahalaga sa maayos na paggamit ng website."
-      cookies_policy_link_desc: "para sa karagdagangn impormasyon, tignan ang"
-      cookies_policy_link: "patakaran ng cookies"
-      cookies_accept_button: "tanggapin ang cookies"
   home_shop: Mamili Ngayon
   brandstory_headline: "Etikal na pagkain."
   brandstory_intro: "Minsan ang pinakamabuting paraan para ayusin ang sistema ay ang pagbuo ulit ng bago..."
@@ -1581,12 +1608,11 @@ fil_PH:
   brandstory_part5_strong: "tinatawag namin itong Open Food Network."
   brandstory_part6: "lahat tayo ay mahilig kumain. ngayon ay maaari narin nating mahalin ang sistema ng pagkain."
   system_headline: "Pamimili - ganito ang paraan."
-  system_step1: "1. humanap"
-  system_step1_text: "humanap sa iba't ibang mga shop ng lokal na napapanahong pagkain. humanap sa pamamagitan ng malapit na lokasyon o kategorya ng pagkain, o kung mas nais mo ang pick-up kesa sa delivery."
-  system_step2: "2. Mamili"
-  system_step2_text: "baguhin ang paraan ng pakikipagtransaksyon sa pagbili ng mga lokal ng pagkain mula sa iba't ibang producer at hubs. malaman ang mga kwento sa likod ng mga pagkain at sa mga gumagawa nito."
-  system_step3: "3. Pick-up / Delivery"
-  system_step3_text: "hintayin ang inyong pagkain o bisitahin ang producer o hub para sa mas personal na koneksyon sa inyong pagkain at pinanggagalingan nito."
+  system_step1_html: "1. humanap"
+  system_step2_html: "2. Mamili"
+  system_step2_text_html: "baguhin ang paraan ng pakikipagtransaksyon sa pagbili ng mga lokal ng pagkain mula sa iba't ibang producer at hubs. malaman ang mga kwento sa likod ng mga pagkain at sa mga gumagawa nito."
+  system_step3_html: "3. Pick-up / Delivery"
+  system_step3_text_html: "hintayin ang inyong pagkain o bisitahin ang producer o hub para sa mas personal na koneksyon sa inyong pagkain at pinanggagalingan nito."
   cta_headline: "paraan ng pamimili na kayang gawing mas madali at maayos ang mundong ito."
   cta_label: "handa na ako"
   stats_headline: "kami ay bumubuo ng bagong sistema ng pagkain."
@@ -1622,6 +1648,7 @@ fil_PH:
   order_not_paid: HINDI PA BAYAD
   order_total: kabuuang order
   order_payment: "magbabayad sa pamamagitan ng:"
+  customer_credit: utang
   order_billing_address: Billing address
   order_delivery_on: petsa ng delivery
   order_delivery_address: address kung saan ide-deliver
@@ -1647,10 +1674,8 @@ fil_PH:
   email_confirmed: "Maraming salamat sa pagkumpirma ng inyong email address."
   email_confirmation_activate_account: "Bago natin ma-activate ang inyong account, kailangan munang kumpirmahin ang iyong email address."
   email_confirmation_greeting: "magandang araw, %{contact}!"
-  email_confirmation_profile_created: "ang profile para kay/sa %{name}ay matagumpay na nagawa! para i-activate ang inyong profile, kailangan naming kumpirmahin ang email address na ito."
   email_confirmation_click_link: "pindutin ang link sa ibaba para kumpirmahin ang iyong email address at upang maipagpatuloy ang pagset-up ng inyong profile."
   email_confirmation_link_label: "kumpirmahin ang email address na ito »"
-  email_confirmation_help_html: "pagkatapos makumpirma ang iyong email, maaari mo na i-access ang iyong administration account para sa enterprise na ito. tignan ang%{link}upang lalong mas maunawaan ang%{sitename}at masimulan na ang paggamit ng inyong profile o online na tindahan."
   email_confirmation_notice_unexpected: "natanggap mo ang mensahe na ito sapagkat ikaw ay nagsign-up sa%{sitename}, o inimbitahan para magsign-up ng isang tao na maaring kilala mo. kung hindi maintindihan kung bakit ka nakakatanggap ng ganitong email, maaring sumulat sa%{contact}."
   email_social: "kumonekta sa amin:"
   email_contact: "i-email kami:"
@@ -2213,26 +2238,14 @@ fil_PH:
   spree_admin_enterprises_fees: "bayad para sa enterprise"
   spree_admin_enterprises_none_create_a_new_enterprise: "GUMAWA NG BAGONG ENTERPRISE"
   spree_admin_enterprises_none_text: "wala ka pang mga enterprise"
-  spree_admin_enterprises_tabs_hubs: "MGA HUB"
   spree_admin_enterprises_producers_manage_products: "PAMAHALAAN ANG MGA PRODUKTO"
   spree_admin_enterprises_create_new_product: "LUMIKHA NG BAGONG PRODUKTO"
-  spree_admin_single_enterprise_alert_mail_confirmation: "kumpirmahin ang email address para sa/kay"
-  spree_admin_single_enterprise_alert_mail_sent: "naipadala na ang email sa"
-  spree_admin_overview_action_required: "kailangan ng aksyon"
-  spree_admin_overview_check_your_inbox: "tignan ang iyong inbox para sa karagdagang panuto. maraming salamat!"
-  spree_admin_unit_value: halaga kada yunit
-  spree_admin_unit_description: paglalarawan sa bawat yunit
-  spree_admin_variant_unit: Variant unit
-  spree_admin_variant_unit_scale: sukat ng Variant unit
   spree_admin_supplier: Supplier
-  spree_admin_product_category: kategorya ng produkto
-  spree_admin_variant_unit_name: pangalan ng variant unit
   unit_name: "pangalan ng yunit"
   change_package: "palitan ang package"
   spree_admin_single_enterprise_hint: "payo: para mahanap ka ng ibang tao, i-turn on ang visibility sa ilalim ng"
   spree_admin_eg_pickup_from_school: "hal. 'Pick-up mula sa Primary School'"
   spree_admin_eg_collect_your_order: "hal. 'Kolektahin ang inyong order sa 123 Kapayapaan St., Tobias Fornier, Antique 5716'"
-  spree_classification_primary_taxon_error: "ang Tax sa%{taxon}ay ang pangunahing tax ng %{product}at hindi maaaring tanggalin"
   spree_order_availability_error: "ang distributor o order cycle ay hindi kayang ibigay ang mga produkto sa inyong cart"
   spree_order_populator_error: "ang distributor o order cycle na ito ay hindi kayang ibigay lahat ng mga produkto sa inyong cart. pumili ng iba."
   spree_order_populator_availability_error: "ang produktong ito ay hindi ngayon available mula sa napiling distributor o order cycle."
@@ -2316,7 +2329,6 @@ fil_PH:
   report_header_paid: bayad na?
   report_header_delivery: dini-deliver?
   report_header_shipping: pagpapadala
-  report_header_shipping_method: paraan ng pagpapadala
   report_header_shipping_instructions: panuto sa pagpapadala
   report_header_ship_street: kalsada na pagpapadalahan
   report_header_ship_street_2: kalsada na pagpapadalahan 2
@@ -2360,6 +2372,7 @@ fil_PH:
   report_header_quantity: dami
   report_header_max_quantity: Pinakamarami
   report_header_variant: Uri
+  report_header_variant_unit_name: pangalan ng yunit ng variant
   report_header_variant_value: Halaga ng Variant
   report_header_variant_unit: Yunit ng variant
   report_header_total_available: Kabuuan na mayroon
@@ -2426,6 +2439,8 @@ fil_PH:
   report_header_total_excl_vat: "Kabuuang tax na hindi kasama (%{currency_symbol})"
   report_header_total_incl_vat: "Kabuuang tax na kasama (%{currency_symbol})"
   report_header_temp_controlled: TempControlled?
+  report_header_shipment_state: "status ng kargamento"
+  report_header_shipping_method: "paraan ng pagpapadala"
   report_header_is_producer: Producer?
   report_header_not_confirmed: hindi kumpirmado
   report_header_gst_on_income: GST sa Kinikita
@@ -2508,7 +2523,7 @@ fil_PH:
   order_cycles_bulk_update_notice: 'ang mga order cycle ay na-update na'
   order_cycles_no_permission_to_coordinate_error: "wala sa inyong mga enterprise ay may pahintulot na magsa-ayos ng order cycle"
   order_cycles_no_permission_to_create_error: "wala kang pahintulot na gumawa ng order cycle na isinaayos ng enterprise na iyon."
-  back_to_orders_list: "bumalik sa listahan ng order"
+  back_to_orders_list: "bumalik sa listahan ng mga order"
   no_orders_found: "walang mahanap na mga order"
   order_information: "impormasyon tungkol sa order"
   new_payment: "Bagong Pagbabayad"
@@ -2518,6 +2533,7 @@ fil_PH:
     ready: handa
     pending: nakabinbin
     shipped: na-ship na
+  business_name: Pangalan ng negosyo
   js:
     saving: 'sine-save...'
     changes_saved: 'nai-save ang mga pagbabago'
@@ -2668,18 +2684,6 @@ fil_PH:
           select_all_variants: "piliin lahat%{total_number_of_variants}Variants"
           variants_loaded: "%{num_of_variants_loaded}ng%{total_number_of_variants}Variants ay na-load"
           loading_variants: "nilo-load ang Variants"
-      tag_rules:
-        shipping_method_tagged_top: "naka-tag ng mga paraan ng pagpapadala"
-        shipping_method_tagged_bottom: "ay ang mga:"
-        payment_method_tagged_top: "naka-tag na mga paraan ng pagbabayad"
-        payment_method_tagged_bottom: "ay ang mga:"
-        order_cycle_tagged_top: "naka-tag na mga Order Cycle"
-        order_cycle_tagged_bottom: "ay ang mga:"
-        inventory_tagged_top: "nakatag- na mga uri ng imbentaryo"
-        inventory_tagged_bottom: "ay ang mga:"
-      new_tag_rule_dialog:
-        select_rule_type: "pumili ng uri ng panuntunan:"
-        add_rule: "magdagdag ng panuntunan"
       enterprise_fees:
         inherit_from_product: "gayahin mula sa produkto"
       orders:
@@ -2752,13 +2756,6 @@ fil_PH:
         error_saving: "error sa pag-save ng subscription"
         new:
           please_select_a_shop: "Pumili ng shop"
-      enterprises:
-        form:
-          images:
-            removed_logo_successfully: "matagumpay na natanggal ang logo"
-            immediate_logo_removal_warning: "ang logo ay tatanggalin agad pagkatapos mong magkumpirma."
-            removed_promo_image_successfully: "ang promo na larawan ay matagumpay na natanggal"
-            immediate_promo_image_removal_warning: "ang promo na larawan ay tatanggalin agad pagkatapos mong magkumpirma."
     insufficient_stock: "Hindi sapat ang stock, mayroon na lamang%{on_hand} na natitira"
     out_of_stock:
       reduced_stock_available: binawasan ang stock na magagamit
@@ -2766,7 +2763,7 @@ fil_PH:
           habang ikaw ay namimili, ang lebel ng stock para sa isa o higit pang mga
           produkto sa inyong cart ay nabawasan. ito ang nagbago:
       now_out_of_stock: ay out of stock na ngayon
-      only_n_remainging: "ngayon ay may%{num}na natitira"
+      only_n_remaining: "ngayon ay may%{num}na natitira"
     shopfront:
       variant:
         add_to_cart: "idagdag"
@@ -2793,13 +2790,6 @@ fil_PH:
       some_trouble: "nagkaroon ako ng problema sa pagse-save: %{errors}"
       changing_on_hand_stock: pagbabago sa lebel ng hand stock
       stock_reset: ni-reset sa default ang mga stock
-    tag_rules:
-      show_hide_variants: 'ipakita o itago ang mga variant sa aking Shopfront'
-      show_hide_shipping: 'ipakita o itago ang mga paraan ng pagpapadala sa checkout'
-      show_hide_payment: 'ipakita o itago ang mga paraan ng pagbabayad sa checkout'
-      show_hide_order_cycles: 'ipakita o itago ang mga order cycle sa aking shopfront'
-      visible: NAKIKITA
-      not_visible: HINDI NAKIKITA
     services:
       unsaved_changes_message: may mga hindi pa nase-save na pagbabago, i-save na ngayon o balewalain?
       save: I-SAVE
@@ -2815,6 +2805,8 @@ fil_PH:
           ise-set nito ang lebel ng stock sa zero para sa lahat ng mga produkto para dito
           enterprise na hindi makikita sa inupload na file.
     order_cycles:
+      unsaved_changes: "May mga pagbabago na hindi na-save"
+      bulk_save_error: "paumanhin! hindi ko na-save ang mga pagbabagong ginawa mo."
       create_failure: "hindi nagtagumpay sa paggawa ng order cycle"
       update_success: 'ang iyong order cycle ay na-update na'
       update_failure: "hindi nagtagumpay sa pag-update ng order cycle"
@@ -2837,6 +2829,9 @@ fil_PH:
       signup_or_login: "magsimula sa pamamagitan ng pag-sign-up (o pag-log-in)"
       have_an_account: "Mayroon ka na bang account?"
       action_login: "Maglog-in na ngayon."
+    trix:
+      code: "Code"
+      urlPlaceholder: "ipasok ang URL na ilalagay"
   inflections:
     each:
       one: "bawat"
@@ -2898,9 +2893,6 @@ fil_PH:
     pot:
       one: "paso"
       other: "mga paso"
-    bundle:
-      one: "bigkis"
-      other: "mga bigkis"
     flask:
       one: "prasko"
       other: "mga prasko"
@@ -2910,6 +2902,9 @@ fil_PH:
     sack:
       one: "sako"
       other: "mga sako"
+    bundle:
+      one: "bigkis"
+      other: "mga bigkis"
   producers:
     signup:
       start_free_profile: "Magsimula sa libreng profile at palawakin kapag handa ka na!"
@@ -2997,6 +2992,7 @@ fil_PH:
     credit: "utang"
     more: "Karagdagang Impormasyon"
     no_pending_payments: "walang nakabinbin na mga bayad"
+    remove: "Tanggalin"
     none: "wala"
     updating: "ina-update"
     your_order_is_empty_add_product: "ang iyong order ay walang laman, humanap at magdagdag ng produkto sa itaas."
@@ -3080,7 +3076,6 @@ fil_PH:
     tax_rate_amount_explanation: "ang mga rate ng tax ay mga halagang may decimal na makakatulong sa pagkukuwenta, (hal. kung ang rate ng tax ay 5% ang ilalagay ay 0.05)"
     included_in_price: "nakasama sa presyo"
     show_rate_in_label: "ipakita ang rate sa tatak"
-    back_to_tax_rates_list: "bumalik sa listahan ng rate ng tax"
     tax_settings: "Settings ng tax"
     zones: "mga sona"
     new_zone: "bagong sona"
@@ -3093,14 +3088,11 @@ fil_PH:
     iso_name: "pangalan ng ISO"
     states_required: "Kailangang nakasaad ang mga Lalawigan"
     editing_country: "pag-edit ng bansa"
-    back_to_countries_list: "bumalik sa listahan ng mga bansa"
     states: "Mga Lalawigan"
     abbreviation: "Pinaikli"
     new_state: "Bagong Status"
     payment_methods: "Mga Paraan ng Pagbabayad"
-    taxonomies: "taxonomies"
-    new_taxonomy: "bagong taxonomy"
-    back_to_taxonomies_list: "bumalik sa listahan ng mga taxonomy"
+    taxons: "kategorya ng produkto"
     shipping_methods: "mga paraan ng pagpapadala"
     shipping_method: "paraan ng pagpapadala"
     shipment: "kargamento"
@@ -3173,6 +3165,9 @@ fil_PH:
           header:
             store: tindahan
     admin:
+      images:
+        edit:
+          close: bumalik
       subscriptions:
         number: "Bilang"
       tab:
@@ -3181,6 +3176,7 @@ fil_PH:
         bulk_order_management: "Pamamahala sa pangmaramihang order"
         subscriptions: "mga subscription"
         products: "mga produkto"
+        products_v3: "mga produkto"
         option_types: "mga uri ng pagpipilian"
         properties: "mga katangian"
         variant_overrides: "imbentaryo"
@@ -3193,6 +3189,10 @@ fil_PH:
         enterprise_relationships: "mga pahintulot"
         customers: "mga customer"
         groups: "mga grupo"
+        overview: "pangkalahatang ideya"
+        product_import: "ilipat"
+        enterprise_roles: "mga tungkulin"
+        payment_methods: "Mga Paraan ng Pagbabayad"
       product_properties:
         index:
           inherits_properties_checkbox_hint: "kopyahin ang mga katangian mula sa%{supplier}? (maliban kung napatungan ang nasa itaas)"
@@ -3223,7 +3223,6 @@ fil_PH:
           continue: "Magpatuloy"
         new:
           new_return_authorization: "bagong awtorisasyon sa pagbabalik"
-          back_to_return_authorizations_list: "bumalik sa listahan ng awtorisasyon sa pagbabalik"
           continue: "Magpatuloy"
         edit:
           receive: "tumanggap"
@@ -3439,7 +3438,6 @@ fil_PH:
           general_settings: "Pangkalahatang Setting"
         form:
           email: "email"
-          roles: "mga tungkulin"
           enterprise_limit: "Limitasyon ng enterprise"
           confirm_password: "Kumpirmahin ang password"
           password: "Password"
@@ -3461,10 +3459,12 @@ fil_PH:
           new_variant: "bagong variant"
         form:
           sku: "SKU"
-          price: "presyo"
           unit_price: "Presyo kada Yunit"
           display_as: "Ipakita Bilang"
           display_name: "Pangalan na nakikita"
+          unit: yunit
+          price: presyo
+          variant_category: kategorya
         autocomplete:
           out_of_stock: "Walang stock"
           producer_name: "Producer"
@@ -3472,6 +3472,7 @@ fil_PH:
       shared:
         sortable_header:
           name: "Pangalan"
+          on_hand: "on hand"
           number: "Bilang"
           completed_at: "Nakumpleto"
           state: "province"
@@ -3481,13 +3482,14 @@ fil_PH:
           total: "kabuuan"
           billing_address_name: "Pangalan"
       taxons:
+        index:
+          title: "kategorya ng produkto"
         form:
           name: Pangalan
           description: paglalarawan
       general_settings:
         edit:
           legal_settings: "Legal Settings"
-          cookies_consent_banner_toggle: "ipakita ang banner ng pagpayag sa cookies"
           privacy_policy_url: "Patakaran sa privacy URL"
           enterprises_require_tos: "ang mga enterprise ay dapat tanggapin ang Termino ng serbisyo."
           cookies_policy_matomo_section: "ipakita ang seksyon ng Matomo sa pahina ng patakaran sa cookies"
@@ -3603,6 +3605,10 @@ fil_PH:
         past_orders: mga nakaraang order
       transactions:
         transaction_history: kasaysayan ng mga transaksyon
+      customer_account_transactions:
+        description: paglalarawan
+        amount: Halaga
+        running_balance: tumatakbong balanse
       open_orders:
         order: order
         shop: Shop
@@ -3647,7 +3653,6 @@ fil_PH:
       key_cleared: "binura ang key"
       shipment:
         cannot_ready: "hindi maihanda ang kargamento"
-      invalid_taxonomy_id: "hindi valid na taxonomy id."
     unit: yunit
   components:
     search_input:
@@ -3657,3 +3662,25 @@ fil_PH:
     pagination:
       next: sunod
       previous: nauna
+    tag_list_input:
+      default_placeholder: magdagdag ng tag
+    tag_rule_form:
+      tag_rules:
+        shipping_method_tagged_top: "naka-tag ng mga paraan ng pagpapadala"
+        shipping_method_tagged_bottom: "ay ang mga:"
+        payment_method_tagged_top: "naka-tag na mga paraan ng pagbabayad"
+        payment_method_tagged_bottom: "ay ang mga:"
+        order_cycle_tagged_top: "naka-tag na mga Order Cycle"
+        order_cycle_tagged_bottom: "ay ang mga:"
+        inventory_tagged_top: "nakatag- na mga uri ng imbentaryo"
+        inventory_tagged_bottom: "ay ang mga:"
+        variant_tagged_bottom: "ay ang mga:"
+        visible: NAKIKITA
+        not_visible: HINDI NAKIKITA
+    tag_rule_group_form:
+      for_customers_tagged: 'Para sa mga customer na naka-tag:'
+      add_new_rule: '+ magdagdag ng bagong panuntunan'
+      no_rules_yet: wala pang panuntunan na magagamit sa tag na ito
+    add_tag_rule_modal:
+      select_rule_type: "pumili ng uri ng panuntunan:"
+      add_rule: "magdagdag ng panuntunan"

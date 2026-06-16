@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 # rubocop:disable Metrics/ModuleLength
 module Reporting
-  describe ReportTemplate do
+  RSpec.describe ReportTemplate do
     let(:user) { create(:user) }
     let(:params) { {} }
     subject { described_class.new(user, params) }

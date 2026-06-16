@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Spree::Admin::MailMethodsController do
+RSpec.describe Spree::Admin::MailMethodsController do
   include AuthenticationHelper
 
   before { controller_login_as_admin }
@@ -16,13 +14,15 @@ describe Spree::Admin::MailMethodsController do
 
   it "can trigger testmail" do
     request.env["HTTP_REFERER"] = "/"
-    user = double('User', email: 'user@example.com',
-                          spree_api_key: 'fake',
-                          id: nil,
-                          owned_groups: nil)
+    user = instance_double(Spree::User, email: 'user@example.com',
+                                        spree_api_key: 'fake',
+                                        id: nil,
+                                        owned_groups: nil)
     allow(user).to receive_messages(enterprises: [create(:enterprise)],
-                                    has_spree_role?: true,
-                                    locale: nil)
+                                    admin?: true,
+                                    locale: nil,
+                                    can_manage_orders?: true,
+                                    flipper_id: nil)
     allow(controller).to receive_messages(spree_current_user: user)
 
     expect {

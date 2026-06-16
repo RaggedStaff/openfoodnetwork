@@ -29,19 +29,19 @@ class EnterpriseGroup < ApplicationRecord
   has_one_attached :promo_image, service: image_service
 
   validates :logo,
-            processable_image: true,
-            content_type: %r{\Aimage/(png|jpeg|gif|jpg|svg\+xml|webp)\Z}
+            processable_file: true,
+            content_type: ::Spree::Image::ACCEPTED_CONTENT_TYPES
   validates :promo_image,
-            processable_image: true,
-            content_type: %r{\Aimage/(png|jpeg|gif|jpg|svg\+xml|webp)\Z}
+            processable_file: true,
+            content_type: ::Spree::Image::ACCEPTED_CONTENT_TYPES
 
   scope :by_position, -> { order('position ASC') }
   scope :on_front_page, -> { where(on_front_page: true) }
   scope :managed_by, lambda { |user|
-    if user.has_spree_role?('admin')
+    if user.admin?
       where(nil)
     else
-      where('owner_id = ?', user.id)
+      where(owner_id: user.id)
     end
   }
 
@@ -72,6 +72,11 @@ class EnterpriseGroup < ApplicationRecord
 
   def to_param
     permalink
+  end
+
+  # Remove any unsupported HTML.
+  def long_description=(html)
+    super(HtmlSanitizer.sanitize_and_enforce_link_target_blank(html))
   end
 
   private

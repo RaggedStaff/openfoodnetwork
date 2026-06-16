@@ -1,4 +1,4 @@
-%div.admin-order-form-fields
+.admin-order-form-fields
   - if @line_item.try(:errors).present?
     = render :partial => 'spree/shared/error_messages', :locals => { :target => @line_item }
 
@@ -8,27 +8,28 @@
   - if @order.shipments.any?
     = render :partial => "spree/admin/orders/shipment", :collection => @order.shipments, :locals => { :order => @order }
 
-  - if @order.line_items.exists?
-    = render partial: "spree/admin/orders/note", locals: { order: @order }
+  - if can?(:manage_order_sections, @order)
+    - if @order.line_items.exists?
+      = render partial: "spree/admin/orders/note", locals: { order: @order }
 
-  = render :partial => "spree/admin/orders/_form/adjustments", :locals => { :adjustments => @order.line_item_adjustments, :title => t(".line_item_adjustments")}
-  = render :partial => "spree/admin/orders/_form/adjustments", :locals => { :adjustments => order_adjustments_for_display(@order), :title => t(".order_adjustments")}
+    = render :partial => "spree/admin/orders/_form/adjustments", :locals => { :adjustments => @order.line_item_adjustments, :title => t(".line_item_adjustments")}
+    = render :partial => "spree/admin/orders/_form/adjustments", :locals => { :adjustments => order_adjustments_for_display(@order), :title => t(".order_adjustments")}
 
-  - if @order.line_items.exists?
-    %fieldset#order-total.no-border-bottom.order-details-total
-      %legend{ align: 'center' }= t(".order_total")
-      %span.order-total= @order.display_total
+    - if @order.line_items.exists?
+      %fieldset#order-total.no-border-bottom.order-details-total
+        %legend{ align: 'center' }= t(".order_total")
+        %span.order-total= @order.display_total
 
-    = form_for @order, url: spree.admin_order_url(@order), method: :put do |f|
-      = render partial: 'spree/admin/orders/_form/distribution_fields'
+      = form_for @order, url: spree.admin_order_url(@order), method: :put do |f|
+        = render partial: 'spree/admin/orders/_form/distribution_fields'
 
-      .filter-actions.actions{"ng-show" => "distributionChosen()"}
-        = button t(:update_and_recalculate_fees), 'icon-refresh'
-        = link_to_with_icon 'button icon-arrow-left', t(:back), spree.admin_orders_url
+        .filter-actions.actions{"ng-show" => "distributionChosen()"}
+          = button t(:update_and_recalculate_fees), 'icon-refresh'
+          = link_to_with_icon 'button icon-arrow-left', t(:back), spree.admin_orders_url
 
   = javascript_tag do
     var order_number = '#{@order.number}';
     var shipments = [];
     - @order.shipments.each do |shipment|
-      shipments.push(#{shipment.to_json(:root => false, :include => [:inventory_units, :stock_location]).html_safe});
+      shipments.push(#{shipment.to_json(:root => false, :include => [:inventory_units]).html_safe});
     = render :partial => 'spree/admin/shared/update_order_state', :handlers => [:erb], :formats => [:js]

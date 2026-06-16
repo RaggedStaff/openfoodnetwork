@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 module Spree
   module Admin
-    describe ReturnAuthorizationsController, type: :controller do
+    RSpec.describe ReturnAuthorizationsController do
       include AuthenticationHelper
 
       let(:order) { create(:shipped_order, distributor: create(:distributor_enterprise)) }

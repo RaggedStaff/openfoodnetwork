@@ -1,11 +1,17 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe TagRule, type: :model do
+RSpec.describe TagRule do
   describe "validations" do
     it "requires a enterprise" do
-      expect(subject).to validate_presence_of(:enterprise)
+      expect(subject).to belong_to(:enterprise)
+    end
+  end
+
+  describe '#tags' do
+    subject(:rule) { Class.new(TagRule).new }
+
+    it "raises not implemented error" do
+      expect{ rule.tags }.to raise_error(NotImplementedError, 'please use concrete TagRule')
     end
   end
 end

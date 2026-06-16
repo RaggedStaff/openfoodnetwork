@@ -2,7 +2,7 @@
 
 require "system_helper"
 
-describe '
+RSpec.describe '
     As an administrator
     I want to print a invoice as PDF
 ', type: :feature do
@@ -56,7 +56,7 @@ describe '
         login_as_admin
         visit spree.print_admin_order_path(order, params: url_params)
         convert_pdf_to_page
-        expect(page).to have_no_content 'Payment Description at Checkout'
+        expect(page).not_to have_content 'Payment Description at Checkout'
       end
     end
 
@@ -104,9 +104,14 @@ describe '
         order.payments << create(:payment, :completed, order:,
                                                        payment_method: payment_method1,
                                                        created_at: 2.days.ago)
-        order.payments << create(:payment, :completed, order:,
-                                                       payment_method: payment_method2,
-                                                       created_at: 1.day.ago)
+        # Use an internal payment method so we also test the name translation
+        order.payments << create(
+          :payment,
+          :completed,
+          order:,
+          payment_method: Spree::PaymentMethod.customer_credit,
+          created_at: 1.day.ago
+        )
         order.save!
       end
 
@@ -115,7 +120,7 @@ describe '
         visit spree.print_admin_order_path(order, params: url_params)
         convert_pdf_to_page
         expect(page).to have_content 'Payment Description at Checkout'
-        expect(page).to have_content 'description2'
+        expect(page).to have_content 'Customer credit'
       end
     end
   end
@@ -298,6 +303,22 @@ describe '
             # Order Totals
             expect(page).to have_content "Total (Incl. tax): $1,733.54"
             expect(page).to have_content "Total (Excl. tax): $1,458.67"
+          end
+        end
+
+        context "Line item with variant having variant_unit as 'items'" do
+          before do
+            line_item1.variant.update!(variant_unit: "items", display_as: "1 bucket",
+                                       variant_unit_name: "bucket")
+            login_as_admin
+            visit spree.print_admin_order_path(order1, params: url_params)
+            convert_pdf_to_page
+          end
+
+          it 'should have correct display as value' do
+            # first line item
+            expect(page).to have_content Spree::Product.first.name.to_s
+            expect(page).to have_content "(1 bucket)" # display as
           end
         end
       end
@@ -535,21 +556,22 @@ describe '
           # header
           expect(page).to have_content "Item Qty"
           expect(page).to have_content "Weight / VOL."
-          expect(page).to have_content "Price Per unit (Excl. tax)"
-          expect(page).to have_content "Total price (Excl. tax)"
+          expect(page).to have_content "Price Per unit (Excl."
+          expect(page).to have_content "Total price (Excl."
           expect(page).to have_content "Tax rate"
-          expect(page).to have_content "Total price (Incl. tax)"
+          expect(page).to have_content "Total price (Incl."
           # first line item, no tax
           expect(page).to have_content Spree::Product.first.name.to_s
           expect(page).to have_content "($12,540.00 / kg)" # unit price
-          expect(page).to have_content "1 1g $12.54 $12.54 0.0% $12.54"
+          expect(page).to have_content "1 1g $12.54 $12.54 $12.54"
           # # second line item, included tax
           expect(page).to have_content Spree::Product.second.name.to_s
           expect(page).to have_content "($500,150.00 / kg)" # unit price
           expect(page).to have_content "3 1g $416.79 $1,250.37 20.0% $1,500.45"
           # Enterprise fee
-          expect(page).to have_content "#{enterprise_fee.name} fee by $104.35 15.0% $120.00"
-          expect(page).to have_content "coordinator #{user1.enterprises.first.name}"
+          expect(page).to have_content(
+            "#{enterprise_fee.name} fee by coordinator $104.35 15.0% $120.00 #{distributor.name}"
+          )
           # Shipping
           expect(page).to have_content "Delivery (#{shipping_method_name}) $91.41 10.0% $100.55"
           # Tax totals
@@ -638,21 +660,22 @@ describe '
           # header
           expect(page).to have_content "Item Qty"
           expect(page).to have_content "Weight / VOL."
-          expect(page).to have_content "Price Per unit (Excl. tax)"
-          expect(page).to have_content "Total price (Excl. tax)"
+          expect(page).to have_content "Price Per unit (Excl."
+          expect(page).to have_content "Total price (Excl."
           expect(page).to have_content "Tax rate"
-          expect(page).to have_content "Total price (Incl. tax)"
+          expect(page).to have_content "Total price (Incl."
           # first line item, no tax
           expect(page).to have_content Spree::Product.first.name.to_s
           expect(page).to have_content "($12,540.00 / kg)" # unit price
-          expect(page).to have_content "1 1g $12.54 $12.54 0.0% $12.54"
+          expect(page).to have_content "1 1g $12.54 $12.54 $12.54"
           # second line item, included tax
           expect(page).to have_content Spree::Product.second.name.to_s
           expect(page).to have_content "($500,150.00 / kg)" # unit price
           expect(page).to have_content "3 1g $500.15 $1,500.45 20.0% $1,800.54"
           # Enterprise fee
-          expect(page).to have_content "#{enterprise_fee.name} fee by $120.00 15.0% $138.00"
-          expect(page).to have_content "coordinator #{user1.enterprises.first.name}"
+          expect(page).to have_content(
+            "#{enterprise_fee.name} fee by coordinator $120.00 15.0% $138.00 #{distributor.name}"
+          )
           # Shipping
           expect(page).to have_content "Delivery (#{shipping_method_name}) $100.55 10.0% $110.61"
           # Tax totals
@@ -678,7 +701,7 @@ describe '
 
       context "Order has previous invoices" do
         before do
-          OrderInvoiceGenerator.new(order).generate_or_update_latest_invoice
+          Orders::GenerateInvoiceService.new(order).generate_or_update_latest_invoice
           first_line_item = order.line_items.first
           order.line_items.first.update(quantity: first_line_item.quantity + 1)
         end
@@ -705,7 +728,11 @@ def convert_pdf_to_page
   temp_pdf = Tempfile.new('pdf')
   temp_pdf << page.source.force_encoding('UTF-8')
   reader = PDF::Reader.new(temp_pdf)
-  pdf_text = reader.pages.map(&:text)
+
+  # Call 'page.runs.map(&:text)' instead of 'page.text' because the latter doesn't return all text,
+  # see https://github.com/yob/pdf-reader/issues/518
+  pdf_text = reader.pages.map { |page| page.runs.map(&:text).join(' ') }
+
   temp_pdf.close
   page.driver.response.instance_variable_set('@body', pdf_text)
 end

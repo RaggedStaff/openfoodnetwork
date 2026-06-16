@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-RSpec.describe 'Errors', type: :request do
+RSpec.describe 'Errors' do
   include ExceptionHelper
 
   shared_examples "returning a HTTP 404" do |path|

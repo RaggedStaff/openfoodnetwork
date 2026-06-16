@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe "Reporting::Reports::SalesTax::SalesTaxTotalsByOrder" do
+RSpec.describe "Reporting::Reports::SalesTax::SalesTaxTotalsByOrder" do
   subject(:report) { Reporting::Reports::SalesTax::SalesTaxTotalsByOrder.new(user, {}) }
 
   let(:user) { create(:user) }
@@ -55,7 +53,7 @@ describe "Reporting::Reports::SalesTax::SalesTaxTotalsByOrder" do
   end
 
   before do
-    product.update!(supplier_id: supplier.id)
+    variant.update!(supplier: )
 
     order.update!(
       number: 'ORDER_NUMBER_1',
@@ -80,7 +78,7 @@ describe "Reporting::Reports::SalesTax::SalesTaxTotalsByOrder" do
     end
 
     it "returns tax amount filtered by tax rate in query_row" do
-      OrderWorkflow.new(order).complete!
+      Orders::WorkflowService.new(order).complete!
       mock_voucher_adjustment_service
 
       filtered_tax_total = report.filtered_tax_rate_total(query_row)
@@ -94,7 +92,7 @@ describe "Reporting::Reports::SalesTax::SalesTaxTotalsByOrder" do
 
   describe "#tax_rate_total" do
     it "returns the tax amount filtered by tax rate in the query_row" do
-      OrderWorkflow.new(order).complete!
+      Orders::WorkflowService.new(order).complete!
       mock_voucher_adjustment_service
 
       tax_total = report.tax_rate_total(query_row)
@@ -124,7 +122,7 @@ describe "Reporting::Reports::SalesTax::SalesTaxTotalsByOrder" do
 
   describe "#total_excl_tax" do
     it "returns the total excluding tax specified in query_row" do
-      OrderWorkflow.new(order).complete!
+      Orders::WorkflowService.new(order).complete!
       mock_voucher_adjustment_service
 
       total = report.total_excl_tax(query_row)
@@ -145,14 +143,15 @@ describe "Reporting::Reports::SalesTax::SalesTaxTotalsByOrder" do
         total = report.total_excl_tax(query_row)
 
         # discounted order total - discounted order tax
-        expect(total).to eq((113.3 - 10) - (3.3 - 0.29))
+        # (113.3 - 10) - (3.3 - 0.29)
+        expect(total).to eq 100.29
       end
     end
   end
 
   describe "#total_incl_tax" do
     it "returns the total including the tax specified in query_row" do
-      OrderWorkflow.new(order).complete!
+      Orders::WorkflowService.new(order).complete!
       mock_voucher_adjustment_service
 
       total = report.total_incl_tax(query_row)
@@ -164,7 +163,7 @@ describe "Reporting::Reports::SalesTax::SalesTaxTotalsByOrder" do
 
   describe "#rules" do
     before do
-      OrderWorkflow.new(order).complete!
+      Orders::WorkflowService.new(order).complete!
     end
 
     it "returns rules" do
@@ -271,10 +270,9 @@ describe "Reporting::Reports::SalesTax::SalesTaxTotalsByOrder" do
   def add_voucher(order, voucher)
     # Add voucher to the order
     voucher.create_adjustment(voucher.code, order)
-    VoucherAdjustmentsService.new(order).update
-    order.update_totals_and_states
+    OrderManagement::Order::Updater.new(order).update_voucher
 
-    OrderWorkflow.new(order).complete!
+    Orders::WorkflowService.new(order).complete!
   end
 
   def mock_voucher_adjustment_service(included_tax: 0.0, excluded_tax: 0.0)

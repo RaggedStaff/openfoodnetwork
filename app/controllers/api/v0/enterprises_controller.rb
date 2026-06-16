@@ -21,6 +21,7 @@ module Api
         if @enterprise.save
           geocode_address_if_use_geocoder
           @enterprise.user_ids = user_ids
+          record_tos_acceptance
           render json: @enterprise.id, status: :created
         else
           invalid_resource!(@enterprise)
@@ -43,7 +44,7 @@ module Api
         @enterprise = Enterprise.find_by(permalink: params[:id]) || Enterprise.find(params[:id])
         authorize! :update, @enterprise
 
-        if params[:logo] && @enterprise.update( logo: params[:logo] )
+        if params[:logo] && @enterprise.update!(logo: params[:logo])
           render(html: @enterprise.logo_url(:medium), status: :ok)
         elsif params[:promo] && @enterprise.update!( promo_image: params[:promo] )
           render(html: @enterprise.promo_image_url(:medium), status: :ok)
@@ -75,6 +76,12 @@ module Api
 
       def override_visible
         enterprise_params[:visible] = "only_through_links"
+      end
+
+      def record_tos_acceptance
+        return unless Spree::Config.enterprises_require_tos
+
+        current_api_user.update!(terms_of_service_accepted_at: Time.zone.now)
       end
 
       def enterprise_params

@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Calculator::Weight do
+RSpec.describe Calculator::Weight do
   it "computes shipping cost for an order by total weight" do
     variant1 = build_stubbed(:variant, unit_value: 10_000)
     variant2 = build_stubbed(:variant, unit_value: 20_000)
@@ -75,7 +73,7 @@ describe Calculator::Weight do
     let(:calculator) { described_class.new(preferred_per_unit: 6, preferred_unit_from_list: "kg") }
     let(:line_item) do
       build_stubbed(:line_item, variant:, quantity: 2).tap do |object|
-        object.send(:calculate_final_weight_volume)
+        object.__send__(:calculate_final_weight_volume)
       end
     end
 

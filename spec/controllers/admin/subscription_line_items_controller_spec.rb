@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Admin::SubscriptionLineItemsController, type: :controller do
+RSpec.describe Admin::SubscriptionLineItemsController do
   include AuthenticationHelper
 
   describe "build" do
@@ -38,7 +36,7 @@ describe Admin::SubscriptionLineItemsController, type: :controller do
         context "but no shop_id is provided" do
           it "returns an error" do
             spree_post :build, params
-            expect(JSON.parse(response.body)['errors']).to eq ['Unauthorised']
+            expect(response.parsed_body['errors']).to eq ['Unauthorised']
           end
         end
 
@@ -47,7 +45,7 @@ describe Admin::SubscriptionLineItemsController, type: :controller do
 
           it "returns an error" do
             spree_post :build, params
-            expect(JSON.parse(response.body)['errors']).to eq ['Unauthorised']
+            expect(response.parsed_body['errors']).to eq ['Unauthorised']
           end
         end
 
@@ -55,11 +53,13 @@ describe Admin::SubscriptionLineItemsController, type: :controller do
           before { params.merge!(shop_id: shop.id) }
 
           context "but the shop doesn't have permission to sell product in question" do
-            let!(:outgoing_exchange) {}
+            let!(:outgoing_exchange) {
+              # missing exchange should trigger an error
+            }
 
             it "returns an error" do
               spree_post :build, params
-              json_response = JSON.parse(response.body)
+              json_response = response.parsed_body
               expect(json_response['errors'])
                 .to eq ["#{shop.name} is not permitted to sell the selected product"]
             end
@@ -74,7 +74,7 @@ describe Admin::SubscriptionLineItemsController, type: :controller do
               it "returns a serialized subscription line item without a price estimate" do
                 spree_post :build, params
 
-                json_response = JSON.parse(response.body)
+                json_response = response.parsed_body
                 expect(json_response['price_estimate']).to eq '?'
                 expect(json_response['quantity']).to eq 2
                 expect(json_response['description']).to eq "#{variant.product.name} - 100g"
@@ -87,7 +87,7 @@ describe Admin::SubscriptionLineItemsController, type: :controller do
               it "returns a serialized subscription line item without a price estimate" do
                 spree_post :build, params
 
-                json_response = JSON.parse(response.body)
+                json_response = response.parsed_body
                 expect(json_response['price_estimate']).to eq '?'
                 expect(json_response['quantity']).to eq 2
                 expect(json_response['description']).to eq "#{variant.product.name} - 100g"
@@ -102,14 +102,14 @@ describe Admin::SubscriptionLineItemsController, type: :controller do
                    "based on the variant" do
                   spree_post :build, params
 
-                  json_response = JSON.parse(response.body)
+                  json_response = response.parsed_body
                   expect(json_response['price_estimate']).to eq 18.5
                   expect(json_response['quantity']).to eq 2
                   expect(json_response['description']).to eq "#{variant.product.name} - 100g"
                 end
               end
 
-              context "where a relevant variant override exists" do
+              context "where a relevant variant override exists", feature: :inventory do
                 let!(:override) {
                   create(:variant_override, hub_id: shop.id, variant_id: variant.id, price: 12.00)
                 }
@@ -118,7 +118,7 @@ describe Admin::SubscriptionLineItemsController, type: :controller do
                    "based on the override" do
                   spree_post :build, params
 
-                  json_response = JSON.parse(response.body)
+                  json_response = response.parsed_body
                   expect(json_response['price_estimate']).to eq 15.5
                   expect(json_response['quantity']).to eq 2
                   expect(json_response['description']).to eq "#{variant.product.name} - 100g"

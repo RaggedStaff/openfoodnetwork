@@ -1,9 +1,8 @@
 # frozen_string_literal: false
 
-require 'spec_helper'
 require 'open_food_network/order_cycle_permissions'
 
-describe Admin::EnterprisesController, type: :controller do
+RSpec.describe Admin::EnterprisesController do
   let(:user) { create(:user) }
   let(:admin_user) { create(:admin_user) }
   let(:distributor_manager) { create(:user, enterprise_limit: 10, enterprises: [distributor]) }
@@ -19,7 +18,7 @@ describe Admin::EnterprisesController, type: :controller do
     { address1: 'a', city: 'a', zipcode: 'a', country_id: country.id, state_id: state.id }
   }
 
-  before { @request.env['HTTP_REFERER'] = 'http://test.com/' }
+  before { @request.env['HTTP_REFERER'] = 'http://test.host/' }
 
   describe "creating an enterprise" do
     let(:enterprise_params) {
@@ -168,29 +167,29 @@ describe Admin::EnterprisesController, type: :controller do
         spree_post :update, update_params
 
         distributor.reload
-        expect(distributor.users).to_not include user
+        expect(distributor.users).not_to include user
       end
 
       it "updates the contact for notifications" do
         allow(controller).to receive_messages spree_current_user: distributor_manager
         params = {
           id: distributor,
-          receives_notifications: distributor_manager.id,
+          enterprise: { contact_id: distributor_manager.id },
         }
 
         expect { spree_post :update, params }.
           to change { distributor.contact }.to(distributor_manager)
       end
 
-      it "updates the contact for notifications" do
+      it "doesn't update the contact for notifications if the :contact_id parameter is invalid" do
         allow(controller).to receive_messages spree_current_user: distributor_manager
         params = {
           id: distributor,
-          receives_notifications: "? object:null ?",
+          enterprise: { contact_id: "? object:null ?" },
         }
 
         expect { spree_post :update, params }.
-          to_not change { distributor.contact }
+          not_to change { distributor.contact }
       end
 
       it "updates enterprise preferences" do
@@ -223,7 +222,7 @@ describe Admin::EnterprisesController, type: :controller do
             expect(Spree::Property.count).to be 1
             expect(ProducerProperty.count).to be 0
             property_names = producer.reload.properties.map(&:name)
-            expect(property_names).to_not include 'a different name'
+            expect(property_names).not_to include 'a different name'
           end
         end
 
@@ -408,6 +407,16 @@ describe Admin::EnterprisesController, type: :controller do
 
         distributor.reload
         expect(distributor.users).to include user
+      end
+
+      it "allows 'external_billing_id' to be changed" do
+        allow(controller).to receive_messages spree_current_user: admin_user
+        enterprise_params =
+          { id: profile_enterprise, enterprise: { external_billing_id: 'INV123456' } }
+
+        spree_put :update, enterprise_params
+        profile_enterprise.reload
+        expect(profile_enterprise.external_billing_id).to eq 'INV123456'
       end
     end
 
@@ -604,50 +613,79 @@ describe Admin::EnterprisesController, type: :controller do
   end
 
   describe "for_order_cycle" do
-    let!(:user) { create(:user) }
-    let!(:enterprise) { create(:enterprise, sells: 'any', owner: user) }
-    let(:permission_mock) { double(:permission) }
+    let(:user) { create(:user) }
+    let(:enterprise) { create(:enterprise, sells: 'any', owner: user) }
+    let(:permission_mock) { instance_double(OpenFoodNetwork::OrderCyclePermissions) }
 
     before do
       # As a user with permission
-      allow(controller).to receive_messages spree_current_user: user
-      allow(OrderCycle).to receive_messages find_by: "existing OrderCycle"
-      allow(Enterprise).to receive_messages find_by: "existing Enterprise"
-      allow(OrderCycle).to receive_messages new: "new OrderCycle"
-
+      allow(controller).to receive(:spree_current_user).and_return(user)
+      allow(Enterprise).to receive(:find_by).and_return(enterprise)
       allow(OpenFoodNetwork::OrderCyclePermissions).to receive(:new) { permission_mock }
       allow(permission_mock).to receive(:visible_enterprises) { [] }
       allow(ActiveModel::ArraySerializer).to receive(:new) { "" }
     end
 
     context "when no order_cycle or coordinator is provided in params" do
-      before { get :for_order_cycle, format: :json }
       it "initializes permissions with nil" do
-        expect(OpenFoodNetwork::OrderCyclePermissions).to have_received(:new).with(user, nil)
+        expect(OpenFoodNetwork::OrderCyclePermissions).to receive(:new).with(user, nil)
+
+        get :for_order_cycle, format: :json
       end
     end
 
     context "when an order_cycle_id is provided in params" do
-      before { get :for_order_cycle, as: :json, params: { order_cycle_id: 1 } }
       it "initializes permissions with the existing OrderCycle" do
-        expect(OpenFoodNetwork::OrderCyclePermissions).to have_received(:new)
-          .with(user, "existing OrderCycle")
+        order_cycle = instance_double(OrderCycle)
+        allow(order_cycle).to receive(:coordinator).and_return(enterprise)
+        allow(OrderCycle).to receive(:find_by).and_return(order_cycle)
+
+        expect(OpenFoodNetwork::OrderCyclePermissions).to receive(:new)
+          .with(user, order_cycle)
+
+        get :for_order_cycle, as: :json, params: { order_cycle_id: 1 }
       end
     end
 
     context "when a coordinator is provided in params" do
-      before { get :for_order_cycle, as: :json, params: { coordinator_id: 1 } }
       it "initializes permissions with a new OrderCycle" do
-        expect(OpenFoodNetwork::OrderCyclePermissions).to have_received(:new).with(user,
-                                                                                   "new OrderCycle")
+        new_order_cycle = instance_double(OrderCycle)
+        allow(new_order_cycle).to receive(:coordinator).and_return(enterprise)
+        allow(OrderCycle).to receive(:new).and_return(new_order_cycle)
+
+        expect(OpenFoodNetwork::OrderCyclePermissions).to receive(:new).with(user, new_order_cycle)
+
+        get :for_order_cycle, as: :json, params: { coordinator_id: 1 }
       end
     end
 
     context "when both an order cycle and a coordinator are provided in params" do
-      before { get :for_order_cycle, as: :json, params: { order_cycle_id: 1, coordinator_id: 1 } }
       it "initializes permissions with the existing OrderCycle" do
-        expect(OpenFoodNetwork::OrderCyclePermissions).to have_received(:new)
-          .with(user, "existing OrderCycle")
+        order_cycle = instance_double(OrderCycle)
+        allow(order_cycle).to receive(:coordinator).and_return(enterprise)
+        allow(OrderCycle).to receive(:find_by).and_return(order_cycle)
+
+        new_order_cycle = instance_double(OrderCycle)
+        allow(OrderCycle).to receive(:new).and_return(new_order_cycle)
+
+        expect(OpenFoodNetwork::OrderCyclePermissions).to receive(:new).with(user, order_cycle)
+
+        get :for_order_cycle, as: :json, params: { order_cycle_id: 1, coordinator_id: 1 }
+      end
+    end
+
+    context "with inventory enabled", feature: :inventory do
+      it "passes inventory_enabled true to serializer" do
+        order_cycle = create(:order_cycle)
+        expect(controller).to receive(:render).with(
+          json: nil,
+          each_serializer: Class,
+          order_cycle: Object,
+          spree_current_user: user,
+          inventory_enabled: true
+        )
+
+        get :for_order_cycle, as: :json, params: { order_cycle_id: order_cycle.id }
       end
     end
   end
@@ -721,7 +759,7 @@ describe Admin::EnterprisesController, type: :controller do
         it "scopes @collection to enterprises editable by the user" do
           get :index, format: :json
           expect(assigns(:collection)).to include enterprise1, enterprise2
-          expect(assigns(:collection)).to_not include enterprise3
+          expect(assigns(:collection)).not_to include enterprise3
         end
       end
     end

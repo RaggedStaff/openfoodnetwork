@@ -5,6 +5,8 @@ ar:
       spree/product: المنتج
       spree/shipping_method: طريقة الشحن
     attributes:
+      spree/image:
+        attachment: المرفقات
       spree/order/ship_address:
         address1: "عنوان الشحن (الشارع + رقم المنزل)"
         address2: "عنوان الشحن 2"
@@ -42,10 +44,12 @@ ar:
       spree/product:
         name: "اسم المنتج"
         price: "السعر"
-        primary_taxon: "نوع المنتج "
-        supplier: "المورد"
+        primary_taxon_id: "نوع المنتج "
         shipping_category_id: "نوع الشحن"
-        variant_unit: "وحدة النوع"
+      spree/variant:
+        primary_taxon: "نوع المنتج "
+        shipping_category_id: "نوع الشحن"
+        supplier: "المورد"
         variant_unit_name: "اسم وحدة النوع"
         unit_value: "قيمةالوحدة"
       spree/credit_card:
@@ -79,7 +83,6 @@ ar:
         variant_override:
           count_on_hand:
             using_producer_stock_settings_but_count_on_hand_set: "يجب أن تكون فارغة بسبب استخدام إعدادات المخزون للمنتج"
-            on_demand_but_count_on_hand_set: "يجب أن تكون فارغة إذا كانت عند الطلب"
             limited_stock_but_no_count_on_hand: "يجب ان تكون تحديد بسبب فرض مدودية المخزون"
       messages:
         blank: "لا يمكن أن تكون فارغة"
@@ -252,6 +255,9 @@ ar:
     integer_array_validator:
       not_array_error: "يجب أن يكون مصفوفة"
       invalid_element_error: "يجب أن يحتوي فقط على أعداد صحيحة فاعلة"
+  backorder_mailer:
+    backorder_failed:
+      product: "المنتج"
   enterprise_mailer:
     confirmation_instructions:
       subject: "يرجى تأكيد عنوان البريد الإلكتروني ل %{enterprise}"
@@ -267,6 +273,13 @@ ar:
       join_community: "انظم إلى المجتمع"
     invite_manager:
       subject: "تلقيت دعوة من %{enterprise} لتصبح مديرًا"
+  payment_mailer:
+    authorize_payment:
+      subject: "يرجى تفويض الدفع الخاص بك إلى %{distributor} على OFN"
+      instructions: "يتطلب الدفع الخاص بك من %{amount} إلى %{distributor} مصادقة إضافية. الرجاء زيارة URL التالي لتفويض الدفع الخاص بك:"
+    authorization_required:
+      subject: "يتطلب الدفع إذنًا من العميل"
+      message: "يتطلب الدفع للطلب %{order_number} تفويضًا إضافيًا من العميل. تم إخطار العميل عبر البريد الإلكتروني وسيظهر الدفع على أنه معلق حتى يتم التصريح به."
   producer_mailer:
     order_cycle:
       subject: "تقرير دورة الطلبية لـ %{producer}"
@@ -423,6 +436,7 @@ ar:
     create_and_add_another: "إنشاء وإضافة آخر"
     create: "انشاء"
     cancel: "إلغاء"
+    cancel_order: "إلغاء"
     resume: "اكمل"
     save: "حفظ"
     edit: "تعديل"
@@ -446,8 +460,10 @@ ar:
         per_page: "%{count} عنصر في كل صفحة"
         colums: أعمدة
       columns:
+        image: الصورة
         name: الاسم
         unit: وحدة
+        unit_value: قيمةالوحدة
         price: السعر
         producer: المنتج
         category: الفئة
@@ -458,6 +474,7 @@ ar:
         inherits_properties: "الخصائص الموروثة؟"
         import_date: "تاريخ الاستيراد"
         actions: أجراءات
+        tags: الاوسمة
       columns_selector:
         unit: وحدة
         price: السعر
@@ -473,8 +490,11 @@ ar:
         edit: تعديل
         clone: استنساخ
         delete: حذف
+        remove: إزالة
       image:
         edit: تعديل
+      product_preview:
+        shop_tab: المتجر
     adjustments:
       skipped_changing_canceled_order: "لا يمكنك تغيير الطلب الذي تم إلغاؤه."
     begins_at: يبدأ عند
@@ -528,7 +548,6 @@ ar:
     show_n_more: عرض %{num} أكثر
     choose: "أختر..."
     please_select: الرجاء اختيار ...
-    column_save_as_default: إحفظ كافتراض اساسي
     columns: أعمدة
     actions: أجراءات
     viewing: "عرض: %{current_view_name}"
@@ -613,6 +632,11 @@ ar:
         balance_due: "الرصيد المستحق"
       destroy:
         has_associated_subscriptions: "فشل الحذف: هذا العميل لديه اشتراكات نشطة. قم بإلغائها أولاً."
+    customer_account_transaction:
+      index:
+        description: وصف
+        amount: القيمة
+        running_balance: 'الرصيد القائم '
     contents:
       edit:
         title: المحتوى
@@ -626,6 +650,13 @@ ar:
         your_content: المحتوى الخاص بك
         user_guide: دليل المستخدم
         map: خريطة
+    dfc_product_imports:
+      index:
+        update: تحديث
+        new: جديد
+        selected:
+          other: "%{count} تم تحديد"
+        import: استيراد
     enterprise_fees:
       index:
         title: "رسوم الشركة"
@@ -679,7 +710,6 @@ ar:
       variants:
         infinity: "ما لا نهاية"
         to_order_tip: "لا تحتوي المواد التي تريد طلبها  على مستوى مخزون محدد ، مثل أرغفة الخبز المصنوعة طازجة حسب الطلب."
-      back_to_products_list: "العودة إلى قائمة المنتجات"
       editing_product: "تحرير المنتج"
       tabs:
         product_details: "تفاصيل المنتج"
@@ -691,19 +721,26 @@ ar:
       index:
         header:
           title: تحرير المنتجات بالجملة
-      sort:
-        pagination:
-          clear_search: مسح البحث
       filters:
         producers:
           label: المنتجين
         categories:
           label: التصنيفات
+        tags:
+          label: الاوسمة
+          none: لا شيء
         search: بحث
-      table:
+      sort:
+        pagination:
+          clear_search: مسح البحث
+      product_variant_row:
         new_variant: نوع جديد
-      edit_image:
-        close: عودة
+      variant_row:
+        none_tax_category: لا شيء
+        category_field_name: "الفئة"
+        tax_category_field_name: "الفئة الضريبية"
+        producer_field_name: "المنتج"
+        add_a_tag: أضف وسم
     product_import:
       title: استيراد المنتج
       file_not_found: لم يتم العثور على الملف أو تعذر فتحه
@@ -764,7 +801,6 @@ ar:
         no_name: لا يوجد اسم
         blank_enterprise: بعض المنتجات لا تملك شركة محددة
         reset_absent?: إعادة تعيين المنتجات الغائبة
-        reset_absent_tip: قم بتعيين المخزون على صفر لجميع المنتجات الموجودة و الغير موجودة في الملف
         overwrite_all: الكتابة فوق الجميع
         overwrite_empty: الكتابةمن جديد إذا فارغة
         default_stock: 'ضبط مستوى المخزون '
@@ -948,12 +984,6 @@ ar:
         images:
           legend: "صور"
           logo: شعار
-          promo_image_placeholder: 'يتم عرض هذه الصورة في &quot;من نحن&quot;'
-          promo_image_note1: 'يرجى الملاحظة:'
-          promo_image_note2: سيتم اقتصاص أي صورة ترويجية تم تحميلها هنا إلى 1200 × 260.
-          promo_image_note3: يتم عرض صورة الترويجي في الجزء العلوي من صفحة الملف الشخصي للشركات والنوافذ المنبثقة.
-          remove_logo: "إزالة الصورة"
-          remove_promo_image: "إزالة الصورة"
         inventory_settings:
           legend: "إعدادات المخزون"
           text1: يمكنك اختيار إدارة مستويات المخزون والأسعار عبر
@@ -1033,13 +1063,15 @@ ar:
           customer_names_tip: "قم بتمكين مورديك من رؤية أسماء عملائك في التقارير"
           customer_names_false: "تعليق"
           customer_names_true: "تمكين"
+          customer_contacts_false: "تعليق"
+          customer_contacts_true: "تمكين"
+          producers_edit_orders_false: "تعليق"
+          producers_edit_orders_true: "تمكين"
           shopfront_message: "رسالة واجهة المتجر"
           shopfront_message_placeholder: >
               رسالة اختيارية للترحيب بالعملاء وشرح كيفية التسوق معك. إذا تم إدخال
               النص هنا ، فسيتم عرضه في علامة تبويب الصفحة الرئيسية عندما يصل العملاء
               إلى واجهة المتجر الخاصة بك.
-          shopfront_message_link_tooltip: "إدراج / تحرير الرابط"
-          shopfront_message_link_prompt: "الرجاء إدخال عنوان URL لإدراجه"
           shopfront_closed_message: "واجهة المتجر رسالة مغلقة"
           shopfront_closed_message_placeholder: >
               الرسالة تقدم شرحًا أكثر تفصيلًا حول سبب إغلاق متجرك و / أو متى يمكن
@@ -1083,27 +1115,24 @@ ar:
             no_rules_yet: لا توجد قواعد افتراضية تطبق حتى الآن
             add_new_button: '+ إضافة قاعدة افتراضية جديدة'
           no_tags_yet: لا يوجد وسم تنطبق على هذه الشركة حتى الآن
-          no_rules_yet: لا توجد قواعد تنطبق على هذه العلامة حتى الآن
-          for_customers_tagged: 'للعملاء الموسومين:'
-          add_new_rule: '+ أضف قاعدة جديدة'
           add_new_tag: '+ أضف وسم جديدة'
+          show_hide_variants: 'إظهار أو إخفاء الانواع في واجهة المتجر الخاصة بي'
+          show_hide_shipping: 'إظهار أو إخفاء طرق الشحن عند الخروج'
+          show_hide_payment: 'إظهار أو إخفاء طرق الدفع عند الخروج'
+          show_hide_order_cycles: 'إظهار أو إخفاء دورات الطلب في واجهة المتجر الخاصة بي'
         users:
           legend: "المستخدمين"
           email_confirmation_notice_html: "تأكيد البريد الإلكتروني معلق. لقد أرسلنا رسالة تأكيد بالبريد الإلكتروني إلى %{email}."
           resend: إعادة إرسال
-          owner: 'المالك'
           contact: "اتصل"
+          owner: 'المالك'
           contact_tip: "المدير الذي سيتلقى رسائل البريد الإلكتروني للمؤسسة للطلبات والإشعارات. يجب أن يكون لديك عنوان بريد إلكتروني مؤكد."
           owner_tip: المستخدم الرئيسي المسؤول عن هذه الشركة.
           notifications: إشعارات
           notifications_tip: سيتم إرسال إعلامات حول الطلبات إلى عنوان البريد الإلكتروني هذا.
           notifications_placeholder: على سبيل المثال. gustav@truffles.com
           notifications_note: 'ملاحظة: قد يلزم تأكيد عنوان بريد إلكتروني جديد قبل استخدامه'
-          managers: مدراء
-          managers_tip: المستخدمين الآخرين مع إذن لإدارة هذه الشركة.
           invite_manager: "دعوة مدير"
-          invite_manager_tip: "دعوة مستخدم غير مسجل للاشتراك ويصبح مديرًا لهذه الشركة."
-          add_unregistered_user: "إضافة مستخدم غير مسجل"
           email_confirmed: "تأكيد البريد الإلكتروني"
           email_not_confirmed: "البريد الإلكتروني غير مؤكد"
         vouchers:
@@ -1120,7 +1149,13 @@ ar:
           add_new: اضف جديد
           no_voucher_yet: لا قسائم حتى الآن
         connected_apps:
-          loading: "جار التحميل"
+          affiliate_sales_data:
+            loading: "جار التحميل"
+          discover_regen:
+            tagline: "By clicking ‘Allow data sharing’, you are sharing data between Open Food Network and the Discover Regenerative Portal, and agreeing to make specific data public on the Portal, which will also be publicly available on the API.\nIMPORTANT: Before you stop sharing and remove your listing, please first contact hello@regenerative.org.au to request a copy of your Discover Regenerative data."
+            loading: "جار التحميل"
+          vine:
+            enable: "الاتصال"
       actions:
         edit_profile: الإعدادات
         properties: الخصائص
@@ -1173,10 +1208,8 @@ ar:
         contact_name: اسم جهة الاتصال
       edit:
         editing: 'الإعدادات:'
-        back_link: العودة إلى قائمة المؤسسات
       new:
         title: شركة جديدة
-        back_link: العودة إلى قائمة المؤسسات
       welcome:
         welcome_title: مرحبا بكم في شبكة الغذاء المفتوح الاردن - فلاحة جو !
         welcome_text: لقد نجحت في إنشاء
@@ -1184,9 +1217,6 @@ ar:
         choose_starting_point: 'اختر الحزمة الخاصة بك:'
         profile: 'الملف الشخصي'
         producer_profile: 'الملف الشخصي للمنتج'
-      invite_manager:
-        user_already_exists: "المستخدم موجود اصلا"
-        error: "هناك خطأ ما"
     order_cycles:
       loading_flash:
         loading_order_cycles: تحميل دورات الطلب
@@ -1213,6 +1243,8 @@ ar:
         choose_products_from: "اختر المنتجات من:"
         re_notify_producers: إعادة إخطار المنتجين
         notify_producers_tip: سيؤدي هذا إلى إرسال بريد إلكتروني إلى كل منتج مع قائمة طلباتهم.
+      date_time_warning_modal_content:
+        cancel: 'إلغاء'
       incoming:
         incoming: "الوارد"
         supplier: "المورد"
@@ -1340,6 +1372,17 @@ ar:
       resume:
         could_not_resume_the_order: لا يمكن استئناف الطلب
     shared:
+      attachment_field:
+        logo_label: "شعار"
+        logo_remove: "إزالة الصورة"
+        logo_remove_confirm: "سيتم إزالة الشعار مباشرة بعد التأكيد."
+        promo_image_note1: 'يرجى الملاحظة:'
+        promo_image_note2: سيتم اقتصاص أي صورة ترويجية تم تحميلها هنا إلى 1200 × 260.
+        promo_image_note3: يتم عرض صورة الترويجي في الجزء العلوي من صفحة الملف الشخصي للشركات والنوافذ المنبثقة.
+        promo_image_placeholder: 'يتم عرض هذه الصورة في &quot;من نحن&quot;'
+        promo_image_remove: "إزالة الصورة"
+        promo_image_remove_confirm: "ستتم إزالة صورة الترويجي فور التأكيد."
+        white_label_logo_remove: "إزالة الصورة"
       user_guide_link:
         user_guide: دليل المستخدم
       enterprises_hubs_tabs:
@@ -1380,7 +1423,7 @@ ar:
       email_confirmation: "تأكيد البريد الإلكتروني معلق. لقد أرسلنا لك رسالة تأكيد على البريد الإلكتروني إلى %{email}."
       not_visible: "%{enterprise} غير مرئي وبالتالي لا يمكن العثور عليه على الخريطة أو في عمليات البحث"
     reports:
-      hidden: خفية
+      hidden_field: "< Hidden >"
       unitsize: حجم الوحدة
       total: مجموع
       total_items: البنود الكلية
@@ -1438,7 +1481,6 @@ ar:
         no_report_type: "الرجاء تحديد نوع التقرير"
         report_not_found: "التقرير غير موجود"
         missing_ransack_params: "يرجى تقديم معلمات بحث Ransack في الطلب"
-      hidden_field: "< Hidden >"
       summary_row:
         total: "مجموع"
       table:
@@ -1569,6 +1611,11 @@ ar:
     schedules:
       destroy:
         associated_subscriptions_error: لا يمكن حذف هذا الجدول لأنه يحتوي على اشتراكات مقترنة
+    user_invitations:
+      new:
+        back: عودة
+        email: البريد الإلكتروني
+        invite: ادعو
     vouchers:
       new:
         legend: قسيمة جديدة
@@ -1581,6 +1628,9 @@ ar:
         stripe_connect_cancelled: "تم إلغاء الاتصال بـ Stripe"
         stripe_connect_success: "حساب الالكتروني متصل بنجاح"
         stripe_connect_fail: عذرًا ، فشل اتصال حساب Stripe الخاص بك
+        remove_logo_success: "تمت إزالة الشعار بنجاح"
+        remove_promo_image_success: "تمت إزالة الصورة الترويجية بنجاح"
+        remove_white_label_logo_success: "تمت إزالة الشعار بنجاح"
       stripe_connect_settings:
         resource: تهيئة ربط Strip
     resend_confirmation_emails_feedback:
@@ -1710,7 +1760,6 @@ ar:
       select_a_shipping_method: حدد طريقة الشحن
       select_a_payment_method: اختر طريقة الدفع
       no_shipping_methods_available: الخروج غير ممكن بسبب عدم وجود خيارات الشحن. يرجى الاتصال بصاحب المحل.
-      voucher_not_found: غير موجود
   shops:
     hubs:
       show_closed_shops: "عرض المتاجر المغلقة"
@@ -1874,7 +1923,6 @@ ar:
   label_account: "الحساب"
   label_more: "أظهر المزيد"
   label_less: "عرض أقل"
-  label_notices: "إشعارات"
   cart_items: "العناصر"
   cart_headline: "سلة التسوق الخاصة بك"
   total: "مجموع"
@@ -1910,7 +1958,6 @@ ar:
       essential_cookies_note: "تحتوي معظم ملفات تعريف الارتباط على معرف فريد فقط ، ولكن لا تحتوي على بيانات أخرى ، لذلك لا يحتوي عنوان بريدك الإلكتروني وكلمة المرور الخاصة بك على الإطلاق ولا يتم كشفهما أبدًا."
       cookie_domain: "تم ظبطها من قبل:"
       cookie_session_desc: "يستخدم للسماح لموقع الويب بتذكر المستخدمين بين زيارات الصفحات ، على سبيل المثال ، تذكر العناصر الموجودة في سلة التسوق الخاصة بك."
-      cookie_consent_desc: "يستخدم للحفاظ على حالة موافقة المستخدم لتخزين ملفات تعريف الارتباط"
       cookie_remember_me_desc: "يستخدم إذا طلب المستخدم من الموقع أن يتذكره. يتم حذف ملف تعريف الارتباط هذا تلقائيًا بعد 12 يومًا. إذا كنت تريد حذف ملف تعريف الارتباط هذا كمستخدم ، فأنت تحتاج فقط إلى تسجيل الخروج. إذا كنت لا ترغب في تثبيت ملف تعريف الارتباط هذا على جهاز الكمبيوتر الخاص بك ، فلا يجب عليك تحديد مربع الاختيار \"تذكرني\" عند تسجيل الدخول."
       cookie_openstreemap_desc: "تستخدم من قبل موفر خرائط مفتوح المصدر  (OpenStreetMap) للتأكد من أنه لا يتلقى الكثير من الطلبات خلال فترة زمنية معينة ، لمنع إساءة استخدام خدماتهم."
       cookie_stripe_desc: "البيانات التي يتم جمعها بواسطة معالج الدفع لدينا Stripe للكشف عن الاحتيال https://stripe.com/cookies-policy/legal. لا تستخدم جميع المتاجر Stripe كوسيلة للدفع ، ولكن من الممارسات الجيدة منع الاحتيال لتطبيقه على جميع الصفحات. من المحتمل أن يقوم Stripe بإنشاء صورة لصفحاتنا التي تتفاعل عادةً مع واجهة برمجة التطبيقات الخاصة بهم ومن ثم وضع علامة على أي شيء غير عادي. لذلك فإن إعداد ملف تعريف الارتباط للشريط له وظيفة أوسع من مجرد توفير طريقة الدفع للمستخدم. يمكن أن تؤثر إزالتها على أمان الخدمة نفسها. يمكنك معرفة المزيد حول الشريط وقراءة سياسة الخصوصية الخاصة به على https://stripe.com/privacy."
@@ -1928,13 +1975,6 @@ ar:
       disabling_cookies_ie_link: "https://support.microsoft.com/en-us/help/17442/windows-internet-explorer-delete-manage-cookies"
       disabling_cookies_safari_link: "https://www.apple.com/legal/privacy/en-ww/cookies/"
       disabling_cookies_note: "لكن عليك أن تدرك أنه إذا قمت بحذف أو تعديل ملفات تعريف الارتباط الأساسية التي تستخدمها شبكة الغذاء المفتوح ، فلن يعمل موقع الويب ، فلن تتمكن من إضافة أي شيء إلى سلة التسوق الخاصة بك ولا لتسجيل الخروج على سبيل المثال."
-    cookies_banner:
-      cookies_usage: "يستخدم هذا الموقع ملفات تعريف الارتباط من أجل جعل التنقل غير آمن وآمن ، ولمساعدتنا على فهم كيفية استخدامه لتحسين الميزات التي نقدمها."
-      cookies_definition: "ملفات تعريف الارتباط هي ملفات نصية صغيرة جدًا يتم تخزينها على جهاز الكمبيوتر الخاص بك عند زيارة بعض مواقع الويب."
-      cookies_desc: "نحن نستخدم فقط ملفات تعريف الارتباط الضرورية لتقديم خدمة بيع / شراء الطعام عبر الإنترنت. نحن لا نبيع أي من بياناتك. نحن نستخدم ملفات تعريف الارتباط بشكل أساسي لتذكر من أنت إذا قمت بتسجيل الدخول إلى الخدمة ، أو لتمكن من تذكر العناصر التي وضعت في سلة التسوق الخاصة بك حتى لو لم تقم بتسجيل الدخول. إذا واصلت التنقل على الموقع دون النقر على &quot;قبول ملفات تعريف الارتباط&quot; ، نفترض أنك تمنحنا موافقتك على تخزين ملفات تعريف الارتباط الضرورية لتشغيل الموقع."
-      cookies_policy_link_desc: "إذا كنت تريد معرفة المزيد ، تحقق من"
-      cookies_policy_link: "اتفاقية ملفات تعريف الارتباط"
-      cookies_accept_button: "قبول ملفات تعريف الارتباط"
   home_shop: تسوق الآن
   brandstory_headline: "قم بدعم الانتاج المحلي"
   brandstory_intro: "سيساعدك المجتمع عبر الإنترنت في بناء مشروعك الغذائي بنجاح ..."
@@ -1945,12 +1985,11 @@ ar:
   brandstory_part5_strong: "وما لا يقل أهمية عن المنصة نفسها هو القيم التي تدعمها."
   brandstory_part6: "إذا كنت تبيع طعامًا جيدًا - كمزارع ، سوق زراعي، جمعية تعاونية منتجة، مركز طعام - فاختر برنامجًا يتوافق مع قيمك لبناء أنظمة غذائية للناس و الوطن. من خلال العمل الجماعي بدلاً من التنافس ، نشارك تكاليف تطوير برامج جديدة ، ونضمن أن مشروعنا مرن!"
   system_headline: "البيع على منصة فلاحة 3 خطوات سهلة"
-  system_step1: "1. أنشئ مؤسستك"
-  system_step1_text: "قم بإعداد مؤسستك بالاسم والوصف والصور وتفاصيل الاتصال وروابط الوسائط الاجتماعية."
-  system_step2: "2. أضف منتجاتك"
-  system_step2_text: "أضف منتجات إلى متجرك - خاصة بك و / أو من منتجين آخرين من حولك. تعيين الصور والأوصاف والأسعار المخزون والأوزان والمقاييس المرنة!"
-  system_step3: "3. عمليات التسليم الخاصة بك"
-  system_step3_text: "قم بإعداد طرق الدفع. إنشاء نقاط استلام متعددة وتفاصيل التسليم. إنشاء أوامر متكررة وتوزيعات منتظمة."
+  system_step1_html: "1. أنشئ مؤسستك"
+  system_step2_html: "2. أضف منتجاتك"
+  system_step2_text_html: "أضف منتجات إلى متجرك - خاصة بك و / أو من منتجين آخرين من حولك. تعيين الصور والأوصاف والأسعار المخزون والأوزان والمقاييس المرنة!"
+  system_step3_html: "3. عمليات التسليم الخاصة بك"
+  system_step3_text_html: "قم بإعداد طرق الدفع. إنشاء نقاط استلام متعددة وتفاصيل التسليم. إنشاء أوامر متكررة وتوزيعات منتظمة."
   cta_headline: "شبكة الغذاء المستدامة في المستقبل."
   cta_label: "أنا مستعد"
   stats_headline: "نحن بصدد إنشاء نظام غذائي جديد."
@@ -1986,6 +2025,7 @@ ar:
   order_not_paid: لم يتم الدفع
   order_total: اجمالي الطلب
   order_payment: "الدفع عن طريق:"
+  customer_credit: اجل
   order_billing_address: عنوان وصول الفواتير
   order_delivery_on: التسليم في
   order_delivery_address: عنوان التسليم
@@ -2013,10 +2053,8 @@ ar:
   email_confirmed: "شكرا لتأكيد عنوان بريدك الإلكتروني."
   email_confirmation_activate_account: "قبل أن نتمكن من تنشيط حسابك الجديد ، نحتاج إلى تأكيد عنوان بريدك الإلكتروني."
   email_confirmation_greeting: "مرحبًا ، %{contact}!"
-  email_confirmation_profile_created: "تم إنشاء الملف الشخصي لل%{name} بنجاح! لتنشيط ملفك الشخصي ، نحتاج إلى تأكيد عنوان البريد الإلكتروني هذا."
   email_confirmation_click_link: "يرجى النقر على الرابط أدناه لتأكيد بريدك الإلكتروني ومتابعة إعداد ملفك الشخصي."
   email_confirmation_link_label: "تأكيد عنوان البريد الإلكتروني »"
-  email_confirmation_help_html: "بعد تأكيد بريدك الإلكتروني ، يمكنك الوصول إلى حساب الإدارة الخاص بك لهذه المؤسسة. راجع %{link} لمعرفة المزيد حول ميزات %{sitename} ولبدء استخدام ملفك الشخصي أو متجرك الإلكتروني."
   email_confirmation_notice_unexpected: "لقد تلقيت هذه الرسالة لأنك قمت بالتسجيل في %{sitename} ، أو تمت دعوتك للاشتراك من قبل شخص تعرفه على الأرجح. إذا كنت لا تفهم سبب تلقي هذا البريد الإلكتروني ، فيرجى الكتابة إلى %{contact}."
   email_social: "اتصل بنا:"
   email_contact: "ارسل لنا عبر البريد الإلكتروني:"
@@ -2608,26 +2646,14 @@ ar:
   spree_admin_enterprises_fees: "رسوم الشركة"
   spree_admin_enterprises_none_create_a_new_enterprise: "إنشاء مؤسسة جديدة"
   spree_admin_enterprises_none_text: "ليس لديك أي مؤسسات حتى الآن"
-  spree_admin_enterprises_tabs_hubs: "مراكز بيع"
   spree_admin_enterprises_producers_manage_products: "إدارة المنتجات"
   spree_admin_enterprises_create_new_product: "إنشاء منتج جديد"
-  spree_admin_single_enterprise_alert_mail_confirmation: "يرجى تأكيد عنوان البريد الإلكتروني ل"
-  spree_admin_single_enterprise_alert_mail_sent: "لقد أرسلنا رسالة إلكترونية إلى"
-  spree_admin_overview_action_required: "الإجراء مطلوب"
-  spree_admin_overview_check_your_inbox: "يرجى التحقق من صندوق الوارد الخاص بك لمزيد من التعليمات. شكر!"
-  spree_admin_unit_value: قيمة النوع 
-  spree_admin_unit_description: وصف الوحدة
-  spree_admin_variant_unit: 'وحدة النوع '
-  spree_admin_variant_unit_scale: 'النوع مقياس وحدة '
   spree_admin_supplier: المورد
-  spree_admin_product_category: 'نوع المنتج '
-  spree_admin_variant_unit_name: 'النوع اسم الوحدة '
   unit_name: "إسم الوحدة"
   change_package: "تغيير الحزمة"
   spree_admin_single_enterprise_hint: "لمحة: للسماح للأشخاص بالعثور عليك ، قم بتشغيل الرؤية الخاصة بك أسفل"
   spree_admin_eg_pickup_from_school: "على سبيل المثال. &quot;البيك اب من المدرسة الابتدائية&quot;"
   spree_admin_eg_collect_your_order: "على سبيل المثال. &quot;يرجى جمع طلبك من 123 Imaginary St، Northcote ، 3070&quot;"
-  spree_classification_primary_taxon_error: "Taxon %{taxon} هو التصنيف الأساسي %{product} ولا يمكن حذفه"
   spree_order_availability_error: "لا يمكن لموزع أو دورة طلب توفير المنتجات في سلة التسوق"
   spree_order_populator_error: "لا يمكن لهذا الموزع أو دورة الطلب توفير جميع المنتجات في سلة التسوق. الرجاء اختيار آخر."
   spree_order_cycle_error: "الرجاء اختيار دورة الطلب لهذا الطلب."
@@ -2730,7 +2756,6 @@ ar:
   report_header_paid: دفع؟
   report_header_delivery: توصيل؟
   report_header_shipping: الشحن
-  report_header_shipping_method: طريقة الشحن
   report_header_shipping_instructions: تعليمات الشحن
   report_header_ship_street: شارع الشحن
   report_header_ship_street_2: شارع الشحن 2
@@ -2779,6 +2804,7 @@ ar:
   report_header_quantity: الكمية
   report_header_max_quantity: اعلى كمية
   report_header_variant: النوع
+  report_header_variant_unit_name: اسم وحدة النوع
   report_header_variant_value: قيمة النوع
   report_header_variant_unit: وحدة النوع
   report_header_total_available: القيمة الكلية متاحة
@@ -2852,6 +2878,8 @@ ar:
   report_header_total_excl_vat: "المجموع باستثناء الضريبة (%{currency_symbol})"
   report_header_total_incl_vat: "إجمالي مدفوع الضريبة (%{currency_symbol})"
   report_header_temp_controlled: التحكم المؤقت؟
+  report_header_shipment_state: "حالة الشحن"
+  report_header_shipping_method: "طريقة الشحن"
   report_header_is_producer: المنتج؟
   report_header_not_confirmed: غير مؤكد
   report_header_gst_on_income: ضريبة السلع والخدمات على الدخل
@@ -2940,7 +2968,7 @@ ar:
   order_cycles_no_permission_to_coordinate_error: "لا تملك أي من مؤسساتك إذنًا لتنسيق دورة الطلب"
   order_cycles_no_permission_to_create_error: "ليس لديك إذن لإنشاء دورة طلب تنسقها تلك المؤسسة"
   order_cycle_closed: "تم إغلاق دورة الطلب التي حددتها للتو. حاول مرة اخرى!"
-  back_to_orders_list: "العودة إلى قائمة الطلب"
+  back_to_orders_list: "العودة إلى قائمة الطلبات"
   no_orders_found: "لم يتم العثور على أية طلبات"
   order_information: "معلومات الطلب"
   new_payment: "دفعة جديد"
@@ -2950,6 +2978,7 @@ ar:
     ready: جاهز
     pending: قيد الانتظار
     shipped: تم الشحن
+  business_name: الاسم التجاري
   js:
     saving: 'حفظ...'
     changes_saved: 'تم حفظ التغييرات.'
@@ -3107,18 +3136,6 @@ ar:
           select_all_variants: "حدد كل %{total_number_of_variants} المتغيرات"
           variants_loaded: "%{num_of_variants_loaded} من %{total_number_of_variants} تم تحميل المتغيرات"
           loading_variants: "تحميل المتغيرات"
-      tag_rules:
-        shipping_method_tagged_top: "طرق الشحن الموسومة"
-        shipping_method_tagged_bottom: "هي:"
-        payment_method_tagged_top: "طرق الدفع الموسومة"
-        payment_method_tagged_bottom: "هي:"
-        order_cycle_tagged_top: "ترتيب دورات الموسومة"
-        order_cycle_tagged_bottom: "هي:"
-        inventory_tagged_top: "جرد الانواع الموسومة"
-        inventory_tagged_bottom: "هي:"
-      new_tag_rule_dialog:
-        select_rule_type: "اختر نوع القاعدة:"
-        add_rule: "أضف قاعدة "
       enterprise_fees:
         inherit_from_product: "وراثة من المنتج"
       orders:
@@ -3208,10 +3225,6 @@ ar:
       enterprises:
         form:
           images:
-            removed_logo_successfully: "تمت إزالة الشعار بنجاح"
-            immediate_logo_removal_warning: "سيتم إزالة الشعار مباشرة بعد التأكيد."
-            removed_promo_image_successfully: "تمت إزالة الصورة الترويجية بنجاح"
-            immediate_promo_image_removal_warning: "ستتم إزالة صورة الترويجي فور التأكيد."
             immediate_terms_and_conditions_removal_warning: "ستتم إزالة ملف الشروط والأحكام فورًا بعد التأكيد."
             removed_terms_and_conditions_successfully: "تمت إزالة ملف الشروط والأحكام بنجاح"
     insufficient_stock: "مخزون غير متوفر ، تبقى %{on_hand}"
@@ -3221,7 +3234,7 @@ ar:
           أثناء التسوق ، انخفضت مستويات المخزون لواحد أو أكثر من المنتجات في عربتك.
           إليك ما تغير:
       now_out_of_stock: الآن لا يوجد مخزون.
-      only_n_remainging: "الآن ليس لديه %{num} متبقية."
+      only_n_remaining: "الآن ليس لديه %{num} متبقية."
     shopfront:
       variant:
         add_to_cart: "إضافة"
@@ -3254,13 +3267,6 @@ ar:
       some_trouble: "واجهت بعض المشكلات في حفظ: %{errors}"
       changing_on_hand_stock: تغيير على مستويات المخزون المتوفر ...
       stock_reset: إعادة تعيين المخزون إلى الإعدادات الافتراضية.
-    tag_rules:
-      show_hide_variants: 'إظهار أو إخفاء الانواع في واجهة المتجر الخاصة بي'
-      show_hide_shipping: 'إظهار أو إخفاء طرق الشحن عند الخروج'
-      show_hide_payment: 'إظهار أو إخفاء طرق الدفع عند الخروج'
-      show_hide_order_cycles: 'إظهار أو إخفاء دورات الطلب في واجهة المتجر الخاصة بي'
-      visible: مرئي
-      not_visible: غير مرئية
     services:
       unsaved_changes_message: التغييرات غير المحفوظة موجودة حاليًا ، هل تحفظها الآن أو تتجاهل؟
       save: حفظ
@@ -3276,6 +3282,8 @@ ar:
           سيؤدي ذلك إلى ضبط مستوى المخزون لصفر على جميع المنتجات
           المؤسسة غير موجودة في الملف الذي تم تحميله.
     order_cycles:
+      unsaved_changes: "لم تحفظ التغييرات"
+      bulk_save_error: "عذرا لا! لم أستطع حفظ تغييراتك."
       create_failure: "فشل في تكوين دورة الطلب"
       update_success: 'تم تحديث دورة الطلب.'
       update_failure: "فشل في تحديث دورة الطلب"
@@ -3303,6 +3311,9 @@ ar:
           كانت هناك مشكلة في إعداد بطاقتك في بوابة المدفوعات الخاصة بنا.
           يرجى تحديث الصفحة والمحاولة مرة أخرى ، إذا فشلت مرة أخرى ،
           يرجى الاتصال بنا للحصول على الدعم.
+    trix:
+      code: "الشفرة"
+      urlPlaceholder: "الرجاء إدخال عنوان URL لإدراجه"
   inflections:
     each:
       zero: "كل"
@@ -3444,13 +3455,6 @@ ar:
       few: "الأواني"
       many: "الأواني"
       other: "اصص"
-    bundle:
-      zero: "حزم"
-      one: "حزمة"
-      two: "حزم"
-      few: "حزم"
-      many: "حزم"
-      other: "حزم"
     flask:
       zero: "قوارير"
       one: "قارورة"
@@ -3472,6 +3476,13 @@ ar:
       few: "أكياس"
       many: "أكياس"
       other: "أكياس"
+    bundle:
+      zero: "حزم"
+      one: "حزمة"
+      two: "حزم"
+      few: "حزم"
+      many: "حزم"
+      other: "حزم"
   producers:
     signup:
       start_free_profile: "ابدأ بملف تعريف مجاني ، وتوسع عندما تكون جاهزًا!"
@@ -3593,9 +3604,9 @@ ar:
     more: "أكثر"
     new_adjustment: "تعديل جديد"
     new_tax_category: "فئة ضريبية جديدة"
-    new_taxon: "اصنوفة جديدة"
     new_user: "مستخدم جديد"
     no_pending_payments: "لا توجد دفعات معلقة"
+    remove: "إزالة"
     none: "لا شيء"
     not_found: "غير موجود"
     notice_messages:
@@ -3605,16 +3616,8 @@ ar:
     rma_credit: "رصيد RMA"
     refund: "إعادة المال"
     server_error: "خطأ في الخادم"
-    shipping_method_names:
-      UPS Ground: "UPS الأرضي"
-      pick_up: "التسليم من المزرعة مباشرة"
-      delivery: "موقعة ومختومة وتم التسليم"
     start_date: "تاريخ البدء"
     successfully_removed: "تمت الإزالة بنجاح"
-    taxonomy_edit: "التصنيف"
-    taxonomy_tree_error: "خطأ شجرة التصنيف"
-    taxonomy_tree_instruction: "تعليمات شجرة التصنيف"
-    tree: "شجرة"
     updating: "تحديث"
     your_order_is_empty_add_product: "طلبك فارغ ، يرجى البحث عن المنتج أعلاه وإضافته"
     add_product: "أضف منتج"
@@ -3710,7 +3713,6 @@ ar:
     tax_rate_amount_explanation: "معدلات الضرائب هي مبلغ عشري للمساعدة في العمليات الحسابية ، (أي إذا كان معدل الضريبة 5٪ ، فأدخل 0.05)"
     included_in_price: "المدرجة في السعر"
     show_rate_in_label: "عرض السعر في التسمية"
-    back_to_tax_rates_list: "العودة إلى قائمة أسعار الضرائب"
     tax_settings: "الإعدادات الضريبية"
     zones: "مناطق"
     new_zone: "منطقة جديدة"
@@ -3723,14 +3725,11 @@ ar:
     iso_name: "اسم شهادة ISO"
     states_required: "المنطقة مطلوبة"
     editing_country: "تحرير الدولة"
-    back_to_countries_list: "العودة إلى قائمة الدول"
     states: "محافظات"
     abbreviation: "الاختصار"
     new_state: "محافظة جديدة"
     payment_methods: "طرق الدفع"
-    taxonomies: "التصنيفات"
-    new_taxonomy: "تصنيف جديد"
-    back_to_taxonomies_list: "العودة إلى قائمة التصنيفات"
+    taxons: "فئات المنتجات"
     shipping_methods: "طرق الشحن"
     shipping_method: "طريقة الشحن"
     shipment: "الشحنة"
@@ -3822,6 +3821,9 @@ ar:
     validation:
       must_be_int: "يجب أن يكون رقما صحيحا"
     admin:
+      images:
+        edit:
+          close: عودة
       mail_methods:
         send_testmail: "إرسال بريد إلكتروني تجريبي"
         testmail:
@@ -3836,6 +3838,7 @@ ar:
         bulk_order_management: "ادارة طلب الجملة "
         subscriptions: "الاشتراكات"
         products: "منتجات"
+        products_v3: "منتجات"
         option_types: "أنواع الخيارات"
         properties: "الخصائص"
         variant_overrides: "المخزون"
@@ -3849,6 +3852,10 @@ ar:
         customers: "العملاء"
         groups: "مجموعات"
         oidc_settings: "إعدادات OIDC"
+        overview: "نظرة عامة"
+        product_import: "استيراد"
+        enterprise_roles: "الأدوار"
+        payment_methods: "طرق الدفع"
       product_properties:
         index:
           inherits_properties_checkbox_hint: "وراثة الخصائص من %{supplier}؟ (ما لم يتم تجاوزه أعلاه)"
@@ -3879,7 +3886,6 @@ ar:
           continue: "تابع"
         new:
           new_return_authorization: "عودة الترخيص جديد"
-          back_to_return_authorizations_list: "العودة إلى قائمة عودة الترخيص"
           continue: "تابع"
         edit:
           receive: "استلام"
@@ -4061,9 +4067,7 @@ ar:
         providers:
           provider: "مزود"
           check: "النقد / التحويل الإلكتروني / إلخ. (المدفوعات التي لا تتطلب المصادقة التلقائية)"
-          pin: "المدفوعات دبوس"
           paypalexpress: "باي بال اكسبريس"
-          stripeconnect: "Stripe SCA"
           stripesca: "Stripe SCA"
       payments:
         source_forms:
@@ -4121,8 +4125,6 @@ ar:
       reports:
         table:
           select_and_search: "حدد المرشحات وانقر على %{option} للوصول إلى البيانات الخاصة بك."
-        customer_names_message:
-          customer_names_tip: "إذا كانت أسماء العملاء مخفية للطلبات التي قدمتها ، فيمكنك الاتصال بالموزع والسؤال عما إذا كان بإمكانهم تحديث تفضيلات متجرهم للسماح لمورديهم بمشاهدة أسماء العملاء."
         products_and_inventory:
           all_products:
             message: "لاحظ أن مستويات المخزون المبلغ عنها هي من قوائم منتجات الموردين فقط. إذا كنت تستخدم المخزون لإدارة كميات مخزونك ، فسيتم تجاهل هذه القيم في هذا التقرير."
@@ -4141,7 +4143,6 @@ ar:
         form:
           disabled: "تعطيل؟"
           email: "البريد الإلكتروني"
-          roles: "الأدوار"
           enterprise_limit: "حد المؤسسة"
           confirm_password: "تأكيد كلمة المرور"
           password: "كلمه السر"
@@ -4163,12 +4164,15 @@ ar:
           new_variant: "نوع جديد"
         form:
           sku: "SKU"
-          price: "السعر"
           unit_price: "سعر الوحدة"
           display_as: "عرض ب"
           display_name: "اسم العرض"
           display_as_placeholder: 'على سبيل المثال 2 كجم'
           display_name_placeholder: 'على سبيل المثال طماطم'
+          unit: وحدة
+          price: السعر
+          unit_value: قيمةالوحدة
+          variant_category: الفئة
         autocomplete:
           out_of_stock: "غير متوفر"
           producer_name: "المنتج"
@@ -4178,6 +4182,7 @@ ar:
           terms_of_service: "شروط الخدمة"
         sortable_header:
           name: "الاسم"
+          on_hand: "متوفر"
           number: "رقم "
           completed_at: "تم الانتهاء عند "
           state: "ولاية"
@@ -4187,14 +4192,14 @@ ar:
           total: "المجموع"
           billing_address_name: "الاسم"
       taxons:
+        index:
+          title: "فئات المنتجات"
         form:
           name: الاسم
-          permalink: الرابط الثابت
           description: وصف
       general_settings:
         edit:
           legal_settings: "الإعدادات القانونية"
-          cookies_consent_banner_toggle: "عرض راية موافقة ملفات تعريف الارتباط"
           privacy_policy_url: "رابط سياسة الخصوصية"
           enterprises_require_tos: "يجب على المؤسسات قبول شروط الخدمة"
           shoppers_require_tos: "يجب على المتسوقين قبول شروط الخدمة"
@@ -4284,13 +4289,6 @@ ar:
         subject: "تعليمات إعادة تعيين كلمة المرور"
       confirmation_instructions:
         subject: "يرجى تأكيد حسابك OFN"
-    payment_mailer:
-      authorize_payment:
-        subject: "يرجى تفويض الدفع الخاص بك إلى %{distributor} على OFN"
-        instructions: "يتطلب الدفع الخاص بك من %{amount} إلى %{distributor} مصادقة إضافية. الرجاء زيارة URL التالي لتفويض الدفع الخاص بك:"
-      authorization_required:
-        subject: "يتطلب الدفع إذنًا من العميل"
-        message: "يتطلب الدفع للطلب %{order_number} تفويضًا إضافيًا من العميل. تم إخطار العميل عبر البريد الإلكتروني وسيظهر الدفع على أنه معلق حتى يتم التصريح به."
     shipment_mailer:
       shipped_email:
         dear_customer: "عزيزي العميل،"
@@ -4353,13 +4351,10 @@ ar:
       webhook_endpoints:
         title: نقاط نهاية Webhook
         description: قد تؤدي الأحداث في النظام إلى تشغيل webhooks للأنظمة الخارجية.
-        event_types:
-          order_cycle_opened: تم فتح دورة الطلب
         event_type:
           header: نوع الحدث
         url:
           header: عنوان URL لنقطة النهاية
-          create_placeholder: 'أدخل عنوان URL لنقطة نهاية webhook '
       developer_settings:
         title: إعدادات المطور
       form:
@@ -4379,6 +4374,10 @@ ar:
         transaction_history: سجل المعاملات
         authorisation_required: التفويض مطلوب
         authorise: Authorize
+      customer_account_transactions:
+        description: وصف
+        amount: القيمة
+        running_balance: 'الرصيد القائم '
       open_orders:
         order: طلب
         shop: متجر
@@ -4427,7 +4426,6 @@ ar:
       key_cleared: "تم مسح المفتاح"
       shipment:
         cannot_ready: "لا يمكن تجهيز الشحنة"
-      invalid_taxonomy_id: "معرف التصنيف غير صالح."
       toggle_api_key_view: "إظهار عرض مفتاح API للمستخدم"
     activerecord:
       models:
@@ -4538,3 +4536,30 @@ ar:
     pagination:
       next: التالى
       previous: السابق
+    tag_list_input:
+      default_placeholder: أضف وسم
+    tag_rule_form:
+      tag_rules:
+        shipping_method_tagged_top: "طرق الشحن الموسومة"
+        shipping_method_tagged_bottom: "هي:"
+        payment_method_tagged_top: "طرق الدفع الموسومة"
+        payment_method_tagged_bottom: "هي:"
+        order_cycle_tagged_top: "ترتيب دورات الموسومة"
+        order_cycle_tagged_bottom: "هي:"
+        inventory_tagged_top: "جرد الانواع الموسومة"
+        inventory_tagged_bottom: "هي:"
+        variant_tagged_bottom: "هي:"
+        visible: مرئي
+        not_visible: غير مرئية
+    tag_rule_group_form:
+      for_customers_tagged: 'للعملاء الموسومين:'
+      add_new_rule: '+ أضف قاعدة جديدة'
+      no_rules_yet: لا توجد قواعد تنطبق على هذه العلامة حتى الآن
+    add_tag_rule_modal:
+      select_rule_type: "اختر نوع القاعدة:"
+      add_rule: "أضف قاعدة "
+    webhook_endpoint_form:
+      url:
+        create_placeholder: 'أدخل عنوان URL لنقطة نهاية webhook '
+      event_types:
+        order_cycle_opened: تم فتح دورة الطلب

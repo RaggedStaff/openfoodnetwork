@@ -8,11 +8,12 @@ class ProductsRenderer
   class NoProducts < RuntimeError; end
   DEFAULT_PER_PAGE = 10
 
-  def initialize(distributor, order_cycle, customer, args = {})
+  def initialize(distributor, order_cycle, customer, args = {}, **options)
     @distributor = distributor
     @order_cycle = order_cycle
     @customer = customer
     @args = args
+    @options = options
   end
 
   def products_json
@@ -28,18 +29,27 @@ class ProductsRenderer
 
   private
 
-  attr_reader :order_cycle, :distributor, :customer, :args
+  attr_reader :order_cycle, :distributor, :customer, :args, :options
 
   def products
     return unless order_cycle
 
     @products ||= begin
-      results = distributed_products.
-        products_relation.
-        order(Arel.sql(products_order))
+      results = if supplier_properties.present?
+                  distributed_products.products_relation_incl_supplier_properties
+                else
+                  distributed_products.products_relation
+                end
+      results = filter(results)
 
-      filter_and_paginate(results).
-        each { |product| product_scoper.scope(product) } # Scope results with variant_overrides
+      paginated_products = paginate(results)
+
+      if inventory_enabled?
+        # Scope results with variant_overrides
+        paginated_products.each { |product| product_scoper.scope(product) }
+      end
+
+      paginated_products
     end
   end
 
@@ -51,48 +61,75 @@ class ProductsRenderer
     OpenFoodNetwork::EnterpriseFeeCalculator.new distributor, order_cycle
   end
 
-  def filter_and_paginate(query)
-    results = query.ransack(args[:q]).result
+  def filter(query)
+    ransack_results = query.ransack(args[:q]).result.to_a
 
-    _pagy, paginated_results = pagy(
+    return ransack_results if supplier_properties.blank?
+
+    supplier_properties_results = []
+    if supplier_properties.present?
+      # We can't search on an association's scope with ransack, a work around is to define
+      # the a scope on the parent (Spree::Product) but because we are joining on "first_variant"
+      # to get the supplier it doesn't work, so we do the filtering manually here
+      # see:
+      #   OrderCycleDistributedProducts#products_relation
+      supplier_properties_results = query.
+        where(producer_properties: { property_id: supplier_property_ids }).
+        where(inherits_properties: true)
+    end
+
+    if supplier_properties_results.present? && with_properties.present?
+      # apply "OR" between property search
+      return ransack_results | supplier_properties_results
+    end
+
+    # Intersect the result to apply "AND" with other search criteria
+    return ransack_results.intersection(supplier_properties_results) \
+      unless supplier_properties_results.empty?
+
+    # We should get here but just in case we return the ransack results
+    ransack_results
+  end
+
+  def supplier_properties
+    args[:q]&.slice("with_variants_supplier_properties")
+  end
+
+  def supplier_property_ids
+    supplier_properties["with_variants_supplier_properties"]
+  end
+
+  def with_properties
+    args[:q]&.dig("with_properties")
+  end
+
+  def paginate(results)
+    _pagy, paginated_results = pagy_array(
       results,
       page: args[:page] || 1,
-      items: args[:per_page] || DEFAULT_PER_PAGE
+      limit: args[:per_page] || DEFAULT_PER_PAGE
     )
 
     paginated_results
   end
 
   def distributed_products
-    OrderCycleDistributedProducts.new(distributor, order_cycle, customer)
-  end
-
-  def products_order
-    if (distributor.preferred_shopfront_product_sorting_method == "by_producer") &&
-       distributor.preferred_shopfront_producer_order.present?
-      distributor
-        .preferred_shopfront_producer_order
-        .split(",").map { |id| "spree_products.supplier_id=#{id} DESC" }
-        .join(", ") + ", spree_products.name ASC, spree_products.id ASC"
-    elsif distributor.preferred_shopfront_product_sorting_method == "by_category" &&
-          distributor.preferred_shopfront_taxon_order.present?
-      distributor
-        .preferred_shopfront_taxon_order
-        .split(",").map { |id| "spree_products.primary_taxon_id=#{id} DESC" }
-        .join(", ") + ", spree_products.name ASC, spree_products.id ASC"
-    else
-      "spree_products.name ASC, spree_products.id"
-    end
+    OrderCycles::DistributedProductsService.new(distributor, order_cycle, customer, **options)
   end
 
   def variants_for_shop
     @variants_for_shop ||= begin
-      scoper = OpenFoodNetwork::ScopeVariantToHub.new(distributor)
+      variants = distributed_products.variants_relation.
+        includes(:default_price, :product).
+        where(product_id: products)
 
-      distributed_products.variants_relation.
-        includes(:default_price, :stock_locations, :product).
-        where(product_id: products).
-        each { |v| scoper.scope(v) } # Scope results with variant_overrides
+      if inventory_enabled?
+        # Scope results with variant_overrides
+        scoper = OpenFoodNetwork::ScopeVariantToHub.new(distributor)
+        variants = variants.each { |v| scoper.scope(v) }
+      end
+
+      variants
     end
   end
 
@@ -105,5 +142,9 @@ class ProductsRenderer
       vs[v.product_id] ||= []
       vs[v.product_id] << v
     end
+  end
+
+  def inventory_enabled?
+    options[:inventory_enabled] && !options[:variant_tag_enabled]
   end
 end

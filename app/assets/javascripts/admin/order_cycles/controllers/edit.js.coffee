@@ -3,6 +3,7 @@ angular.module('admin.orderCycles')
     $controller('AdminOrderCycleBasicCtrl', {$scope: $scope, ocInstance: ocInstance})
 
     order_cycle_id = $location.absUrl().match(/\/admin\/order_cycles\/(\d+)/)[1]
+    $scope.order_cycle_id = order_cycle_id
     $scope.order_cycle = OrderCycle.load(order_cycle_id)
     $scope.enterprises = Enterprise.index(order_cycle_id: order_cycle_id)
     $scope.enterprise_fees = EnterpriseFee.index(order_cycle_id: order_cycle_id)
@@ -18,6 +19,8 @@ angular.module('admin.orderCycles')
 
     $scope.submit = ($event, destination) ->
       $event.preventDefault()
+      $scope.order_cycle?.trigger_action = $($event.target).data('trigger-action');
+      $scope.order_cycle?.confirm = $($event.target).data('confirm');
       StatusMessage.display 'progress', t('js.saving')
       OrderCycle.update(destination, $scope.order_cycle_form)
 

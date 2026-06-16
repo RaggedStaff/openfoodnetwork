@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Api::V0::VariantsController, type: :controller do
+RSpec.describe Api::V0::VariantsController do
   render_views
 
   let(:supplier) { create(:supplier_enterprise) }
@@ -88,9 +86,9 @@ describe Api::V0::VariantsController, type: :controller do
   context "as an enterprise user" do
     let(:current_api_user) { create(:user, enterprises: [supplier]) }
     let(:supplier_other) { create(:supplier_enterprise) }
-    let!(:product) { create(:product, supplier:) }
+    let!(:product) { create(:product, supplier_id: supplier.id) }
     let(:variant) { product.variants.first }
-    let(:product_other) { create(:product, supplier: supplier_other) }
+    let(:product_other) { create(:product, supplier_id: supplier_other.id) }
     let(:variant_other) { product_other.variants.first }
 
     context "with a single remaining variant" do
@@ -102,12 +100,12 @@ describe Api::V0::VariantsController, type: :controller do
     end
 
     context "with more than one variants" do
-      let(:variant_to_delete) { create(:variant, product:) }
+      let(:variant_to_delete) { create(:variant, product:, supplier:) }
 
       it "deletes a variant" do
         api_delete :destroy, id: variant_to_delete.id
 
-        expect(response.status).to eq(204)
+        expect(response).to have_http_status(:no_content)
         expect { variant_to_delete.reload }.not_to raise_error
         expect(variant_to_delete.deleted_at).to be_present
       end
@@ -125,8 +123,9 @@ describe Api::V0::VariantsController, type: :controller do
   context "as an administrator" do
     let(:current_api_user) { create(:admin_user) }
 
-    let(:product) { create(:product) }
+    let(:product) { create(:product, supplier_id: create(:supplier_enterprise).id) }
     let(:variant) { product.variants.first }
+    let(:taxon) { create(:taxon) }
     let!(:variant2) { create(:variant, product:) }
 
     context "deleted variants" do
@@ -143,12 +142,13 @@ describe Api::V0::VariantsController, type: :controller do
 
     it "can create a new variant" do
       original_number_of_variants = variant.product.variants.count
-      api_post :create, variant: { sku: "12345", unit_value: "1",
-                                   unit_description: "L", price: "1" },
+      api_post :create, variant: { sku: "12345", unit_value: "1", variant_unit: "weight",
+                                   variant_unit_scale: 1, unit_description: "L", price: "1",
+                                   primary_taxon_id: taxon.id, supplier_id: variant.supplier.id },
                         product_id: variant.product.id
 
       expect(attributes.all?{ |attr| json_response.include? attr.to_s }).to eq(true)
-      expect(response.status).to eq(201)
+      expect(response).to have_http_status(:created)
       expect(json_response["sku"]).to eq("12345")
       expect(variant.product.variants.count).to eq(original_number_of_variants + 1)
     end
@@ -156,13 +156,13 @@ describe Api::V0::VariantsController, type: :controller do
     it "can update a variant" do
       api_put :update, id: variant.to_param, variant: { sku: "12345" }
 
-      expect(response.status).to eq(200)
+      expect(response).to have_http_status(:ok)
     end
 
     it "can delete a variant" do
       api_delete :destroy, id: variant.to_param
 
-      expect(response.status).to eq(204)
+      expect(response).to have_http_status(:no_content)
       expect { variant.reload }.not_to raise_error
       expect(variant.deleted_at).not_to be_nil
     end
@@ -172,7 +172,7 @@ describe Api::V0::VariantsController, type: :controller do
       variant = product.variants.first
       spree_delete :destroy, id: variant.to_param
 
-      expect(variant.reload).to_not be_deleted
+      expect(variant.reload).not_to be_deleted
       expect(assigns(:variant).errors[:product]).to include "must have at least one variant"
     end
   end

@@ -33,13 +33,18 @@ Openfoodnetwork::Application.routes.draw do
       member do
         get :welcome
         patch :register
+        get :new_tag_rule_group
       end
+
+      resources :connected_apps, only: [:create, :destroy]
+
+      resources :user_invitations, only: [:new, :create]
 
       resources :producer_properties do
         post :update_positions, on: :collection
       end
 
-      resources :tag_rules, only: [:destroy]
+      resources :tag_rules, only: [:destroy, :new]
 
       resources :vouchers, only: [:new, :create]
     end
@@ -67,11 +72,25 @@ Openfoodnetwork::Application.routes.draw do
     post '/product_import/save_data', to: 'product_import#save_data', as: 'product_import_save_async'
     post '/product_import/reset_absent', to: 'product_import#reset_absent_products', as: 'product_import_reset_async'
 
-    constraints FeatureToggleConstraint.new(:admin_style_v3) do
-      resources :products, to: 'products_v3#index', only: :index do
-        patch :bulk_update, on: :collection
-      end
+    resources :dfc_product_imports, only: [:index] do
+      post :import, on: :collection
     end
+
+    # This might be easier to arrange once we rename the controller to plain old "products"
+    post '/products/bulk_update', to: 'products_v3#bulk_update', as: 'products_bulk_update'
+    get '/products', to: 'products_v3#index', as: 'products'
+    delete 'products_v3/:id', to: 'products_v3#destroy', as: 'product_destroy'
+    delete 'products_v3/destroy_variant/:id', to: 'products_v3#destroy_variant', as: 'destroy_variant'
+    post 'clone/:id', to: 'products_v3#clone', as: 'clone_product'
+    post 'products/create_linked_variant', to: 'products_v3#create_linked_variant', as: 'create_linked_variant'
+
+    scope :ajax_search, as: :ajax_search, controller: :ajax_search do
+      get :producers
+      get :categories
+      get :tax_categories
+    end
+
+    resources :product_preview, only: [:show]
 
     resources :variant_overrides do
       post :bulk_update, on: :collection
@@ -80,15 +99,18 @@ Openfoodnetwork::Application.routes.draw do
 
     resources :inventory_items, only: [:create, :update]
 
-    resources :customers, only: [:index, :create, :update, :destroy, :show]
+    resources :customers, only: [:index, :create, :update, :destroy, :show] do
+      resources :customer_account_transaction, only: [:index]
+    end
 
-    resources :tag_rules, only: [], format: :json do
-      get :map_by_tag, on: :collection
+    resources :tag_rules, only: [] do
+      get :map_by_tag, on: :collection, format: :json
+      get :variant_tag_rules, on: :collection
     end
 
     resource :contents
 
-    resources :column_preferences, only: [], format: :json do
+    resources :column_preferences, only: [] do
       put :bulk_update, on: :collection
     end
 
@@ -99,6 +121,8 @@ Openfoodnetwork::Application.routes.draw do
     resource :terms_of_service_files
 
     resource :matomo_settings, only: [:edit, :update]
+
+    resource :connected_app_settings, only: [:edit, :update]
 
     resources :stripe_accounts, only: [:destroy] do
       get :connect, on: :collection
@@ -124,7 +148,16 @@ Openfoodnetwork::Application.routes.draw do
       put :resume, on: :member, format: :json
     end
 
-    get '/reports', to: 'reports#index', as: :reports
-    match '/reports/:report_type(/:report_subtype)', to: 'reports#show', via: [:get, :post], as: :report
+    scope :reports, as: :reports do
+      get '/', to: 'reports#index'
+      get '/search_enterprise_fees', to: 'reports#search_enterprise_fees', as: :search_enterprise_fees
+      get '/search_enterprise_fee_owners', to: 'reports#search_enterprise_fee_owners', as: :search_enterprise_fee_owners
+      get '/search_distributors', to: 'reports#search_distributors', as: :search_distributors
+      get '/search_suppliers', to: 'reports#search_suppliers', as: :search_suppliers
+      get '/search_order_cycles', to: 'reports#search_order_cycles', as: :search_order_cycles
+      get '/search_order_customers', to: 'reports#search_order_customers', as: :search_order_customers
+    end
+    match '/reports/:report_type(/:report_subtype)', to: 'reports#show', via: :get, as: :report
+    match '/reports/:report_type(/:report_subtype)', to: 'reports#create', via: :post
   end
 end

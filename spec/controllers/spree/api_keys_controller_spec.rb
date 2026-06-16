@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Spree::ApiKeysController, type: :controller, performance: true do
+RSpec.describe Spree::ApiKeysController, performance: true do
   routes { Spree::Core::Engine.routes }
 
   include AuthenticationHelper
@@ -26,7 +24,7 @@ describe Spree::ApiKeysController, type: :controller, performance: true do
       expect {
         spree_post :create, id: other_user.id
         other_user.reload
-      }.to_not change {
+      }.not_to change {
         other_user.spree_api_key
       }
     end

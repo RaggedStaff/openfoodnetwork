@@ -5,6 +5,8 @@ require 'open_food_network/scope_variants_for_search'
 module Spree
   module Admin
     class VariantsController < ::Admin::ResourceController
+      helper ::Admin::ProductsHelper
+
       belongs_to 'spree/product'
 
       before_action :load_data, only: [:new, :edit]
@@ -46,7 +48,13 @@ module Spree
       def update
         @url_filters = ::ProductFilters.new.extract(request.query_parameters)
 
+        original_supplier_id = @object.supplier_id
+
         if @object.update(permitted_resource_params)
+          if original_supplier_id != @object.supplier_id
+            ExchangeVariantDeleter.new.delete(@object)
+          end
+
           flash[:success] = flash_message_for(@object, :successfully_updated)
           redirect_to spree.admin_product_variants_url(params[:product_id], @url_filters)
         else
@@ -56,7 +64,10 @@ module Spree
       end
 
       def search
-        scoper = OpenFoodNetwork::ScopeVariantsForSearch.new(variant_search_params)
+        scoper = OpenFoodNetwork::ScopeVariantsForSearch.new(
+          variant_search_params,
+          spree_current_user
+        )
         @variants = scoper.search
         render json: @variants, each_serializer: ::Api::Admin::VariantSerializer
       end
@@ -106,13 +117,15 @@ module Spree
       def variant_search_params
         params.permit(
           :q, :distributor_id, :order_cycle_id, :schedule_id, :eligible_for_subscriptions,
-          :include_out_of_stock
+          :include_out_of_stock, :search_variants_as, :order_id
         ).to_h.with_indifferent_access
       end
 
       private
 
       def load_data
+        @producers = OpenFoodNetwork::Permissions.new(spree_current_user).
+          managed_product_enterprises.is_primary_producer.by_name
         @tax_categories = TaxCategory.order(:name)
         @shipping_categories = ShippingCategory.order(:name)
       end

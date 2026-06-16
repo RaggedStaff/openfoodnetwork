@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Api::ShippingMethodSerializer do
+RSpec.describe Api::ShippingMethodSerializer do
   let(:shipping_method) { create(:shipping_method) }
 
   it "serializes a test shipping_method" do

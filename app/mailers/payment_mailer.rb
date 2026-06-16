@@ -5,21 +5,33 @@ class PaymentMailer < ApplicationMailer
 
   def authorize_payment(payment)
     @payment = payment
-    subject = I18n.t('spree.payment_mailer.authorize_payment.subject',
-                     distributor: @payment.order.distributor.name)
-    I18n.with_locale valid_locale(@payment.order.user) do
-      mail(to: payment.order.email, subject:)
+    @order = @payment.order
+    @hide_ofn_navigation = @payment.order.distributor.hide_ofn_navigation
+    I18n.with_locale valid_locale(@order.user) do
+      mail(to: @order.email,
+           subject: default_i18n_subject(distributor: @order.distributor.name),
+           reply_to: @order.distributor.contact.email)
     end
   end
 
   def authorization_required(payment)
-    @payment = payment
-    shop_owner = @payment.order.distributor.owner
-    subject = I18n.t('spree.payment_mailer.authorization_required.subject',
-                     order: @payment.order)
+    @order = payment.order
+    shop_owner = @order.distributor.owner
     I18n.with_locale valid_locale(shop_owner) do
-      mail(to: shop_owner.email,
-           subject:)
+      mail(to: shop_owner.email, reply_to: @order.email)
+    end
+  end
+
+  def refund_available(amount, payment, taler_order_status_url)
+    @order = payment.order
+    @shop = @order.distributor.name
+    @amount = amount
+    @taler_order_status_url = taler_order_status_url
+
+    I18n.with_locale valid_locale(@order.user) do
+      mail(to: @order.email,
+           subject: default_i18n_subject(shop: @shop),
+           reply_to: @order.email)
     end
   end
 end

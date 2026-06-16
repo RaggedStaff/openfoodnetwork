@@ -8,7 +8,7 @@
           = t :tax_invoice
       - if @order.distributor.display_invoice_logo? && @order.distributor.logo_url
         %td{ :align => "right", rowspan: 2 }
-          = wicked_pdf_image_tag @order.distributor.logo_url
+          = image_tag @order.distributor.logo_url
     %tr{ valign: "top" }
       %td{ :align => "left" }
         - if @order.distributor.business_address.blank?
@@ -101,5 +101,5 @@
 - if @order.note.present?
   = render partial: 'spree/admin/orders/_invoice/order_note'
 
-%div.text-center
+.text-center
   = link_to_platform_terms

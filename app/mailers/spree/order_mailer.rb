@@ -11,9 +11,11 @@ module Spree
 
     def cancel_email(order_or_order_id, resend = false)
       @order = find_order(order_or_order_id)
+      @hide_ofn_navigation = @order.distributor.hide_ofn_navigation
       I18n.with_locale valid_locale(@order.user) do
         mail(to: @order.email,
-             subject: mail_subject(t('spree.order_mailer.cancel_email.subject'), resend))
+             subject: mail_subject(t('spree.order_mailer.cancel_email.subject'), resend),
+             reply_to: @order.distributor.contact.email)
       end
     end
 
@@ -22,7 +24,8 @@ module Spree
       I18n.with_locale valid_locale(@order.distributor.owner) do
         subject = I18n.t('spree.order_mailer.cancel_email_for_shop.subject')
         mail(to: @order.distributor.contact.email,
-             subject:)
+             subject:,
+             reply_to: @order.email)
       end
     end
 
@@ -42,17 +45,20 @@ module Spree
       I18n.with_locale valid_locale(@order.user) do
         subject = mail_subject(t('spree.order_mailer.confirm_email.subject'), resend)
         mail(to: @order.distributor.contact.email,
-             subject:)
+             subject:,
+             reply_to: @order.email)
       end
     end
 
     def invoice_email(order_or_order_id, options = {})
       @order = find_order(order_or_order_id)
+      @hide_ofn_navigation = @order.distributor.hide_ofn_navigation
       current_user = if options[:current_user_id].present?
                        find_user(options[:current_user_id])
                      end
       renderer_data = if OpenFoodNetwork::FeatureToggle.enabled?(:invoices, current_user)
-                        OrderInvoiceGenerator.new(@order).generate_or_update_latest_invoice
+                        ::Orders::GenerateInvoiceService
+                          .new(@order).generate_or_update_latest_invoice
                         @order.invoices.first.presenter
                       else
                         @order

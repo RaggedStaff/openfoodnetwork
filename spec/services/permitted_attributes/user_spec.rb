@@ -1,9 +1,7 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 module PermittedAttributes
-  describe User do
+  RSpec.describe User do
     describe "simple usage" do
       let(:user_permitted_attributes) { PermittedAttributes::User.new(params) }
 

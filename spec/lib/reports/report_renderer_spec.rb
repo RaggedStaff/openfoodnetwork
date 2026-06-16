@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Reporting::ReportRenderer do
+RSpec.describe Reporting::ReportRenderer do
   let(:data) {
     [
       { "id" => 1, "name" => "carrots", "quantity" => 3 },
@@ -31,7 +29,67 @@ describe Reporting::ReportRenderer do
 
   describe ".render_as" do
     it "raise an error if format is not supported" do
-      expect { subject.render_as("give_me_everything") }.to raise_error
+      expect {
+        subject.render_as("give_me_everything")
+      }.to raise_error(ActionController::BadRequest)
     end
+  end
+
+  describe "#to_pdf" do
+    it "renders the report as a real PDF" do
+      result = subject.to_pdf
+
+      # Verify result is a valid PDF
+      expect(result).to start_with("%PDF")
+    end
+  end
+
+  # metadata headers
+
+  describe '#metadata_headers' do
+    let(:user) { create(:user) }
+    let(:from_key) { Reporting::ReportMetadataBuilder::DATE_FROM_KEYS.first }
+    let(:to_key)   { Reporting::ReportMetadataBuilder::DATE_TO_KEYS.first }
+
+    let(:meta_report) do
+      double(
+        'MetaReport',
+        rows: data,
+        params: {
+          display_metadata_rows: true,
+          report_type: :order_cycle_customer_totals,
+          report_subtype: 'by_distributor',
+          report_format: 'csv'
+        },
+        ransack_params: {
+          from_key => '2025-01-01',
+          to_key => '2025-01-31'
+        },
+        user:,
+        table_headers: nil
+      )
+    end
+
+    let(:renderer) { described_class.new(meta_report) }
+
+    it 'appends empty base headers when report.table_headers is nil
+    and metadata rows are enabled' do
+      expect(renderer.table_headers.last).to eq []
+    end
+
+    it 'builds rows via ReportMetadataBuilder when display_metadata_rows?
+      is true and report_format is csv' do
+        rows = renderer.metadata_headers
+
+        labels = rows.map(&:first)
+        expect(labels).to include('Report Title')
+        expect(labels).to include('Date Range')
+        expect(labels).to include('Printed')
+
+        values = rows.map(&:second)
+        expect(values).to include('Order Cycle Customer Totals - By Distributor')
+        expect(values).to include('2025-01-01 - 2025-01-31')
+        expect(values).to include(Time.now.utc.strftime('%F %T %Z'))
+      end
   end
 end

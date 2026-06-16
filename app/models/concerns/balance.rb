@@ -9,7 +9,7 @@ module Balance
 
   # Branches by the OrderBalance abstraction
   def outstanding_balance
-    @order_balance ||= OrderBalance.new(self)
+    @outstanding_balance ||= OrderBalance.new(self)
   end
 
   # Returns the order balance by considering the total as money owed to the order distributor aka.
@@ -23,7 +23,8 @@ module Balance
     if state.in?(FINALIZED_NON_SUCCESSFUL_STATES)
       -payment_total
     else
-      total - payment_total
+      # Exclude incomplete customer credit payment, as they are not yet included in "payment_total"
+      total - payment_total - payments.incomplete.customer_credit.sum(:amount)
     end
   end
 

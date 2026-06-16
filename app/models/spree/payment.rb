@@ -18,10 +18,11 @@ module Spree
 
     belongs_to :order, class_name: 'Spree::Order'
     belongs_to :source, polymorphic: true
-    belongs_to :payment_method, class_name: 'Spree::PaymentMethod'
+    belongs_to :payment_method, class_name: "Spree::PaymentMethod", inverse_of: :payments
 
     has_many :offsets, -> { where("source_type = 'Spree::Payment' AND amount < 0").completed },
              class_name: "Spree::Payment", foreign_key: :source_id,
+             inverse_of: :source,
              dependent: :restrict_with_exception
     has_many :log_entries, as: :source, dependent: :destroy
 
@@ -33,7 +34,7 @@ module Spree
 
     # invalidate previously entered payments
     after_create :invalidate_old_payments
-    after_save :create_payment_profile, if: :profiles_supported?
+    after_save :create_payment_profile
 
     # update the order totals, etc.
     after_save :ensure_correct_adjustment, :update_order
@@ -56,9 +57,11 @@ module Spree
     scope :failed, -> { with_state('failed') }
     scope :valid, -> { where.not(state: %w(failed invalid)) }
     scope :void, -> { with_state('void') }
-    scope :authorization_action_required, -> { where.not(cvv_response_message: nil) }
+    scope :authorization_action_required, -> { where.not(redirect_auth_url: nil) }
     scope :requires_authorization, -> { with_state("requires_authorization") }
     scope :with_payment_intent, ->(code) { where(response_code: code) }
+    scope :customer_credit, -> { where(payment_method: Spree::PaymentMethod.customer_credit) }
+    scope :not_customer_credit, -> { where.not(payment_method: Spree::PaymentMethod.customer_credit) }
 
     # order state machine (see http://github.com/pluginaweek/state_machine/tree/master for details)
     state_machine initial: :checkout do
@@ -100,6 +103,32 @@ module Spree
       end
 
       after_transition to: :completed, do: :set_captured_at
+      after_transition do |payment, transition|
+        # Catch any exceptions to prevent any rollback potentially
+        # preventing payment from going through
+        ActiveSupport::Notifications.instrument(
+          "ofn.payment_transition", payment: payment, event: transition.to
+        )
+      rescue StandardError => e
+        Rails.logger.fatal "ActiveSupport::Notification.instrument failed params: " \
+                           "<event_type:ofn.payment_transition> " \
+                           "<payment_id:#{payment.id}> " \
+                           "<event:#{transition.to}>"
+        Alert.raise(
+          e,
+          metadata: {
+            event_type: "ofn.payment_transition", payment_id: payment.id, event: transition.to
+          }
+        )
+      end
+    end
+
+    # Allows by passing the default scope on Spree::PaymentMethod. It's needed to link payment
+    # to internal payment method.
+    # Using ->{ unscoped } on the association doesn't work presumably because the default scope
+    # is not a simple `where`.
+    def payment_method
+      Spree::PaymentMethod.unscoped { super }
     end
 
     def money
@@ -115,10 +144,6 @@ module Spree
       amount - offsets_total
     end
 
-    def can_credit?
-      credit_allowed.positive?
-    end
-
     def build_source
       return if source_attributes.nil?
       return unless payment_method&.payment_source_class
@@ -129,11 +154,10 @@ module Spree
     end
 
     def actions
-      return [] unless payment_source&.respond_to?(:actions)
+      return [] unless payment_method.respond_to?(:actions)
 
-      payment_source.actions.select do |action|
-        !payment_source.respond_to?("can_#{action}?") ||
-          payment_source.__send__("can_#{action}?", self)
+      payment_method.actions.select do |action|
+        payment_method.__send__("can_#{action}?", self)
       end
     end
 
@@ -141,11 +165,6 @@ module Spree
       return unless requires_authorization?
 
       PaymentMailer.authorize_payment(self).deliver_later
-    end
-
-    def payment_source
-      res = source.is_a?(Payment) ? source.source : source
-      res || payment_method
     end
 
     def ensure_correct_adjustment
@@ -167,7 +186,7 @@ module Spree
     end
 
     def clear_authorization_url
-      update_attribute(:cvv_response_message, nil)
+      update_attribute(:redirect_auth_url, nil)
     end
 
     private
@@ -202,18 +221,13 @@ module Spree
       errors.blank?
     end
 
-    def profiles_supported?
-      payment_method.respond_to?(:payment_profiles_supported?) &&
-        payment_method.payment_profiles_supported?
-    end
-
     def create_payment_profile
       return unless source.is_a?(CreditCard)
       return unless source.try(:save_requested_by_customer?)
       return unless source.number || source.gateway_payment_profile_id
       return unless source.gateway_customer_profile_id.nil?
 
-      payment_method.create_profile(self)
+      payment_method.try(:create_profile, self)
     rescue ActiveMerchant::ConnectionError => e
       gateway_error e
     end
@@ -221,7 +235,7 @@ module Spree
     # Makes newly entered payments invalidate previously entered payments so the most recent payment
     # is used by the gateway.
     def invalidate_old_payments
-      order.payments.incomplete.where.not(id:).each do |payment|
+      order.payments.incomplete.not_customer_credit.where.not(id:).each do |payment|
         # Using update_column skips validations and so it skips validate_source. As we are just
         # invalidating past payments here, we don't want to validate all of them at this stage.
         payment.update_columns(
@@ -246,7 +260,7 @@ module Spree
     # and this is it. Related to #1998.
     # See https://github.com/spree/spree/issues/1998#issuecomment-12869105
     def set_unique_identifier
-      self.identifier = generate_identifier while self.class.exists?(identifier:)
+      self.identifier = generate_identifier while self.class.where(identifier:).exists?
     end
 
     def generate_identifier

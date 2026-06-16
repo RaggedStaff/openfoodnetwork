@@ -1,8 +1,8 @@
-#provider-settings{ ng: { controller: "ProvidersCtrl" } }
+#provider-settings{ "ng-controller": "ProvidersCtrl" }
   .row
     .alpha.four.columns
       = label :payment_method, :type, t('.provider')
     .omega.twelve.columns
-      = collection_select(:payment_method, :type, @providers, :to_s, :clean_name, {}, { class: 'select2 fullwidth', 'provider-prefs-for' => "#{@object.id}"})
+      = select(:payment_method, :type, payment_method_type_options(@providers), {}, { class: 'select2 fullwidth', required: true, placeholder: t("admin.choose"), 'provider-prefs-for' => "#{@object.id}"})
 
   %div{"ng-include" => "include_html" }

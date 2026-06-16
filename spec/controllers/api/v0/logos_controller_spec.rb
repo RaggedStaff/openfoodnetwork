@@ -1,9 +1,7 @@
 # frozen_string_literal: true
 
-require "spec_helper"
-
 module Api
-  describe V0::LogosController, type: :controller do
+  RSpec.describe V0::LogosController do
     include AuthenticationHelper
     include FileHelper
 
@@ -32,10 +30,10 @@ module Api
         it "removes logo" do
           spree_delete :destroy, enterprise_id: enterprise
 
-          expect(response.status).to eq 200
+          expect(response).to have_http_status :ok
           expect(json_response["id"]).to eq enterprise.id
           enterprise.reload
-          expect(enterprise.logo).to_not be_attached
+          expect(enterprise.logo).not_to be_attached
         end
 
         context "when logo does not exist" do
@@ -44,7 +42,7 @@ module Api
           it "responds with error" do
             spree_delete :destroy, enterprise_id: enterprise
 
-            expect(response.status).to eq(409)
+            expect(response).to have_http_status(:conflict)
             expect(json_response['error']).to eq 'Logo does not exist'
           end
         end
@@ -55,7 +53,7 @@ module Api
 
         it "allows removal of logo" do
           spree_delete :destroy, enterprise_id: enterprise
-          expect(response.status).to eq 200
+          expect(response).to have_http_status :ok
         end
       end
 
@@ -64,7 +62,7 @@ module Api
 
         it "allows removal of logo" do
           spree_delete :destroy, enterprise_id: enterprise
-          expect(response.status).to eq 200
+          expect(response).to have_http_status :ok
         end
       end
 
@@ -73,7 +71,7 @@ module Api
 
         it "does not allow removal of logo" do
           spree_delete :destroy, enterprise_id: enterprise
-          expect(response.status).to eq(401)
+          expect(response).to have_http_status(:unauthorized)
           enterprise.reload
           expect(enterprise.logo).to be_attached
         end
@@ -84,7 +82,7 @@ module Api
 
         it "does not allow removal of logo" do
           spree_delete :destroy, enterprise_id: enterprise
-          expect(response.status).to eq(401)
+          expect(response).to have_http_status(:unauthorized)
           enterprise.reload
           expect(enterprise.logo).to be_attached
         end

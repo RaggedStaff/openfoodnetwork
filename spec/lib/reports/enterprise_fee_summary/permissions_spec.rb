@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
-
-describe Reporting::Reports::EnterpriseFeeSummary::Permissions do
+RSpec.describe Reporting::Reports::EnterpriseFeeSummary::Permissions do
   let!(:order_cycle) { create(:simple_order_cycle) }
   let!(:incoming_exchange) { create(:exchange, incoming: true, order_cycle:) }
   let!(:outgoing_exchange) { create(:exchange, incoming: false, order_cycle:) }

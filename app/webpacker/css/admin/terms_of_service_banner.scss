@@ -4,24 +4,22 @@
   left: 0;
   width: 100%;
   z-index: $tos-banner-z-index;
+  padding: 0 1.5%;
 
   .terms-of-service-banner {
-    padding: 18px;
-    text-align: center;
-    font-size: 120%;
-    color: white;
-    font-weight: 600;
-    margin-top: 0;
-    background-color: rgba($color-notice, 0.8);
     display: flex;
 
     .column-left {
       width: 70%;
+      font-size: 1rem;
+      font-weight: bold;
+      padding: 0.75em 1em;
     }
 
     .column-right {
       width: 30%;
-      text-align: center;
+      padding: 0.5em 1em;
+      text-align: right;
     }
   }
 }

@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe '
+RSpec.describe '
   As an Administrator
   I want to be able to delete orders in bulk
 ' do
@@ -30,7 +30,7 @@ describe '
       expect(page).to have_selector('span', text: 'COMPLETE', count: 2)
 
       page.find('#selectAll').trigger('click')
-      page.find("span.icon-reorder", text: "ACTIONS").click
+      page.find("span.icon-reorder", text: "Actions").click
       within ".ofn-drop-down .menu" do
         expect(page).to have_selector("span", text: "Cancel Orders")
         page.find("span", text: "Cancel Orders").click
@@ -43,7 +43,7 @@ describe '
           .and change { o2.reload.state }.from('complete').to('canceled')
       end
 
-      # Verify that the orders have a STATE of CANCELLED
+      # Verify that the orders have a STATE of Cancelled
       expect(page).to have_selector('span.canceled', text: 'CANCELLED', count: 2)
     end
   end

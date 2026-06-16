@@ -1,12 +1,10 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 # rubocop:disable Metrics/ModuleLength
 module Reporting
   module Reports
     module BulkCoop
-      describe Base do
+      RSpec.describe Base do
         subject { Base.new user, params }
         let(:user) { create(:admin_user) }
 
@@ -122,7 +120,7 @@ module Reporting
                                ship_address: create(:address))
               end
               let(:li2) do
-                build(:line_item_with_shipment, product: create(:simple_product, supplier: s1))
+                build(:line_item_with_shipment, variant: create(:variant, supplier: s1))
               end
 
               before do
@@ -133,7 +131,7 @@ module Reporting
 
               it "shows line items supplied by my producers, with names hidden" do
                 expect(subject.table_items).to eq([li2])
-                expect(subject.table_items.first.order.bill_address.firstname).to eq("HIDDEN")
+                expect(subject.table_items.first.order.bill_address.firstname).to eq("< Hidden >")
               end
             end
 
@@ -144,7 +142,7 @@ module Reporting
                                ship_address: create(:address))
               end
               let(:li2) do
-                build(:line_item_with_shipment, product: create(:simple_product, supplier: s1))
+                build(:line_item_with_shipment, variant: create(:variant, supplier: s1))
               end
 
               before do
@@ -182,8 +180,8 @@ module Reporting
         describe '#customer_payments_amount_owed' do
           let(:params) { {} }
           let(:user) { build(:user) }
-          let!(:line_item) { create(:line_item) }
-          let(:order) { line_item.order }
+          let(:order) { create(:order) }
+          let!(:line_item) { create(:line_item, order: order) }
 
           it 'calls #new_outstanding_balance' do
             expect_any_instance_of(Spree::Order).to receive(:new_outstanding_balance)

@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe "Account Settings" do
+RSpec.describe "Account Settings" do
   include AuthenticationHelper
 
   describe "as a logged in user" do
@@ -47,7 +47,7 @@ Your email address will be updated once the new email is confirmed." % 'new@emai
       click_button 'Update'
       expect(find(".alert-box.success").text.strip).to eq "Account updated!\n×"
 
-      expect(user.reload.encrypted_password).to_not eq initial_password
+      expect(user.reload.encrypted_password).not_to eq initial_password
     end
   end
 end

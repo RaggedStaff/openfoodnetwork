@@ -5,10 +5,11 @@ module Spree
     include SetUnusedAddressFields
 
     self.belongs_to_required_by_default = false
+    self.ignored_columns += [:authentication_token]
 
     searchable_attributes :email
 
-    devise :database_authenticatable, :token_authenticatable, :registerable, :recoverable,
+    devise :database_authenticatable, :registerable, :recoverable,
            :rememberable, :trackable, :validatable, :omniauthable,
            :encryptable, :confirmable,
            encryptor: 'authlogic_sha512', reconfirmable: true,
@@ -18,17 +19,12 @@ module Spree
     belongs_to :ship_address, class_name: 'Spree::Address'
     belongs_to :bill_address, class_name: 'Spree::Address'
 
-    has_and_belongs_to_many :spree_roles,
-                            join_table: 'spree_roles_users',
-                            class_name: "Spree::Role"
-
     before_validation :set_login
     after_create :associate_customers, :associate_orders
     before_destroy :check_completed_orders
 
-    roles_table_name = Role.table_name
-
-    scope :admin, lambda { includes(:spree_roles).where("#{roles_table_name}.name" => "admin") }
+    scope :admin, -> { where(admin: true) }
+    scope :confirmed, -> { where.not(confirmed_at: nil) }
 
     has_many :enterprise_roles, dependent: :destroy
     has_many :enterprises, through: :enterprise_roles
@@ -42,6 +38,7 @@ module Spree
     has_many :credit_cards, dependent: :destroy
     has_many :report_rendering_options, class_name: "::ReportRenderingOptions", dependent: :destroy
     has_many :webhook_endpoints, dependent: :destroy
+    has_many :column_preferences, dependent: :destroy
     has_one :oidc_account, dependent: :destroy
 
     accepts_nested_attributes_for :enterprise_roles, allow_destroy: true
@@ -59,20 +56,10 @@ module Spree
       User.admin.count > 0
     end
 
-    # Whether a user has a role or not.
-    def has_spree_role?(role_in_question)
-      spree_roles.where(name: role_in_question.to_s).any?
-    end
-
-    # Checks whether the specified user is a superadmin, with full control of the instance
-    def admin?
-      has_spree_role?('admin')
-    end
-
     # Send devise-based user emails asyncronously via ActiveJob
     # See: https://github.com/heartcombo/devise/tree/v3.5.10#activejob-integration
-    def send_devise_notification(notification, *args)
-      devise_mailer.public_send(notification, self, *args).deliver_later
+    def send_devise_notification(notification, *)
+      devise_mailer.public_send(notification, self, *).deliver_later
     end
 
     def regenerate_reset_password_token
@@ -96,7 +83,7 @@ module Spree
     end
 
     def build_enterprise_roles
-      Enterprise.all.find_each do |enterprise|
+      Enterprise.find_each do |enterprise|
         unless enterprise_roles.find_by enterprise_id: enterprise.id
           enterprise_roles.build(enterprise:)
         end
@@ -156,6 +143,31 @@ module Spree
       self.disabled_at = value == '1' ? Time.zone.now : nil
     end
 
+    def affiliate_enterprises
+      return [] unless Flipper.enabled?(:affiliate_sales_data, self)
+
+      Enterprise.joins(:connected_apps).merge(ConnectedApps::AffiliateSalesData.ready)
+    end
+
+    # Users can manage orders if they have a sells own/any enterprise. or is admin
+    def can_manage_orders?
+      @can_manage_orders ||= (enterprises.pluck(:sells).intersect?(%w(own any)) or admin?)
+    end
+
+    # Users can manage line items in orders if they have producer enterprise and
+    # any of order distributors allow them to edit their orders.
+    def can_manage_line_items_in_orders?
+      return @can_manage_line_items_in_orders if defined? @can_manage_line_items_in_orders
+
+      @can_manage_line_items_in_orders =
+        enterprises.any?(&:is_producer_only) &&
+        Spree::Order.editable_by_producers(enterprises).exists?
+    end
+
+    def can_manage_line_items_in_orders_only?
+      !can_manage_orders? && can_manage_line_items_in_orders?
+    end
+
     protected
 
     def password_required?
@@ -171,11 +183,6 @@ module Spree
     def set_login
       # for now force login to be same as email, eventually we will make this configurable, etc.
       self.login ||= email if email
-    end
-
-    # Generate a friendly string randomically to be used as token.
-    def self.friendly_token
-      SecureRandom.base64(15).tr('+/=', '-_ ').strip.delete("\n")
     end
 
     def limit_owned_enterprises

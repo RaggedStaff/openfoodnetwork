@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe '
+RSpec.describe '
   As a backend user
   I want to be given information about the state of my enterprises, products and order cycles
 ' do
@@ -28,7 +28,7 @@ describe '
         visit '/admin'
         expect(page).to have_selector ".dashboard_item h3", text: "Your profile live"
         expect(page).to have_selector ".dashboard_item .button.bottom",
-                                      text: "SEE #{d1.name.upcase} LIVE"
+                                      text: "See #{d1.name} live"
       end
 
       context "when visibilty is set to false" do
@@ -53,7 +53,7 @@ describe '
 
         it "does not show a products item" do
           visit '/admin'
-          expect(page).to have_no_selector "#products"
+          expect(page).not_to have_selector "#products"
         end
       end
     end
@@ -115,6 +115,24 @@ describe '
                                         text: "You don't have any active order cycles."
           expect(page).to have_selector ".dashboard_item#order_cycles .button.bottom",
                                         text: "MANAGE ORDER CYCLES"
+        end
+      end
+
+      context "with open order cycles of distributors not ready for checkout" do
+        let!(:order_cycle) { create(:simple_order_cycle, distributors: [d1]) }
+
+        it 'should only display the order cycle warning once after login' do
+          # First visit the page after login
+          visit spree.admin_dashboard_path
+          expected_oc_warning = I18n.t(
+            :active_distributors_not_ready_for_checkout_message_singular,
+            distributor_names: d1.name
+          )
+          expect(page).to have_content(expected_oc_warning)
+
+          # Reload the page
+          visit spree.admin_dashboard_path
+          expect(page).not_to have_content(expected_oc_warning)
         end
       end
     end

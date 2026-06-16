@@ -17,17 +17,18 @@ module Spree
 
     def changeable_orders
       # Only returns open order for the current user + shop + oc combo
-      return @changeable_orders unless @changeable_orders.nil?
-      return @changeable_orders = [] unless spree_current_user &&
-                                            current_distributor && current_order_cycle
-      return @changeable_orders = [] unless current_distributor.allow_order_changes?
+      @changeable_orders ||= if spree_current_user &&
+                                current_order_cycle && current_distributor&.allow_order_changes?
 
-      @changeable_orders = Spree::Order.complete.where(
-        state: 'complete',
-        user_id: spree_current_user.id,
-        distributor_id: current_distributor.id,
-        order_cycle_id: current_order_cycle.id
-      )
+                               Spree::Order.complete.where(
+                                 state: 'complete',
+                                 user_id: spree_current_user.id,
+                                 distributor_id: current_distributor.id,
+                                 order_cycle_id: current_order_cycle.id
+                               )
+                             else
+                               []
+                             end
     end
 
     def changeable_orders_link_path
@@ -43,6 +44,10 @@ module Spree
         order: changeable_orders.first.number,
         shop: current_distributor.name,
         oc_close: l(current_order_cycle.orders_close_at, format: "%A, %b %d, %Y @ %H:%M"))
+    end
+
+    def format_unit_price(unit_price)
+      "#{Spree::Money.new(unit_price[:amount]).to_html}&nbsp;/&nbsp;#{unit_price[:unit]}".html_safe # rubocop:disable Rails/OutputSafety
     end
   end
 end

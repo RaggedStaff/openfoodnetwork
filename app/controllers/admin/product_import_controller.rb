@@ -4,21 +4,27 @@ require 'roo'
 
 module Admin
   class ProductImportController < Spree::Admin::BaseController
+    TMPDIR_PREFIX = "product_import-"
+
     before_action :validate_upload_presence, except: %i[index guide validate_data]
 
     def index
       @product_categories = Spree::Taxon.order('name ASC').pluck(:name).uniq
       @tax_categories = Spree::TaxCategory.order('name ASC').pluck(:name)
       @shipping_categories = Spree::ShippingCategory.order('name ASC').pluck(:name)
+      @producers = OpenFoodNetwork::Permissions.new(spree_current_user).
+        managed_product_enterprises.is_primary_producer.by_name.to_a
     end
 
     def import
+      return unless can_import_into_inventories?
+
       @filepath = save_uploaded_file(params[:file])
+
       @importer = ProductImport::ProductImporter.new(File.new(@filepath), spree_current_user,
                                                      params[:settings])
       @original_filename = params[:file].try(:original_filename)
-      @non_updatable_fields = ProductImport::EntryValidator.non_updatable_fields
-
+      @non_updatable_fields = ProductImport::EntryValidator.non_updatable_variant_fields
       return if contains_errors? @importer
 
       @ams_data = ams_data
@@ -27,13 +33,28 @@ module Admin
     def validate_data
       return unless process_data('validate')
 
-      render json: @importer.import_results, response: 200
+      render json: @importer.import_results
     end
 
     def save_data
       return unless process_data('save')
 
-      render json: @importer.save_results, response: 200
+      json = {
+        results: {
+          products_created: @importer.products_created_count,
+          products_updated: @importer.products_updated_count,
+          products_reset: @importer.products_reset_count,
+        },
+        updated_ids: @importer.updated_ids,
+        errors: @importer.errors.full_messages
+      }
+
+      if helpers.inventory_enabled?(spree_current_user.enterprises)
+        json[:results][:inventory_created] = @importer.inventory_created_count
+        json[:results][:inventory_updated] = @importer.inventory_updated_count
+      end
+
+      render json:
     end
 
     def reset_absent_products
@@ -73,7 +94,7 @@ module Admin
       begin
         @importer.public_send("#{method}_entries")
       rescue StandardError => e
-        render json: e.message, response: 500
+        render plain: e.message, status: :internal_server_error
         return false
       end
 
@@ -99,8 +120,7 @@ module Admin
 
     def save_uploaded_file(upload)
       extension = File.extname(upload.original_filename)
-      directory = Dir.mktmpdir 'product_import'
-      File.open(File.join(directory, "import#{extension}"), 'wb') do |f|
+      File.open(File.join(mktmpdir, "import#{extension}"), 'wb') do |f|
         data = UploadSanitizer.new(upload.read).call
         f.write(data)
         f.path
@@ -124,6 +144,14 @@ module Admin
       ProductImport::ProductImporter
     end
 
+    def mktmpdir
+      Dir::Tmpname.create(TMPDIR_PREFIX, Rails.root.join('tmp') ) { |tmpname| Dir.mkdir(tmpname) }
+    end
+
+    def tmpdir_base
+      Rails.root.join('tmp', TMPDIR_PREFIX).to_s
+    end
+
     def file_path
       @file_path ||= validate_file_path(sanitize_file_path(params[:filepath]))
     end
@@ -132,8 +160,9 @@ module Admin
       FilePathSanitizer.new.sanitize(file_path, on_error: method(:raise_invalid_file_path))
     end
 
+    # Ensure file is under the safe tmp directory
     def validate_file_path(file_path)
-      return file_path if file_path.to_s.match?(TEMP_FILE_PATH_REGEX)
+      return file_path if file_path.to_s.match?(%r{^#{tmpdir_base}[A-Za-z0-9-]*/import\.csv$})
 
       raise_invalid_file_path
     end
@@ -143,6 +172,15 @@ module Admin
                   notice: I18n.t(:product_import_no_data_in_spreadsheet_notice)
       raise 'Invalid File Path'
     end
-    TEMP_FILE_PATH_REGEX = %r{^/tmp/product_import[A-Za-z0-9-]*/import\.csv$}
+
+    # Return an error if trying to import into inventories when inventory is disable
+    def can_import_into_inventories?
+      return true if helpers.inventory_enabled?(spree_current_user.enterprises) ||
+                     params.dig(:settings, "import_into") != 'inventories'
+
+      redirect_to admin_product_import_url, notice: I18n.t(:product_import_inventory_disable)
+
+      false
+    end
   end
 end

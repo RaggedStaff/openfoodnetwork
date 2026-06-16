@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe VariantOverride do
+RSpec.describe VariantOverride do
   let(:variant) { create(:variant) }
   let(:hub)     { create(:distributor_enterprise) }
 
@@ -20,7 +18,7 @@ describe VariantOverride do
     }
 
     it "ignores variant_overrides with revoked_permissions by default" do
-      expect(VariantOverride.all).to_not include vo3
+      expect(VariantOverride.all).not_to include vo3
       expect(VariantOverride.unscoped).to include vo3
     end
 
@@ -97,11 +95,8 @@ describe VariantOverride do
         context "when count_on_hand is set" do
           let(:count_on_hand) { 1 }
 
-          it "is invalid" do
-            expect(variant_override).not_to be_valid
-            error_message = I18n.t("on_demand_but_count_on_hand_set",
-                                   scope: [i18n_scope_for_error, "count_on_hand"])
-            expect(variant_override.errors[:count_on_hand]).to eq([error_message])
+          it "is valid" do
+            expect(variant_override).to be_valid
           end
         end
       end
@@ -141,7 +136,7 @@ describe VariantOverride do
       end
 
       it "soft-deletes the price" do
-        expect(price_object.reload.deleted_at).to_not be_nil
+        expect(price_object.reload.deleted_at).not_to be_nil
       end
 
       it "can access the soft-deleted price" do
@@ -168,7 +163,7 @@ describe VariantOverride do
 
   describe "with nil count on hand" do
     let(:variant_override) do
-      build_stubbed(
+      build(
         :variant_override,
         variant: build_stubbed(:variant),
         hub: build_stubbed(:distributor_enterprise),
@@ -178,15 +173,18 @@ describe VariantOverride do
     end
 
     describe "stock_overridden?" do
-      it "returns false" do
-        expect(variant_override.stock_overridden?).to be false
+      it "returns true" do
+        expect(variant_override.stock_overridden?).to be true
       end
     end
 
     describe "move_stock!" do
       it "silently logs an error" do
-        expect(Bugsnag).to receive(:notify)
-        variant_override.move_stock!(5)
+        expect {
+          variant_override.move_stock!(5)
+        }.to change {
+          variant_override.count_on_hand
+        }.from(nil).to(5)
       end
     end
   end

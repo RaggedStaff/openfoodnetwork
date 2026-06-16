@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe JobLogger do
+RSpec.describe JobLogger do
   describe '.logger' do
     it "returns a Ruby's logger instance" do
       expect(JobLogger.logger).to respond_to(:info)

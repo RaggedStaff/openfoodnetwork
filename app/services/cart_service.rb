@@ -50,7 +50,7 @@ class CartService
 
   def indexed_variants(variants_data)
     @indexed_variants ||= begin
-      variant_ids_in_data = variants_data.map{ |v| v[:variant_id] }
+      variant_ids_in_data = variants_data.pluck(:variant_id)
 
       Spree::Variant.with_deleted.where(id: variant_ids_in_data).
         includes(:default_price, :stock_items, :product).
@@ -60,6 +60,7 @@ class CartService
 
   def attempt_cart_add(variant, quantity, max_quantity = nil)
     scoper.scope(variant)
+
     return unless valid_variant?(variant)
 
     cart_add(variant, quantity, max_quantity)
@@ -154,7 +155,7 @@ class CartService
   end
 
   def check_variant_available_under_distribution(variant)
-    return true if OrderCycleDistributedVariants.new(@order_cycle, @distributor)
+    return true if OrderCycles::DistributedVariantsService.new(@order_cycle, @distributor)
       .available_variants.include? variant
 
     errors.add(:base, I18n.t(:spree_order_populator_availability_error))

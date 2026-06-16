@@ -2,12 +2,18 @@
 
 require_relative "../spec_helper"
 
-describe DfcIo do
+RSpec.describe DfcIo do
   let(:person) do
-    DataFoodConsortium::Connector::Person.new("Pete")
+    DataFoodConsortium::ConnectorV1::Person.new("Pete")
   end
   let(:enterprise) do
-    DataFoodConsortium::Connector::Enterprise.new("Pete's Pumpkins")
+    DataFoodConsortium::ConnectorV1::Enterprise.new("Pete's Pumpkins")
+  end
+  let(:order) do
+    DataFoodConsortium::ConnectorV1::Order.new("https://example.net", orderStatus: orderstate.HELD)
+  end
+  let(:orderstate) do
+    DfcLoader.vocabulary("vocabulary").STATES.ORDERSTATE
   end
 
   describe ".export" do
@@ -19,7 +25,7 @@ describe DfcIo do
       json = DfcIo.export(person)
       result = JSON.parse(json)
 
-      expect(result["@context"]).to eq "https://www.datafoodconsortium.org"
+      expect(result["@context"]).to eq "https://w3id.org/dfc/ontology/context/context_1.16.0.json"
     end
 
     it "uses the context to shorten URIs" do
@@ -32,6 +38,21 @@ describe DfcIo do
       expect(result["@graph"].first.keys).to include(
         *%w(@id @type dfc-b:affiliates)
       )
+    end
+
+    it "recognises loaded vocabularies" do
+      json = DfcIo.export(order)
+      result = JSON.parse(json)
+
+      expect(result["dfc-b:hasOrderStatus"]).to eq "dfc-v:Held"
+    end
+  end
+
+  describe ".import" do
+    it "recognises loaded vocabularies" do
+      result = DfcIo.import(DfcIo.export(order))
+
+      expect(result.orderStatus).to eq orderstate.HELD
     end
   end
 end

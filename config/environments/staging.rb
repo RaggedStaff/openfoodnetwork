@@ -35,11 +35,12 @@ Openfoodnetwork::Application.configure do
   # Use https in email links
   config.action_mailer.default_url_options = { protocol: 'https' }
 
-  # Set log level (default is :debug in Rails 4)
-  config.log_level = :info
+  # Change to "debug" to log everything (including potentially personally-identifiable information!)
+  config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "info")
 
   # Configure logging:
   config.log_formatter = Logger::Formatter.new.tap { |f| f.datetime_format = "%Y-%m-%d %H:%M:%S" }
+  config.log_tags = [:request_id]
 
   # Use a different cache store in production
   config.cache_store = :redis_cache_store, {
@@ -58,10 +59,6 @@ Openfoodnetwork::Application.configure do
 
   # Enable threaded mode
   # config.threadsafe!
-
-  # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
-  # the I18n.default_locale when a translation can not be found)
-  config.i18n.fallbacks = [:en]
 
   # Send deprecation notices to registered listeners
   config.active_support.deprecation = :notify

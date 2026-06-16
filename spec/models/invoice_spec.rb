@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-RSpec.describe Invoice, type: :model do
+RSpec.describe Invoice do
   let(:distributor) { create(:distributor_enterprise) }
   let(:order) { create(:order, :with_line_item, :completed, distributor:) }
   describe 'presenter' do

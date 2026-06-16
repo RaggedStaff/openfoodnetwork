@@ -2,7 +2,7 @@
 
 require "system_helper"
 
-describe "As a consumer, I want to checkout my order" do
+RSpec.describe "As a consumer, I want to checkout my order" do
   include ShopWorkflow
   include CheckoutHelper
   include FileHelper
@@ -12,17 +12,26 @@ describe "As a consumer, I want to checkout my order" do
   let(:supplier) { create(:supplier_enterprise) }
   let(:distributor) { create(:distributor_enterprise, charges_sales_tax: true) }
   let(:product) {
-    create(:taxed_product, supplier:, price: 10, zone:, tax_rate_amount: 0.1)
+    create(:taxed_product, supplier_id: supplier.id, price: 10, zone:, tax_rate_amount: 0.1)
   }
+  let(:product2) {
+    create(:taxed_product, supplier_id: supplier.id, price: 15, zone:, tax_rate_amount: 0.1)
+  }
+
   let(:variant) { product.variants.first }
+  let(:variant2 ) { product2.variants.first }
   let!(:order_cycle) {
     create(:simple_order_cycle, suppliers: [supplier], distributors: [distributor],
-                                coordinator: create(:distributor_enterprise), variants: [variant])
+                                coordinator: create(:distributor_enterprise),
+                                variants: [variant, variant2])
   }
   let(:order) {
     create(:order, order_cycle:, distributor:, bill_address_id: nil,
                    ship_address_id: nil, state: "cart",
-                   line_items: [create(:line_item, variant:)])
+                   line_items: [
+                     create(:line_item, variant:),
+                     create(:line_item, variant: variant2, quantity: 3)
+                   ])
   }
 
   let(:fee_tax_rate) { create(:tax_rate, amount: 0.10, zone:, included_in_price: true) }
@@ -65,7 +74,7 @@ describe "As a consumer, I want to checkout my order" do
 
   before do
     add_enterprise_fee enterprise_fee
-    set_order order
+    pick_order order
 
     distributor.shipping_methods.push(shipping_methods)
   end
@@ -79,27 +88,12 @@ describe "As a consumer, I want to checkout my order" do
     it "should display the checkout login page" do
       expect(page).to have_content("Ok, ready to checkout?")
       expect(page).to have_content("Login")
-      expect(page).to have_no_content("Checkout as guest")
+      expect(page).not_to have_content("Checkout as guest")
     end
 
     it "should show the login modal when clicking the login button" do
       click_on "Login"
       expect(page).to have_selector ".login-modal"
-    end
-  end
-
-  shared_examples "when I have an out of stock product in my cart" do
-    before do
-      variant.update!(on_demand: false, on_hand: 0)
-    end
-
-    it "returns me to the cart with an error message" do
-      visit checkout_path
-
-      expect(page).not_to have_selector 'closing', text: "Checkout now"
-      expect(page).to have_selector 'closing', text: "Your shopping cart"
-      expect(page).to have_content "An item in your cart has become unavailable"
-      expect(page).to have_content "Update"
     end
   end
 
@@ -222,8 +216,6 @@ describe "As a consumer, I want to checkout my order" do
           "Local", "Shipping with Fee", "Z Free Shipping without required address"
         ]
       end
-
-      it_behaves_like "when I have an out of stock product in my cart"
     end
 
     context "on the 'payment' step" do
@@ -235,8 +227,6 @@ describe "As a consumer, I want to checkout my order" do
       it "should allow visit '/checkout/payment'" do
         expect(page).to have_current_path("/checkout/payment")
       end
-
-      it_behaves_like "when I have an out of stock product in my cart"
     end
 
     describe "hidding a shipping method" do
@@ -292,4 +282,49 @@ describe "As a consumer, I want to checkout my order" do
       end
     end
   end
+
+  shared_examples "when a line item is out of stock" do |session, step|
+    context "as a #{session} user" do
+      let(:user) { create(:user) }
+
+      before do
+        # Out of stock
+        variant.on_demand = false
+        variant.on_hand = 0
+        variant.save!
+
+        # Reduced stock
+        variant2.on_demand = false
+        variant2.on_hand = 1
+        variant2.save!
+
+        if session == "logged"
+          login_as(user)
+        end
+      end
+
+      it "displays a modal warning the user of updated cart" do
+        visit checkout_step_path(step)
+
+        expect(page).to have_selector 'closing', text: "Checkout now"
+        within "#out-of-stock-items" do
+          expect(page).to have_content "Reduced stock available"
+          expect(page).to have_content(
+            "#{variant.name_to_display} - #{variant.unit_to_display} is now out of stock"
+          )
+          expect(page).to have_content(
+            "#{variant2.name_to_display} - #{variant2.unit_to_display} now only has 1 remaining"
+          )
+        end
+      end
+    end
+  end
+
+  it_behaves_like "when a line item is out of stock", "guest", "details"
+  it_behaves_like "when a line item is out of stock", "guest", "payment"
+  it_behaves_like "when a line item is out of stock", "guest", "summary"
+
+  it_behaves_like "when a line item is out of stock", "logged", "details"
+  it_behaves_like "when a line item is out of stock", "logged", "payment"
+  it_behaves_like "when a line item is out of stock", "logged", "summary"
 end

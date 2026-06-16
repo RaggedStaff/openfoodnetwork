@@ -22,8 +22,8 @@ sv:
         state: Region
       spree/product:
         price: "Pris"
+      spree/variant:
         supplier: "Leverantör"
-        variant_unit: "Enhet för variant"
       spree/credit_card:
         month: "Månad"
         year: "År"
@@ -47,6 +47,9 @@ sv:
           Var du gäst senast? Du behöver kanske skapa ett konto eller återställa ditt lösenord.
   sku: "SKU"
   tax_rate: "Skattesats"
+  backorder_mailer:
+    backorder_failed:
+      product: "Produkt"
   enterprise_mailer:
     confirmation_instructions:
       subject: "Vänligen bekräfta e-postadressen för %{enterprise}"
@@ -142,6 +145,7 @@ sv:
   actions:
     create: "Skapa"
     cancel: "Avbryt"
+    cancel_order: "Avbryt"
     edit: "Redigera"
     update: "Uppdatera"
     add: "Tillägga"
@@ -164,6 +168,7 @@ sv:
         tax_category: "Skattekategori"
         inherits_properties: "Ärva egenskaper?"
         actions: Handlingar
+        tags: Taggar
       columns_selector:
         unit: Enhet
         price: Pris
@@ -176,8 +181,11 @@ sv:
         inherits_properties: "Ärva egenskaper?"
       actions:
         edit: Redigera
+        remove: Ta bort
       image:
         edit: Redigera
+      product_preview:
+        shop_tab: 'Butik '
     customer: Kund
     date: Datum
     email: epost
@@ -257,6 +265,11 @@ sv:
         update_address: "Uppdatera adress"
         confirm_delete: "Vill du verkligen radera?"
         search_by_email: "Sök via e-post/kod..."
+    customer_account_transaction:
+      index:
+        description: Beskrivning
+        amount: Belopp
+        running_balance: Saldo
     contents:
       edit:
         title: Innehåll
@@ -269,6 +282,9 @@ sv:
         your_content: Ditt innehåll
         user_guide: Användarinstruktion
         map: Karta
+    dfc_product_imports:
+      index:
+        update: Uppdatera
     enterprise_fees:
       index:
         title: "Företagsavgifter"
@@ -324,9 +340,15 @@ sv:
       filters:
         producers:
           label: 'Producenter '
+        tags:
+          label: Taggar
+          none: Ingen
         search: Sök
-      edit_image:
-        close: Backa
+      variant_row:
+        none_tax_category: Ingen
+        category_field_name: "Kategori"
+        tax_category_field_name: "Skattekategori"
+        producer_field_name: "Producent"
     product_import:
       file_not_found: Filen hittades inte eller kunde inte öppnas
       no_data: Ingen data hittades i kalkylbladet
@@ -441,10 +463,6 @@ sv:
         images:
           legend: "Bilder"
           logo: Logotyp
-          promo_image_placeholder: 'Denna bild visas under "Om oss"'
-          promo_image_note1: 'VAR VÄNLIG OBSERVERA:'
-          promo_image_note2: Varje reklambild som laddas här kommer att beskäras till 1200 x 260.
-          promo_image_note3: Logotypen visas högst upp på företagets profilsida och i rullgardinsmenyer.
         inventory_settings:
           legend: "Lagerstatus"
           text1: Du kan välja att hantera ditt varulager och dina priser via din
@@ -537,25 +555,26 @@ sv:
             no_rules_yet: Standardregler har ännu ej fasttällts
             add_new_button: '+ Lägg till ny standardregel'
           no_tags_yet: Inga etiketter finns för detta företag ännu
-          no_rules_yet: Inga regler finns för denna etikett ännu
-          for_customers_tagged: 'För kunder taggade med:'
-          add_new_rule: '+ Lägg till en ny regel'
           add_new_tag: '+ Lägg till en ny etikett'
+          show_hide_shipping: 'Visa eller dölj leveransmetoder vid kassan'
+          show_hide_payment: 'Visa eller dölj betalningsmetoder vid kassan'
+          show_hide_order_cycles: 'Visa eller dölj beställningsomgångar i min butik'
         users:
           legend: "Användare"
           email_confirmation_notice_html: "E-post bekräftelse har inte kommit. Vi har sänt en bekräftande e-post till %{email}."
           resend: Återsänd
-          owner: 'Ägare'
           contact: "Kontakt"
+          owner: 'Ägare'
           owner_tip: Den primära användaren är ansvarig för detta företag.
           notifications: Meddelanden
           notifications_tip: Meddelanden om order kommer att sändas till denna e-postadress,
           notifications_placeholder: ex gustav@telia.com
           notifications_note: 'Observera: En ny e-postadress behöver kanske bli bekräftad före användning'
-          managers: Chefer
-          managers_tip: Andra användare med tillstånd att leda detta företag.
         vouchers:
           customers: Kund
+        connected_apps:
+          vine:
+            enable: "Anslut"
       actions:
         edit_profile: Inställningar
         properties: Egenskaper
@@ -606,11 +625,8 @@ sv:
         owner_tip: Den primära användaren är ansvarig för detta företag.
         i_am_producer: Jag är en Tillverkare
         contact_name: Kontaktperson
-      edit:
-        back_link: Åter till företagslistan
       new:
         title: Nya företag
-        back_link: Åter till företagslistan
       welcome:
         welcome_title: Välkommen till OFN!
         welcome_text: Du har korrekt slutfört en
@@ -631,6 +647,8 @@ sv:
         next: "Näst"
         cancel: "Avbryt"
         choose_products_from: "Välj produkter från:"
+      date_time_warning_modal_content:
+        cancel: 'Avbryt'
       incoming:
         incoming: "Inkommande"
         supplier: "Leverantör"
@@ -703,6 +721,12 @@ sv:
       index:
         title: Producentegenskaper
     shared:
+      attachment_field:
+        logo_label: "Logotyp"
+        promo_image_note1: 'VAR VÄNLIG OBSERVERA:'
+        promo_image_note2: Varje reklambild som laddas här kommer att beskäras till 1200 x 260.
+        promo_image_note3: Logotypen visas högst upp på företagets profilsida och i rullgardinsmenyer.
+        promo_image_placeholder: 'Denna bild visas under "Om oss"'
       user_guide_link:
         user_guide: Användarinstruktion
       enterprises_hubs_tabs:
@@ -741,7 +765,6 @@ sv:
       email_confirmation: "E-postbekräftelse är pågående. Vi har skickat ett bekräftelsemail till %{email}."
       not_visible: "%{enterprise} är inte synlig och kan därför inte hittas på kartan eller i sökningar"
     reports:
-      hidden: DOLD
       unitsize: ENHETSTORLEK
       total: SUMMA
       total_items: ANTAL ARTIKLAR
@@ -811,6 +834,10 @@ sv:
         save: "SPARA"
         saving: "SPARANDE"
         saved: "SPARAD"
+    user_invitations:
+      new:
+        back: Backa
+        email: E-post
     vouchers:
       new:
         back: Backa
@@ -982,7 +1009,6 @@ sv:
   label_account: "Konto"
   label_more: "Visa mer"
   label_less: "Visa mindre"
-  label_notices: "Anmälan"
   cart_headline: "Din varukorg"
   total: "Summa "
   cart_updating: "Uppdatera din varukorg"
@@ -1003,12 +1029,11 @@ sv:
   brandstory_part5_strong: "Vi kallar det Open Food Network."
   brandstory_part6: "Vi alla älskar mat. Nu kan vi älska vårt matsystem också."
   system_headline: "Handla - här är hur det fungerar."
-  system_step1: "1. Sök"
-  system_step1_text: "Sök bland oberoende butiker efter säsongens lokala varor. Sök efter grannskap och matkategori samt om du vill ha leverans eller ?"
-  system_step2: "2. Butik"
-  system_step2_text: "Sammanställ dina transaktioner med prisvärda lokala varor från skilda producenter och grupper. Lär känna hur dina varor produceras och vilka personer som ligger bakom."
-  system_step3: "3, Upphämtning / Leverans"
-  system_step3_text: "Skaffa kunskap om din leverans eller besök din producent för att skapa för att en mer personlig kunskap om de varor du beställer. Att handla mat är så skiftande som naturen gjort den till."
+  system_step1_html: "1. Sök"
+  system_step2_html: "2. Butik"
+  system_step2_text_html: "Sammanställ dina transaktioner med prisvärda lokala varor från skilda producenter och grupper. Lär känna hur dina varor produceras och vilka personer som ligger bakom."
+  system_step3_html: "3, Upphämtning / Leverans"
+  system_step3_text_html: "Skaffa kunskap om din leverans eller besök din producent för att skapa för att en mer personlig kunskap om de varor du beställer. Att handla mat är så skiftande som naturen gjort den till."
   cta_headline: "Handlande som gör världen till en bättre plats."
   cta_label: "Jag är Redo"
   stats_headline: "Vi skapar ett nytt matsystem."
@@ -1043,6 +1068,7 @@ sv:
   order_not_paid: INTE BETALD
   order_total: Total order
   order_payment: "Betalar via:"
+  customer_credit: Kredit
   order_billing_address: 'Faktureringsadress '
   order_delivery_on: Leverans på
   order_delivery_address: 'Leveransadress '
@@ -1067,10 +1093,8 @@ sv:
   products_elsewhere: "Produkter funna annorstädes"
   email_confirmed: "Tack för att du bekräftat din e-postadress."
   email_confirmation_greeting: "Hej, %{contact}!"
-  email_confirmation_profile_created: "En profil för %{name} har skapats! För att aktivera din profil behöver vi få en bekräftelse på din e-postadress."
   email_confirmation_click_link: "Var vänlig att klicka på länken nedan för att bekräfta din e-postadress och fortsätt att skapa din profil."
   email_confirmation_link_label: "Bekräfta din e-postadress »"
-  email_confirmation_help_html: "Sedan du bekräftat din e-postadress har du tillgång till ditt konto för denna firma. Se %{link} för att ta reda på mer om %{sitename} artiklar och börja använda din profil eller online butik."
   email_social: "Koppla ihop med Oss:"
   email_contact: "Mejla oss:"
   email_signoff: "Hälsningar,"
@@ -1572,24 +1596,13 @@ sv:
   spree_admin_enterprises_fees: "Företagsavgifter"
   spree_admin_enterprises_none_create_a_new_enterprise: "SKAPA ETT NYTT FÖRETAG"
   spree_admin_enterprises_none_text: "Du har inget företag ännu"
-  spree_admin_enterprises_tabs_hubs: "MATSTÄLLEN"
   spree_admin_enterprises_producers_manage_products: "HANTERA PRODUKTER"
   spree_admin_enterprises_create_new_product: "SKAPA EN NY PRODUKT"
-  spree_admin_single_enterprise_alert_mail_confirmation: "Var vänlig och fastställ e-postadressen för"
-  spree_admin_single_enterprise_alert_mail_sent: "Vi har sänt e-post till "
-  spree_admin_overview_action_required: "Ett ställningstagande behövs"
-  spree_admin_overview_check_your_inbox: "Var vänlig kontrollera din inkorg för ytterligare instruktioner. Tack!"
-  spree_admin_unit_value: Enhetspris
-  spree_admin_unit_description: Enhetsbeskrivning
-  spree_admin_variant_unit: Variant enhet
-  spree_admin_variant_unit_scale: Variant enhetsskala
   spree_admin_supplier: Leverantör
-  spree_admin_variant_unit_name: 'Variant enhetsnamn '
   change_package: "Ändra förpackning"
   spree_admin_single_enterprise_hint: "Tips: För att folk skall hitta dig lättare, slå på din reklam under"
   spree_admin_eg_pickup_from_school: "t.ex. \"Upphämtning från grundskolan\""
   spree_admin_eg_collect_your_order: "t.ex. \"Var snäll och samla din beställning från Exempelgatan,  100 00 Stad '"
-  spree_classification_primary_taxon_error: "Gruppen %{taxon} är den primära gruppen för %{product} och kan inte raderas"
   spree_order_availability_error: "Distributören eller beställningsomgången kan inte leverera produkterna i din kundvagn"
   spree_order_populator_error: "Denna distributör eller beställningsomgång kan inte leverera alla produkter i din kundvagn. Vänligen välj en annan."
   spree_order_populator_availability_error: "Den produkten är inte tillgänglig från den valda distributören eller denna beställningsomgång."
@@ -1667,7 +1680,6 @@ sv:
   report_header_paid: Betald?
   report_header_delivery: Leverans?
   report_header_shipping: Frakt
-  report_header_shipping_method: Fraktmetod
   report_header_shipping_instructions: Leveransinstruktioner
   report_header_ship_street: Leveransadress
   report_header_ship_street_2: Leveransadress 2
@@ -1778,6 +1790,8 @@ sv:
   report_header_total_excl_vat: "Summa exkl skatt (%{currency_symbol})"
   report_header_total_incl_vat: "Summa inkl skatt (%{currency_symbol})"
   report_header_temp_controlled: Temperaturkontrollerad?
+  report_header_shipment_state: "Leveransstatus"
+  report_header_shipping_method: "Fraktmetod"
   report_header_is_producer: Producent?
   report_header_not_confirmed: Inte bekräftad
   report_header_gst_on_income: Moms på intäkter
@@ -1983,8 +1997,6 @@ sv:
           severity: Allvarlighet
           description: Beskrivning
           resolve: Besluta
-      new_tag_rule_dialog:
-        select_rule_type: "Välj en regeltyp:"
       orders:
         order_state:
           address: "adress"
@@ -2032,7 +2044,7 @@ sv:
           Under tiden du handlat har lagernivån för en eller flera produkter i din
           kundvagn minskat. Detta har ändrats:
       now_out_of_stock: Är nu slut
-      only_n_remainging: "nu  återstår endast %{num}"
+      only_n_remaining: "nu  återstår endast %{num}"
     shopfront:
       variant:
         add_to_cart: "Tillägga"
@@ -2058,13 +2070,6 @@ sv:
       some_trouble: "Jag hade problem med att spara: %{errors}"
       changing_on_hand_stock: Byter lagersaldon...
       stock_reset: Lagersaldon återställdes till standardvärden.
-    tag_rules:
-      show_hide_variants: 'Visa eller dölj varianter i mitt butik'
-      show_hide_shipping: 'Visa eller dölj leveransmetoder vid kassan'
-      show_hide_payment: 'Visa eller dölj betalningsmetoder vid kassan'
-      show_hide_order_cycles: 'Visa eller dölj beställningsomgångar i min butik'
-      visible: SYNLIG
-      not_visible: INTE SYNLIG
     services:
       unsaved_changes_message: Det finns osparade ändringar. Spara nu eller ignorera?
       save: SPARA
@@ -2079,6 +2084,8 @@ sv:
       confirmation: |
           Detta kommer att ställa lagersaldot till noll på alla produkter för detta företag, som inte är närvarande i den uppladdade filen.
     order_cycles:
+      unsaved_changes: "Du har osparade ändringar"
+      bulk_save_error: "Å nej! Jag kunde inte spara dina ändringar."
       update_success: 'Din beställningsomgång har uppdaterats.'
       no_distributors: Det finns inga distributörer i denna beställningsomgång. Den kommer inte att vara synlig för kunderna tills du lägger till en distributör. Vill du fortsätta och spara denna beställningsomgång? '
     enterprises:
@@ -2095,6 +2102,8 @@ sv:
       signup_or_login: "Börja genom att underteckna (eller logga in)"
       have_an_account: "Har du redan ett konto?"
       action_login: "Logga in nu."
+    trix:
+      code: "Kod"
   producers:
     signup:
       start_free_profile: "Börja med en gratis profil och uppgradera när du är redo!"
@@ -2130,10 +2139,12 @@ sv:
   administration: "Administration"
   account: "Konto"
   logout: "Logga ut"
+  status: "Status"
   spree:
     all: "Alla"
     category: "Kategori"
     credit: "Kredit"
+    remove: "Ta bort"
     none: "Ingen"
     updating: "Uppdaterar"
     resend: "Återsänd"
@@ -2190,10 +2201,14 @@ sv:
       messages:
         blank: "kan inte vara blank"
     admin:
+      images:
+        edit:
+          close: Backa
       tab:
         dashboard: "Panel"
         bulk_order_management: "Hantera flera beställningar"
         products: "Produkter"
+        products_v3: "Produkter"
         properties: "Egenskaper"
         variant_overrides: "Lager"
         reports: "Rapporter"
@@ -2203,6 +2218,9 @@ sv:
         enterprises: "Företag"
         customers: "Kunder"
         groups: "Grupper"
+        overview: "Översikt"
+        enterprise_roles: "Uppgifter"
+        payment_methods: "Betalningssätt"
       properties:
         index:
           properties: "Egenskaper"
@@ -2319,7 +2337,6 @@ sv:
           email: "E-post"
         form:
           email: "E-post"
-          roles: "Uppgifter"
           enterprise_limit: "Företagets gräns"
           password: "Lösenord"
       variants:
@@ -2328,15 +2345,18 @@ sv:
           price: "Pris"
         form:
           sku: "SKU"
-          price: "Pris"
           unit_price: "Styckpris"
           display_as: "Visa som"
+          unit: Enhet
+          price: Pris
+          variant_category: Kategori
         autocomplete:
           producer_name: "Producent"
           unit: "Enhet"
       shared:
         sortable_header:
           name: "Namn"
+          on_hand: "På lager"
           state: "Region"
           payment_state: "Betalningsstatus"
           shipment_state: "Leveransstatus"
@@ -2410,6 +2430,10 @@ sv:
         open_orders: Öppna beställningar
       transactions:
         transaction_history: Transaktionshistorik
+      customer_account_transactions:
+        description: Beskrivning
+        amount: Belopp
+        running_balance: Saldo
       open_orders:
         order: Beställningar
         shop: 'Butik '
@@ -2435,3 +2459,13 @@ sv:
       search_placeholder: Sök
     pagination:
       next: Näst
+    tag_rule_form:
+      tag_rules:
+        visible: SYNLIG
+        not_visible: INTE SYNLIG
+    tag_rule_group_form:
+      for_customers_tagged: 'För kunder taggade med:'
+      add_new_rule: '+ Lägg till en ny regel'
+      no_rules_yet: Inga regler finns för denna etikett ännu
+    add_tag_rule_modal:
+      select_rule_type: "Välj en regeltyp:"

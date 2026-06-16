@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Admin::ReportsController, type: :controller do
+RSpec.describe Admin::ReportsController do
   # Given two distributors and two suppliers
   let(:bill_address) { create(:address) }
   let(:ship_address) { create(:address) }
@@ -15,9 +13,9 @@ describe Admin::ReportsController, type: :controller do
   let(:distributor1) { create(:distributor_enterprise) }
   let(:distributor2) { create(:distributor_enterprise) }
   let(:distributor3) { create(:distributor_enterprise) }
-  let(:product1) { create(:product, price: 12.34, supplier: supplier1) }
-  let(:product2) { create(:product, price: 23.45, supplier: supplier2) }
-  let(:product3) { create(:product, price: 34.56, supplier: supplier3) }
+  let(:product1) { create(:product, price: 12.34, supplier_id: supplier1.id) }
+  let(:product2) { create(:product, price: 23.45, supplier_id: supplier2.id) }
+  let(:product3) { create(:product, price: 34.56, supplier_id: supplier3.id) }
 
   # Given two order cycles with both distributors
   let(:ocA) {
@@ -162,7 +160,7 @@ describe Admin::ReportsController, type: :controller do
         report_types = assigns(:reports).keys
         expect(report_types).to include :orders_and_fulfillment,
                                         :products_and_inventory, :packing # and others
-        expect(report_types).to_not include :sales_tax
+        expect(report_types).not_to include :sales_tax
       end
     end
 
@@ -310,14 +308,15 @@ describe Admin::ReportsController, type: :controller do
     end
 
     it "triggers the delivery report" do
-      spree_post :show, {
+      spree_post :create, {
+        format: :turbo,
         q: { completed_at_lt: 1.day.ago },
         shipping_method_in: ["123"], # We just need to search for shipping methods
         report_type: :order_cycle_management,
         report_subtype: "delivery",
       }
 
-      expect(response).to have_http_status(:no_content)
+      expect(response).to have_http_status(:ok)
     end
   end
 
@@ -365,7 +364,7 @@ describe Admin::ReportsController, type: :controller do
         spree_get :show, report_type: :sales_tax, report_subtype: report_type
         expect(response).to have_http_status(:ok)
         expect(resulting_orders_prelim).to include(orderA1, orderB1)
-        expect(resulting_orders_prelim).to_not include(orderA2, orderB2)
+        expect(resulting_orders_prelim).not_to include(orderA2, orderB2)
       end
     end
   end

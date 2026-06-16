@@ -29,10 +29,12 @@ nl_BE:
       spree/product:
         name: "Naam produkt"
         price: "Prijs"
-        primary_taxon: "Product categorie"
-        supplier: "Leverancier"
+        primary_taxon_id: "Product categorie"
         shipping_category_id: "Verzendcategorie"
-        variant_unit: "Eénheid"
+      spree/variant:
+        primary_taxon: "Product categorie"
+        shipping_category_id: "Verzendcategorie"
+        supplier: "Leverancier"
         variant_unit_name: "Variant Unit Name"
       spree/credit_card:
         base: "Kredietkaart"
@@ -62,7 +64,6 @@ nl_BE:
         variant_override:
           count_on_hand:
             using_producer_stock_settings_but_count_on_hand_set: "moet leeg zijn omdat u de instellingen voor de voorraad van de producent gebruikt"
-            on_demand_but_count_on_hand_set: "moet leeg zijn op aanvraag"
             limited_stock_but_no_count_on_hand: "moet worden opgegeven omdat een beperkte voorraad wordt geforceerd"
       messages:
         blank: "kan niet leeg zijn"
@@ -131,6 +132,9 @@ nl_BE:
     integer_array_validator:
       not_array_error: "moet een array zijn"
       invalid_element_error: "mogen alleen geldige gehele getallen bevatten"
+  backorder_mailer:
+    backorder_failed:
+      product: "Product"
   enterprise_mailer:
     confirmation_instructions:
       subject: "Bevestig a.u.b. het e-mailadres voor %{enterprise}"
@@ -282,7 +286,6 @@ nl_BE:
   password_confirmation: Wachtwoord Bevestiging
   reset_password_token: Reset wachtwoord token
   expired: is verlopen, gelieve een nieuwe aan te vragen
-  back_to_payments_list: "Terug naar Betalingslijst"
   maestro_or_solo_cards: "Maestro/Solo kaart"
   backordered: "Niet in stock"
   on_hand: "Bij de Hand"
@@ -296,6 +299,7 @@ nl_BE:
     create_and_add_another: "Een ander maken en toevoegen"
     create: "Maak"
     cancel: "Annuleren"
+    cancel_order: "Annuleren"
     save: "Save"
     edit: "bewerking"
     update: "Update"
@@ -311,6 +315,7 @@ nl_BE:
           title: Producenten
         colums: Kolommen
       columns:
+        image: beeltenis
         name: Naam
         unit: Unit
         price: Prijs
@@ -323,6 +328,7 @@ nl_BE:
         inherits_properties: "Erft Eigenschappen?"
         import_date: "Importdatum"
         actions: Acties
+        tags: Tags
       columns_selector:
         unit: Unit
         price: Prijs
@@ -338,8 +344,11 @@ nl_BE:
         edit: bewerking
         clone: Kloon
         delete: 'Uitwissen '
+        remove: Verwijderen
       image:
         edit: bewerking
+      product_preview:
+        shop_tab: winkel
     begins_at: Begint Bij
     begins_on: Begint Op
     customer: Klant
@@ -389,7 +398,6 @@ nl_BE:
     show_n_more: Toon %{num} meer
     choose: "Kies..."
     please_select: Selecteer...
-    column_save_as_default: Opslaan als standaard
     columns: Kolommen
     actions: Acties
     viewing: "Bekijken: %{current_view_name}"
@@ -457,6 +465,11 @@ nl_BE:
         search_by_email: "Zoeken per e-mail/code..."
         guest_label: "Gasten afrekenen"
         credit_owed: "Krediet tegoed"
+    customer_account_transaction:
+      index:
+        description: Beschrijving
+        amount: Bedrag
+        running_balance: Lopend saldo
     contents:
       edit:
         title: Gelukkig
@@ -470,6 +483,11 @@ nl_BE:
         your_content: Uw inhoud
         user_guide: Gebruikershandleiding
         map: Kaart
+    dfc_product_imports:
+      index:
+        update: Update
+        new: Nieuw
+        import: Importeren
     enterprise_fees:
       index:
         title: "Ondernemingsvergoedingen"
@@ -523,7 +541,6 @@ nl_BE:
       variants:
         infinity: "Oneindigheid"
         to_order_tip: "Op bestelling gemaakte artikelen hebben geen vast voorraadniveau, zoals broden die vers op bestelling worden gemaakt."
-      back_to_products_list: "Terug naar productenlijst"
       editing_product: "Product bijwerken"
       tabs:
         product_details: "Product details"
@@ -535,19 +552,26 @@ nl_BE:
       index:
         header:
           title: Beheer van de productencatalogus
-      sort:
-        pagination:
-          clear_search: Verwijder zoektermen
       filters:
         producers:
           label: Producenten
         categories:
           label: Categorieën
+        tags:
+          label: Tags
+          none: Geen enkele
         search: Zoeken
-      table:
+      sort:
+        pagination:
+          clear_search: Verwijder zoektermen
+      product_variant_row:
         new_variant: Nieuw variant
-      edit_image:
-        close: achterstevoren
+      variant_row:
+        none_tax_category: Geen enkele
+        category_field_name: "Categorie"
+        tax_category_field_name: "Belastingcategorie"
+        producer_field_name: "Producent"
+        add_a_tag: Voeg een tag toe
     product_import:
       title: Importeren van producten
       file_not_found: Bestand niet gevonden of kon niet worden geopend
@@ -606,7 +630,6 @@ nl_BE:
         no_name: Geen naam
         blank_enterprise: sommige producten hebben geen onderneming gedefinieerd
         reset_absent?: Reset afwezige producten
-        reset_absent_tip: Zet de voorraad op nul voor alle producten die niet in het bestand aanwezig zijn
         overwrite_all: Alles overschrijven
         overwrite_empty: Overschrijven indien leeg
         default_stock: Voorraadniveau instellen
@@ -761,12 +784,6 @@ nl_BE:
         images:
           legend: "Afbeeldingen"
           logo: Logo
-          promo_image_placeholder: 'Deze afbeelding wordt afgebeeld in "Over Ons"'
-          promo_image_note1: 'Hou er rekening mee dat:'
-          promo_image_note2: 'Elke promotie-afbeelding die hier wordt geüpload zal herschaald worden tot 1200 x 260. '
-          promo_image_note3: De promotie-afbeelding wordt afgebeeld bovenaan de ondernemingsprofielpagina en op pop-ups.
-          remove_logo: "Afbeelding Verwijderen"
-          remove_promo_image: "Afbeelding Verwijderen"
         inventory_settings:
           legend: "Catalogus winkel"
           text1: U kunt ervoor kiezen om de voorraadniveaus en prijzen te beheren via uw
@@ -846,13 +863,15 @@ nl_BE:
           customer_names_tip: "Schakel in dat je leveranciers de namen van de klanten kunnen zien in rapporten"
           customer_names_false: "Deactiveer"
           customer_names_true: "Activeer"
+          customer_contacts_false: "Deactiveer"
+          customer_contacts_true: "Activeer"
+          producers_edit_orders_false: "Deactiveer"
+          producers_edit_orders_true: "Activeer"
           shopfront_message: "Etalage Boodschap"
           shopfront_message_placeholder: >
               Een optionele tekst om klanten te verwelkomen en om uittelegen hoe met
               jouw te shoppen. Als tekst hier is ingevuld gaat het zichtbaar zijn
               in de home tab waneer klanten eerst aankomen in je online vitrine.
-          shopfront_message_link_tooltip: "Link invoegen / bewerken"
-          shopfront_message_link_prompt: "Voer een URL in om in te voegen"
           shopfront_closed_message: "Bericht Gesloten Etalage"
           shopfront_closed_message_placeholder: >
               Een boodschap die een gedetailleerdere verklaring voorziet over waarom
@@ -891,27 +910,24 @@ nl_BE:
             no_rules_yet: Er zijn nog geen standaard regels zijn van toepassing.
             add_new_button: '+Voeg een nieuwe standaardregel toe'
           no_tags_yet: Er zijn nog geen labels van toepassing op deze onderneming
-          no_rules_yet: Er zijn nog geen regels van toepassing op deze regel
-          for_customers_tagged: 'Voor de gelabelde klanten:'
-          add_new_rule: '+ Voeg een nieuwe regel toe'
           add_new_tag: '+Voeg een nieuw label toe'
+          show_hide_variants: 'Toon of schuil varianten in mijn winkel'
+          show_hide_shipping: 'Toon of schuil de leveringswijzes aan het einde van de bestelling'
+          show_hide_payment: 'Toon of schuil de betalingswijzes aan het einde van de bestelling'
+          show_hide_order_cycles: 'Toon of schuil de bestelcycli in mijn winkel'
         users:
           legend: "Gebruikers"
           email_confirmation_notice_html: "E-mailbevestiging is lopende. We hebben een bevestigings-e-mail gestuurd naar %{email}."
           resend: Zend opnieuw
-          owner: 'Eigenaar'
           contact: "Contact"
+          owner: 'Eigenaar'
           contact_tip: "De manager zal een ondernemings-e-mail ontvangen voor bestellingen en notificaties. Een bevestigd e-mailadres is hiervoor noodzakelijk."
           owner_tip: De hoofdgebruiker is verantwoordelijk voor deze onderneming.
           notifications: Notificaties
           notifications_tip: Bestellingsnotificaties zullen verzonden worden naar dit e-mailadres.
           notifications_placeholder: vb. jan@paddenstoel.com
           notifications_note: 'Let op: Het is mogelijk dat een nieuw e-mailadres eerst moet bevestigd worden voor gebruik'
-          managers: Beheerders
-          managers_tip: De andere gebruikers met machtiging om deze onderneming te beheren.
           invite_manager: "Nodig Beheerders uit"
-          invite_manager_tip: "Nodig een ongeregistreerde gebruiker om zich in te schrijven en een beheerder te worden van deze onderneming."
-          add_unregistered_user: "Voeg een ongeregistreerde gebruiker toe"
           email_confirmed: "E-mail bevestigd"
           email_not_confirmed: "E-mail niet bevestigd"
         vouchers:
@@ -919,7 +935,12 @@ nl_BE:
           customers: Klant
           active: Actief?
         connected_apps:
-          loading: "Aan het opladen"
+          affiliate_sales_data:
+            loading: "Aan het opladen"
+          discover_regen:
+            loading: "Aan het opladen"
+          vine:
+            enable: "Connecteer je "
       actions:
         edit_profile: Instellingen
         properties: Eigenschappen
@@ -972,10 +993,8 @@ nl_BE:
         contact_name: Naam contactpersoon
       edit:
         editing: 'Instellingen:'
-        back_link: Terug naar bedrijvenlijst
       new:
         title: Nieuwe onderneming
-        back_link: Terug naar bedrijvenlijst
       welcome:
         welcome_title: Welkom bij het Open Food Network!
         welcome_text: U heeft met succes een
@@ -983,9 +1002,6 @@ nl_BE:
         choose_starting_point: 'Kies je pakket:'
         profile: 'Profiel'
         producer_profile: 'Producentsprofiel'
-      invite_manager:
-        user_already_exists: "Gebruikersnaam al in gebruik"
-        error: "Er ging iets mis"
     order_cycles:
       loading_flash:
         loading_order_cycles: LOADING ORDER CYCLES
@@ -1010,6 +1026,8 @@ nl_BE:
         back_to_list: "Terug naar lijst"
         save_and_back_to_list: "Opslaan en terug naar lijst"
         choose_products_from: "Kies Producten Uit:"
+      date_time_warning_modal_content:
+        cancel: 'Annuleren'
       incoming:
         incoming: "Binnenkomend"
         supplier: "Leverancier"
@@ -1127,6 +1145,17 @@ nl_BE:
       resume:
         could_not_resume_the_order: Kon de bestelling niet hervatten
     shared:
+      attachment_field:
+        logo_label: "Logo"
+        logo_remove: "Afbeelding Verwijderen"
+        logo_remove_confirm: "Het logo wordt onmiddellijk na uw bevestiging verwijderd."
+        promo_image_note1: 'Hou er rekening mee dat:'
+        promo_image_note2: 'Elke promotie-afbeelding die hier wordt geüpload zal herschaald worden tot 1200 x 260. '
+        promo_image_note3: De promotie-afbeelding wordt afgebeeld bovenaan de ondernemingsprofielpagina en op pop-ups.
+        promo_image_placeholder: 'Deze afbeelding wordt afgebeeld in "Over Ons"'
+        promo_image_remove: "Afbeelding Verwijderen"
+        promo_image_remove_confirm: "De promo afbeelding wordt onmiddellijk na bevestiging verwijderd."
+        white_label_logo_remove: "Afbeelding Verwijderen"
       user_guide_link:
         user_guide: Gebruikershandleiding
       enterprises_hubs_tabs:
@@ -1166,7 +1195,6 @@ nl_BE:
       email_confirmation: "E-mailbevestiging is lopende. We hebben een bevestigings-e-mail gestuurd naar %{email}."
       not_visible: "%{enterprise} niet zichtbaar is en dus niet kan worden gevonden op de kaart of in zoekopdrachten"
     reports:
-      hidden: HIDDEN
       unitsize: UNITSIZE
       total: Totaal
       total_items: TOTAAL ITEMEN
@@ -1325,6 +1353,11 @@ nl_BE:
     schedules:
       destroy:
         associated_subscriptions_error: Deze planning kan niet verwijderd worden omdat er abonnementen aan verbonden zijn.
+    user_invitations:
+      new:
+        back: achterstevoren
+        email: E-mail
+        invite: 'Uitnodigen '
     vouchers:
       new:
         back: achterstevoren
@@ -1335,6 +1368,9 @@ nl_BE:
         stripe_connect_cancelled: "Koppelen met Stripe werd geannuleerd."
         stripe_connect_success: "Je stripe-account werd succesvol gekoppeld"
         stripe_connect_fail: Sorry, het koppelen met je Stripe-account mislukte
+        remove_logo_success: "Logo succesvol verwijderd"
+        remove_promo_image_success: "Promo afbeelding succesvol verwijderd"
+        remove_white_label_logo_success: "Logo succesvol verwijderd"
       stripe_connect_settings:
         resource: Stripe Koppelingsconfiguratie
   api:
@@ -1409,8 +1445,8 @@ nl_BE:
       cart_sidebar:
         checkout: "Kassa"
         edit_cart: "Winkelwagen aanpassen"
-        items_in_cart_singular: "%{num}items in uw winkelkwagentje"
-        items_in_cart_plural: "%{num}items in uw winkelkwagentje"
+        items_in_cart_singular: "%{num} items in uw winkelwagentje"
+        items_in_cart_plural: "%{num} items in uw winkelwagentje"
         close: "Sluit"
         cart_empty: "Uw winkelwagen is leeg"
         take_me_shopping: "Neem me shoppen!"
@@ -1550,7 +1586,6 @@ nl_BE:
   label_account: "Account"
   label_more: "Toon meer"
   label_less: "Toon minder"
-  label_notices: "Info"
   cart_items: "Artikels"
   cart_headline: "Je winkelwagentje"
   total: "Totaal"
@@ -1586,7 +1621,6 @@ nl_BE:
       essential_cookies_note: "De meeste cookies bevatten slechts een uniek identificatienummer, maar geen andere gegevens, dus je e-mailadres en wachtwoord worden bijvoorbeeld niet gebruikt en worden dus ook niet blootgesteld."
       cookie_domain: "Ingesteld Door:"
       cookie_session_desc: "Wordt gebruikt om we website toe te laten de gebruikers te onthouden tussen paginabezoeken, bijvoorbeeld, het onthouden van artikels in je winkelwagentje."
-      cookie_consent_desc: "Gebruikt om de toestand van de gebruikers toestemming om cookies te bewaren"
       cookie_remember_me_desc: "Wordt gebruikt indien de gebruiker heeft ingesteld dat de website hem mag onthouden. Deze cookie wordt na 12 dagen automatisch verwijderd. Indine je als gebruiker wil dat deze cookie wordt verwijderd, dan hoef je slechts uit te loggen. Als je niet wil dat deze cookie geïnstalleerd wordt op je computer dan moet je het vakje 'onthoudt me' niet aanvinken wanneer je inlogt."
       cookie_openstreemap_desc: "Gebruikt door onze bevriende opensource kaartaanbieder (OpenStreetMap) om te verzekeren dat ze niet te veel aanvragen krijgen gedurende een bepaalde tijdsperiode, en zo te verhinderen dat er misbruik wordt gemaakt van hun diensten."
       cookie_stripe_desc: "Gegevens verzamelt door onze betalingsverwerker Stripe voor fraudedetectie https://stripe.com/cookies-policy/legal. Niet alle winkels gebruiken Stripe als een betaalmethode maar het is een goede manier om te verhinderen dat er gefraudeerd wordt op alle webpagina's. Waarschijnlijk heeft Stripe een idee welke van onze pagina's vaak met hun API interageren en signaleren dan zo ongebruikelijke activiteit. Dus het instellen van de Stripe cookie heeft een ruimer nut dan enkel het voorzien van een betaalmethode naar een gebruiker. De cookie verwijderen kan dus een invloed hebben op de veiligheid van de dienst zelf. Je kan meer te weten komen over Stripe en hun privacy beleid op https://stripe.com/privacy."
@@ -1604,13 +1638,6 @@ nl_BE:
       disabling_cookies_ie_link: "https://support.microsoft.com/nl-be/help/17442/windows-internet-explorer-delete-manage-cookies"
       disabling_cookies_safari_link: "https://support.apple.com/nl-be/guide/safari/sfri11471/mac"
       disabling_cookies_note: "Maar wees je er van bewust dat wannneer je essentiële cookies aanpast of verwijderd gebruikt door het Open Food Network, de website niet zal werken, je zal dan niets kunnen toevoegen aan je winkelwagentje of verder gaan naar de kassa bijvoorbeeld."
-    cookies_banner:
-      cookies_usage: "Deze site maakt gebruikt van cookies om navigatie vlot en veilig te maken, en om ons te helpen begrijpen hoe we de toepassingen die we aanbieden in de toekomst te verbeteren."
-      cookies_definition: "Cookies zijn héél kleine tekstbestandjes die opgeslagen worden op je computer wanneer je bepaalde websites bezoekt."
-      cookies_desc: "We gebruiken cookies hoofdzakelijk om te onthouden wie je bent wanneer op het portaal inlogt, of om in staat te zijn de artikels te onthouden die je aan je winkelwagentje hebt toegevoegd zelfs wanneer je niet ingelogd bent. Als je op de website blijft navigeren zonder geklikt te hebben op 'Accepteer cookies', dan veronderstellen we dat je ons de toestemming geeft om cookies te bewaren die essentieel zijn voor het functioneren van de website."
-      cookies_policy_link_desc: "Als je meer wil te weten komen, kijk eens naar onze"
-      cookies_policy_link: "cookie policy"
-      cookies_accept_button: "Aanvaard Cookies"
   home_shop: Winkel Nu
   brandstory_headline: "Zinvol voedsel"
   brandstory_intro: "De beste manier om een systeem te herstellen is om een nieuwe te starten..."
@@ -1621,12 +1648,11 @@ nl_BE:
   brandstory_part5_strong: "Wij noemen het Open Food Network."
   brandstory_part6: "We kunnen allemaal meewerken aan de opbouw van een eerlijker voedselsysteem dat de mensheid respecteert en de planeet in stand houdt."
   system_headline: "Winkelen - dit is hoe het werkt."
-  system_step1: "1. Zoek"
-  system_step1_text: "Zoek in onze uitgebreide, onafhankelijke winkels voor lokale seizoenswaren. Zoek op basis van buurt-en-voedselcategorie, of indien je levering of ophaling verkiest. "
-  system_step2: "2. Winkel"
-  system_step2_text: "Vorm je aankopen om met betaalbaar en lokaal eten van uitgebreide producenten en hubs. Leer het verhaal achter je eten kennen en de mensen die het maakten."
-  system_step3: "3. Ophalen / Leveren"
-  system_step3_text: "Wacht een poosje voor je levering, of bezoek de producten of hub voor een persoonlijke touch met je eten. Voedsel scoren zo divers als de natuur het in gedachten had."
+  system_step1_html: "1. Zoek"
+  system_step2_html: "2. Winkel"
+  system_step2_text_html: "Vorm je aankopen om met betaalbaar en lokaal eten van uitgebreide producenten en hubs. Leer het verhaal achter je eten kennen en de mensen die het maakten."
+  system_step3_html: "3. Ophalen / Leveren"
+  system_step3_text_html: "Wacht een poosje voor je levering, of bezoek de producten of hub voor een persoonlijke touch met je eten. Voedsel scoren zo divers als de natuur het in gedachten had."
   cta_headline: "Winkelen op een manier zodat de wereld er beter van wordt."
   cta_label: "Ik ben Klaar"
   stats_headline: "We bouwen een nieuw voedsel systeem."
@@ -1662,6 +1688,7 @@ nl_BE:
   order_not_paid: NIET BETAALD
   order_total: Totale bestelling
   order_payment: "Betalingswijze:"
+  customer_credit: Krediet
   order_billing_address: 'Facturatie-adres:'
   order_delivery_on: Levering op
   order_delivery_address: Leveringsadres
@@ -1687,10 +1714,8 @@ nl_BE:
   email_confirmed: "Bedankt om je E-mailadres te bevestigen."
   email_confirmation_activate_account: "Voor we je nieuwe account kunnen activeren, moet je je E-mailadres bevestigen."
   email_confirmation_greeting: "Hallo, %{contact}!"
-  email_confirmation_profile_created: "Het profiel aanmaken voor %{name} is goed gelukt! Om je Profiel te activeren moet je nu nog slechts je E-mailadres bevestigen."
   email_confirmation_click_link: "Klik alsjeblieft in de link hieronder om je E-mail te bevestigen en om verder te gaan met je profiel te vervolledigen."
   email_confirmation_link_label: "Bevestig dit E-mailadres »"
-  email_confirmation_help_html: "Na het bevestigen van je E-mailadres krijg je toegang tot je administratie-account voor deze onderneming. Bekijk de %{link} om meer te weten te komen over %{sitename} z'n toepassingen en om van start te gaan met je profiel of online winkel."
   email_confirmation_notice_unexpected: "Je krijgt dit bericht omdat je je inschreef op %{sitename}, of uitgenodigd was om in te schrijven door iemand die je waarschijnlijk kent. Als je niet begrijpt waarom je deze E-mail kreeg, contacteer dan alsjeblieft %{contact}."
   email_social: "Neem Contact met Ons op:"
   email_contact: "E-mail ons:"
@@ -2263,26 +2288,14 @@ nl_BE:
   spree_admin_enterprises_fees: "Ondernemingsvergoedingen"
   spree_admin_enterprises_none_create_a_new_enterprise: "MAAK EEN NIEUW BEDRIJF"
   spree_admin_enterprises_none_text: "Je hebt nog geen ondernemingen"
-  spree_admin_enterprises_tabs_hubs: "HUBS"
   spree_admin_enterprises_producers_manage_products: "BEHEER PRODUCTEN"
   spree_admin_enterprises_create_new_product: "MAAK EEN  NIEUW PRODUCT"
-  spree_admin_single_enterprise_alert_mail_confirmation: "Gelieve het e-mailadres te bevestigen voor"
-  spree_admin_single_enterprise_alert_mail_sent: "We hebben je een E-mail verzonden"
-  spree_admin_overview_action_required: "Actie Vereist"
-  spree_admin_overview_check_your_inbox: "Controleer alsjeblieft je inbox voor verdere instructies. Dankje!"
-  spree_admin_unit_value: Eenheid Waarde
-  spree_admin_unit_description: Eenheid Beschrijving
-  spree_admin_variant_unit: Variant eenheid
-  spree_admin_variant_unit_scale: ' Eénheidschaal  (g of L)'
   spree_admin_supplier: Leverancier
-  spree_admin_product_category: Product categorie
-  spree_admin_variant_unit_name: Naam van het stuk (indien per stuk verkocht)
   unit_name: "Unit naam"
   change_package: "Wijzig je Packet"
   spree_admin_single_enterprise_hint: "Hint: Om het voor mensen mogelijk te maken je te vinden, zet je zichtbaarheid aan"
   spree_admin_eg_pickup_from_school: "bv. 'Ophaling op een basisschool'"
   spree_admin_eg_collect_your_order: "bv. 'Verzamel alsjeblieft je bestelling op de stationsstraat 123, 9000 Gent'"
-  spree_classification_primary_taxon_error: "Taxon %{taxon} is de eerste taxon van %{product} en kan niet verwijderd worden."
   spree_order_availability_error: "De verdeler of de bestelcyclus kan de producten in je winkelwagentje niet toevoegen"
   spree_order_populator_error: "De verdeler of de bestelcyclus kan al de producten in je winkelwagentje niet toevoegen. Gelieve een andere te kiezen."
   spree_order_populator_availability_error: "Dit produkt is niet toegelaten op de gekozen verdeler of bestelcyclus."
@@ -2368,7 +2381,6 @@ nl_BE:
   report_header_paid: Betaald?
   report_header_delivery: Levering?
   report_header_shipping: Verzending
-  report_header_shipping_method: Het verschepen Methode
   report_header_shipping_instructions: Verzendingsinstructie
   report_header_ship_street: Verzending Straat
   report_header_ship_street_2: Verzend Straat 2
@@ -2413,6 +2425,7 @@ nl_BE:
   report_header_quantity: Kwantiteit
   report_header_max_quantity: Maximale Hoeveelheid
   report_header_variant: Variant
+  report_header_variant_unit_name: Variant Unit Name
   report_header_variant_value: Eénheidsaantal
   report_header_variant_unit: Eénheid
   report_header_total_available: Totaal beschikbaar
@@ -2482,6 +2495,8 @@ nl_BE:
   report_header_total_excl_vat: "Totaal excl. belastingen (%{currency_symbol}) "
   report_header_total_incl_vat: "Totaal incl. belastingen(%{currency_symbol}) "
   report_header_temp_controlled: Onder gecontroleerde temperatuur ?
+  report_header_shipment_state: "Status Verzending"
+  report_header_shipping_method: "Het verschepen Methode"
   report_header_is_producer: Producent?
   report_header_not_confirmed: Niet bevestigd
   report_header_gst_on_income: BTW
@@ -2563,7 +2578,7 @@ nl_BE:
   order_cycles_no_permission_to_coordinate_error: "Geen van uw bedrijven heeft de vereiste rechten om een verkoopcyclus te coördineren"
   order_cycles_no_permission_to_create_error: "U bezit de vereiste rechten niet om een bestelcyclus te maken die gecoördineerd wordt door dat bedrijf"
   order_cycle_closed: "De hub die u hebt geselecteerd is tijdelijk gesloten. Probeer gerust later terug."
-  back_to_orders_list: "Terug naar de bestellijst"
+  back_to_orders_list: "Terug naar de bestellingslijst"
   no_orders_found: "Geen bestelling gevonden"
   order_information: "Info bestelling"
   new_payment: "Nieuwe betaling"
@@ -2573,6 +2588,7 @@ nl_BE:
     ready: Klaar
     pending: In afwachting
     shipped: Verzonden
+  business_name: Bedrijfsnaam
   js:
     saving: 'Aan het opslaan'
     changes_saved: 'Veranderingen bewaard.'
@@ -2726,18 +2742,6 @@ nl_BE:
           select_all_variants: "Selecteer alle%{total_number_of_variants}Varianten"
           variants_loaded: "%{num_of_variants_loaded} of %{total_number_of_variants}Variante laden"
           loading_variants: "Laad varianten"
-      tag_rules:
-        shipping_method_tagged_top: "Verzendmethoden getagd"
-        shipping_method_tagged_bottom: "zijn:"
-        payment_method_tagged_top: "Betaalmethoden getagged"
-        payment_method_tagged_bottom: "zijn:"
-        order_cycle_tagged_top: "Bestel Cycles getagd"
-        order_cycle_tagged_bottom: "zijn:"
-        inventory_tagged_top: "Inventarisatievarianten getagd"
-        inventory_tagged_bottom: "zijn:"
-      new_tag_rule_dialog:
-        select_rule_type: "Selecteer een regel : "
-        add_rule: "Regel toevoegen"
       enterprise_fees:
         inherit_from_product: "Overnemen van product"
       orders:
@@ -2810,13 +2814,6 @@ nl_BE:
         error_saving: "Fout bij het opslaan van uw abonnement."
         new:
           please_select_a_shop: "Selecteer een winkel"
-      enterprises:
-        form:
-          images:
-            removed_logo_successfully: "Logo succesvol verwijderd"
-            immediate_logo_removal_warning: "Het logo wordt onmiddellijk na uw bevestiging verwijderd."
-            removed_promo_image_successfully: "Promo afbeelding succesvol verwijderd"
-            immediate_promo_image_removal_warning: "De promo afbeelding wordt onmiddellijk na bevestiging verwijderd."
     insufficient_stock: "Onvoldoende voorraad beschikbaar, alleen %{on_hand}resterend"
     out_of_stock:
       reduced_stock_available: Stock beschikbaar
@@ -2824,7 +2821,7 @@ nl_BE:
           Tijdens uw aankoop is de beschikbaarheid van de stock voor ééen of meerdere
           van uw produkten  onvoldoende. Ziehier de wijzigingen :
       now_out_of_stock: is niet meer in stock
-      only_n_remainging: "%{num}blijven over."
+      only_n_remaining: "%{num}blijven over."
     shopfront:
       variant:
         add_to_cart: "Voeg toe"
@@ -2851,13 +2848,6 @@ nl_BE:
       some_trouble: "Is niet kunnen opgeslaan worden : %{errors}"
       changing_on_hand_stock: Wijziging  stockpeil in gang...
       stock_reset: Stocks standaard reset
-    tag_rules:
-      show_hide_variants: 'Toon of schuil varianten in mijn winkel'
-      show_hide_shipping: 'Toon of schuil de leveringswijzes aan het einde van de bestelling'
-      show_hide_payment: 'Toon of schuil de betalingswijzes aan het einde van de bestelling'
-      show_hide_order_cycles: 'Toon of schuil de bestelcycli in mijn winkel'
-      visible: ZICHTBAAR
-      not_visible: NIET ZICHTBAAR
     services:
       unsaved_changes_message: 'Wijzigingen blijven niet opgeslaan, nu opslaan of overslaan '
       save: Opslaan
@@ -2873,6 +2863,8 @@ nl_BE:
           Deze handeling zet het stockpeil op nul
           bedrijf voor de produkten niet aanwezig in deze file
     order_cycles:
+      unsaved_changes: "U heeft niet opgeslagen wijzigingen"
+      bulk_save_error: "Ah nee! Ik kon onmogelijk uw wijzigingen opslaan."
       create_failure: "Het maken van de bestelcyclus is mislukt"
       update_success: 'Uw bestelcyclus is bijgewerkt'
       update_failure: "De bijwerking van de bestelcyclus is mislukt"
@@ -2895,6 +2887,9 @@ nl_BE:
       signup_or_login: "Start door te registreren (of in te loggen)"
       have_an_account: "Heb je al een account?"
       action_login: "Log nu in."
+    trix:
+      code: "Code"
+      urlPlaceholder: "Voer een URL in om in te voegen"
   producers:
     signup:
       start_free_profile: "Eerst uw bedrijfsprofiel maken en wijzig de formule als U klaar bent !"
@@ -2970,7 +2965,7 @@ nl_BE:
   account: "Account"
   logout: "Log uit"
   date_range: "Datumbereik"
-  status: "status"
+  status: "Status"
   new: "Nieuw"
   start: "Start"
   end: "Eind"
@@ -2984,6 +2979,7 @@ nl_BE:
     credit: "Krediet"
     more: "Meer"
     no_pending_payments: "Geen betaling in afhandeling"
+    remove: "Verwijderen"
     none: "Geen enkele"
     updating: "Updatend"
     your_order_is_empty_add_product: "Je bestelling is leeg, gelieve hierboven  een product te zoeken en toe te voegen "
@@ -3073,7 +3069,6 @@ nl_BE:
     tax_rate_amount_explanation: "BTW percentages zijn decimaal om de berekening gemakkelijker te maken, (bv. als de percentage 5% is dan 0.05 invoeren)"
     included_in_price: "In de prijs inbegrepen "
     show_rate_in_label: "Toon de percentahe op de label "
-    back_to_tax_rates_list: "Terug naar de lijst BTW percentages"
     tax_settings: "Belastings Instellingen"
     zones: "Zones "
     new_zone: "Nieuwe zone"
@@ -3086,14 +3081,11 @@ nl_BE:
     iso_name: "ISO Naam"
     states_required: "Staten Vereist"
     editing_country: "Editing Land"
-    back_to_countries_list: "Terug naar landenlijst"
     states: "Provincies"
     abbreviation: "Afkortingen "
     new_state: "Nieuw Provincie"
     payment_methods: "Betalingsmethode"
-    taxonomies: "Taxonomies "
-    new_taxonomy: "Nieuwe taxonomie "
-    back_to_taxonomies_list: "Terug naar de lijst Taxonomies"
+    taxons: "Productcategorieën"
     shipping_methods: "Methode Verzending"
     shipping_method: "Het verschepen Methode"
     shipment: "Verzending"
@@ -3169,6 +3161,9 @@ nl_BE:
           header:
             store: Zicht koper
     admin:
+      images:
+        edit:
+          close: achterstevoren
       subscriptions:
         number: "Nummer"
       tab:
@@ -3177,6 +3172,7 @@ nl_BE:
         bulk_order_management: "Beheer van bulkorders"
         subscriptions: "Abonnementen"
         products: "Producten"
+        products_v3: "Producten"
         option_types: "Optietypen"
         properties: "Eigenschappen"
         variant_overrides: "Inventarisatie"
@@ -3189,6 +3185,10 @@ nl_BE:
         enterprise_relationships: "Toelatingen"
         customers: "Klanten"
         groups: "Groepen"
+        overview: "Overzicht"
+        product_import: "Importeren"
+        enterprise_roles: "Rollen"
+        payment_methods: "Betalingsmethode"
       product_properties:
         index:
           inherits_properties_checkbox_hint: "De kenmerken van 1%{supplier} krijgen ? (niet ter toepassing in geval van invoer van de vervanging)"
@@ -3219,7 +3219,6 @@ nl_BE:
           continue: "Ga verder"
         new:
           new_return_authorization: "Nieuwe terugkeer goedkeuring"
-          back_to_return_authorizations_list: "Terug naar goedkeuringslijst"
           continue: "Ga verder"
         edit:
           receive: "Ontvangst"
@@ -3434,8 +3433,6 @@ nl_BE:
       reports:
         table:
           select_and_search: "Selecteer de filters en klik op 1%{option} om uw gegevens tebereiken"
-        customer_names_message:
-          customer_names_tip: "Als klanten namen verstopt zijn voor bestelingen dat u heb geleverd, dan kunt u de distibuteur contacteren en vragen of ze hun shop voorkeur kunnen bijwerken zodat de leveranciers de namen van de klanten kan zien."
       users:
         index:
           listing_users: "Advertentiegebruikers"
@@ -3450,7 +3447,6 @@ nl_BE:
           general_settings: "Algemene instellingen"
         form:
           email: "Email"
-          roles: "Rollen"
           enterprise_limit: "Max aantal bedrijven"
           confirm_password: "Bevestig Wachtwoord"
           password: "Wachtwoord"
@@ -3472,12 +3468,14 @@ nl_BE:
           new_variant: "Nieuw variant"
         form:
           sku: "SKU"
-          price: "Prijs"
           unit_price: "Stukprijs"
           display_as: "Weergeven als"
           display_name: "Weergave naam"
           display_as_placeholder: 'bv. 2.kg'
           display_name_placeholder: 'bv. Tomaten'
+          unit: Unit
+          price: Prijs
+          variant_category: Categorie
         autocomplete:
           out_of_stock: "Geen voorraad"
           producer_name: "Producent"
@@ -3485,6 +3483,7 @@ nl_BE:
       shared:
         sortable_header:
           name: "Naam"
+          on_hand: "Bij de Hand"
           number: "Nummer"
           completed_at: "Voltooid op"
           state: "Staat"
@@ -3494,14 +3493,14 @@ nl_BE:
           total: "Totaal"
           billing_address_name: "Naam"
       taxons:
+        index:
+          title: "Productcategorieën"
         form:
           name: Naam
-          permalink: Permalink
           description: Beschrijving
       general_settings:
         edit:
           legal_settings: "De legale instelling"
-          cookies_consent_banner_toggle: "Laat de strook met uw akkoord voor de cookies zien"
           privacy_policy_url: "Privacybeleid URL"
           enterprises_require_tos: "Debedrijven moeten de Algemene gebruiksvoorwaarden aanvaarden"
           cookies_policy_matomo_section: "Geef Matomosectie weer op cookiesprivacypagina"
@@ -3633,6 +3632,10 @@ nl_BE:
         past_orders: Vorige bestellingen
       transactions:
         transaction_history: 'Historiek van de transacties '
+      customer_account_transactions:
+        description: Beschrijving
+        amount: Bedrag
+        running_balance: Lopend saldo
       open_orders:
         order: Bestelling
         shop: winkel
@@ -3677,7 +3680,6 @@ nl_BE:
       key_cleared: "Sleutel gewist"
       shipment:
         cannot_ready: "Kan levering niet klaarmaken"
-      invalid_taxonomy_id: "Onjuiste taxonomie id."
   components:
     search_input:
       placeholder: Zoeken
@@ -3686,3 +3688,25 @@ nl_BE:
     pagination:
       next: Volgende
       previous: Voorgaande
+    tag_list_input:
+      default_placeholder: Voeg een tag toe
+    tag_rule_form:
+      tag_rules:
+        shipping_method_tagged_top: "Verzendmethoden getagd"
+        shipping_method_tagged_bottom: "zijn:"
+        payment_method_tagged_top: "Betaalmethoden getagged"
+        payment_method_tagged_bottom: "zijn:"
+        order_cycle_tagged_top: "Bestel Cycles getagd"
+        order_cycle_tagged_bottom: "zijn:"
+        inventory_tagged_top: "Inventarisatievarianten getagd"
+        inventory_tagged_bottom: "zijn:"
+        variant_tagged_bottom: "zijn:"
+        visible: ZICHTBAAR
+        not_visible: NIET ZICHTBAAR
+    tag_rule_group_form:
+      for_customers_tagged: 'Voor de gelabelde klanten:'
+      add_new_rule: '+ Voeg een nieuwe regel toe'
+      no_rules_yet: Er zijn nog geen regels van toepassing op deze regel
+    add_tag_rule_modal:
+      select_rule_type: "Selecteer een regel : "
+      add_rule: "Regel toevoegen"

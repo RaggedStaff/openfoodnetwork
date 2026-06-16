@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Checkout::PaymentMethodFetcher do
+RSpec.describe Checkout::PaymentMethodFetcher do
   let!(:order) { create(:completed_order_with_totals) }
   let(:payment1) { build(:payment, order:) }
   let(:payment2) { build(:payment, order:) }

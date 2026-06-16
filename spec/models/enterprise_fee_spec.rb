@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe EnterpriseFee do
+RSpec.describe EnterpriseFee do
   describe "associations" do
     it { is_expected.to belong_to(:enterprise).required }
     it { is_expected.to belong_to(:tax_category).optional }
@@ -47,7 +45,7 @@ describe EnterpriseFee do
           )
           expect(subject.save).to eq false
           expect(subject.errors.full_messages.first).to eq(
-            "Inheriting the tax categeory requires a per-item calculator."
+            "Inheriting the tax category requires a per-item calculator."
           )
         end
       end
@@ -142,37 +140,22 @@ describe EnterpriseFee do
     end
   end
 
-  describe "clearing all enterprise fee adjustments on an order" do
-    it "clears adjustments from many fees and on all line items" do
-      order_cycle = create(:order_cycle)
-      order = create(:order, order_cycle:)
-      line_item1 = create(:line_item, order:, variant: order_cycle.variants.first)
-      line_item2 = create(:line_item, order:, variant: order_cycle.variants.second)
-
-      order_cycle.coordinator_fees[0].create_adjustment('foo1', line_item1.order, true)
-      order_cycle.coordinator_fees[0].create_adjustment('foo2', line_item2.order, true)
-      order_cycle.exchanges[0].enterprise_fees[0].create_adjustment('foo3', line_item1, true)
-      order_cycle.exchanges[0].enterprise_fees[0].create_adjustment('foo4', line_item2, true)
-
-      expect do
-        EnterpriseFee.clear_all_adjustments order
-      end.to change { order.all_adjustments.count }.by(-4)
-    end
+  describe ".clear_order_adjustments" do
+    let(:order_cycle) { create(:order_cycle) }
+    let(:order) { create(:order, order_cycle:) }
 
     it "clears adjustments from per-order fees" do
-      order = create(:order)
       enterprise_fee = create(:enterprise_fee)
       enterprise_fee_aplicator = OpenFoodNetwork::EnterpriseFeeApplicator.new(enterprise_fee, nil,
                                                                               'coordinator')
       enterprise_fee_aplicator.create_order_adjustment(order)
 
       expect do
-        EnterpriseFee.clear_all_adjustments order
+        described_class.clear_order_adjustments order
       end.to change { order.adjustments.count }.by(-1)
     end
 
     it "does not clear adjustments from another originator" do
-      order = create(:order)
       tax_rate = create(:tax_rate, calculator: build(:calculator))
       order.adjustments.create({ amount: 12.34,
                                  originator: tax_rate,
@@ -180,8 +163,27 @@ describe EnterpriseFee do
                                  label: 'hello' })
 
       expect do
-        EnterpriseFee.clear_all_adjustments order
+        described_class.clear_order_adjustments order
       end.to change { order.adjustments.count }.by(0)
+    end
+
+    it "doesn't clear adjustments from many fees and on all line items" do
+      line_item1 = create(:line_item, order:, variant: order_cycle.variants.first)
+      line_item2 = create(:line_item, order:, variant: order_cycle.variants.second)
+
+      # Order adjustment
+      fee1 = order_cycle.coordinator_fees[0].create_adjustment('foo1', line_item1.order, true)
+      fee2 = order_cycle.coordinator_fees[0].create_adjustment('foo2', line_item2.order, true)
+      # Line item adjustment
+      fee3 = order_cycle.exchanges[0].enterprise_fees[0].create_adjustment('foo3', line_item1, true)
+      fee4 = order_cycle.exchanges[0].enterprise_fees[0].create_adjustment('foo4', line_item2, true)
+
+      described_class.clear_order_adjustments order
+
+      adjustments = order.all_adjustments
+      # does not clear line item adjustments
+      expect(adjustments).not_to include(fee1, fee2)
+      expect(adjustments).to include(fee3, fee4)
     end
   end
 
@@ -196,7 +198,7 @@ describe EnterpriseFee do
     end
 
     it "soft-deletes the enterprise fee" do
-      expect(enterprise_fee.deleted_at).to_not be_nil
+      expect(enterprise_fee.deleted_at).not_to be_nil
     end
 
     it "can be accessed by old adjustments" do

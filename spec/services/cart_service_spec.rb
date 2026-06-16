@@ -1,13 +1,11 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe CartService do
-  let(:order) { double(:order, id: 123) }
+RSpec.describe CartService do
+  let(:order) { instance_double(Spree::Order, id: 123) }
   let(:currency) { "EUR" }
   let(:params) { {} }
-  let(:distributor) { double(:distributor) }
-  let(:order_cycle) { double(:order_cycle) }
+  let(:distributor) { instance_double(Enterprise) }
+  let(:order_cycle) { instance_double(OrderCycle) }
   let(:cart_service) { CartService.new(order) }
 
   before do
@@ -116,63 +114,65 @@ describe CartService do
       variant_data = { variant_id: variant.id, quantity: 2 }
 
       expect(cart_service).to receive(:line_item_for_variant).with(variant).and_return(nil)
-      expect(cart_service.send(:varies_from_cart, variant_data, variant )).to be true
+      expect(cart_service.__send__(:varies_from_cart, variant_data, variant )).to be true
     end
 
     it "returns true when item is not in cart and a max_quantity is specified" do
       variant_data = { variant_id: variant.id, quantity: 0, max_quantity: 2 }
 
       expect(cart_service).to receive(:line_item_for_variant).with(variant).and_return(nil)
-      expect(cart_service.send(:varies_from_cart, variant_data, variant)).to be true
+      expect(cart_service.__send__(:varies_from_cart, variant_data, variant)).to be true
     end
 
     it "returns false when item is not in cart and no quantity or max_quantity are specified" do
       variant_data = { variant_id: variant.id, quantity: 0 }
 
       expect(cart_service).to receive(:line_item_for_variant).with(variant).and_return(nil)
-      expect(cart_service.send(:varies_from_cart, variant_data, variant)).to be false
+      expect(cart_service.__send__(:varies_from_cart, variant_data, variant)).to be false
     end
 
     it "returns true when quantity varies" do
       variant_data = { variant_id: variant.id, quantity: 2 }
-      line_item = double(:line_item, quantity: 1, max_quantity: nil)
+      line_item = instance_double(Spree::LineItem, quantity: 1, max_quantity: nil)
       allow(cart_service).to receive(:line_item_for_variant) { line_item }
 
-      expect(cart_service.send(:varies_from_cart, variant_data, variant)).to be true
+      expect(cart_service.__send__(:varies_from_cart, variant_data, variant)).to be true
     end
 
     it "returns true when max_quantity varies" do
       variant_data = { variant_id: variant.id, quantity: 1, max_quantity: 3 }
-      line_item = double(:line_item, quantity: 1, max_quantity: nil)
+      line_item = instance_double(Spree::LineItem, quantity: 1, max_quantity: nil)
       allow(cart_service).to receive(:line_item_for_variant) { line_item }
 
-      expect(cart_service.send(:varies_from_cart, variant_data, variant)).to be true
+      expect(cart_service.__send__(:varies_from_cart, variant_data, variant)).to be true
     end
 
     it "returns false when max_quantity varies only in nil vs 0" do
       variant_data = { variant_id: variant.id, quantity: 1 }
-      line_item = double(:line_item, quantity: 1, max_quantity: nil)
+      line_item = instance_double(Spree::LineItem, quantity: 1, max_quantity: nil)
       allow(cart_service).to receive(:line_item_for_variant) { line_item }
 
-      expect(cart_service.send(:varies_from_cart, variant_data, variant)).to be false
+      expect(cart_service.__send__(:varies_from_cart, variant_data, variant)).to be false
     end
 
     it "returns false when both are specified and neither varies" do
       variant_data = { variant_id: variant.id, quantity: 1, max_quantity: 2 }
-      line_item = double(:line_item, quantity: 1, max_quantity: 2)
+      line_item = instance_double(Spree::LineItem, quantity: 1, max_quantity: 2)
       allow(cart_service).to receive(:line_item_for_variant) { line_item }
 
-      expect(cart_service.send(:varies_from_cart, variant_data, variant)).to be false
+      expect(cart_service.__send__(:varies_from_cart, variant_data, variant)).to be false
     end
   end
 
   describe "attempt_cart_add" do
     let!(:variant) { create(:variant, on_hand: 250) }
     let(:quantity) { 123 }
+    let(:distributor) { create(:distributor_enterprise) }
 
     before do
       allow(Spree::Variant).to receive(:find).and_return(variant)
       allow(VariantOverride).to receive(:for).and_return(nil)
+      allow(order).to receive(:distributor).and_return(distributor)
     end
 
     it "performs additional validations" do
@@ -183,7 +183,7 @@ describe CartService do
       expect(order).to receive_message_chain(:contents, :update_or_create).
         with(variant, { quantity:, max_quantity: nil })
 
-      cart_service.send(:attempt_cart_add, variant, quantity)
+      cart_service.__send__(:attempt_cart_add, variant, quantity)
     end
 
     it "filters quantities through #final_quantities" do
@@ -196,7 +196,7 @@ describe CartService do
       expect(order).to receive_message_chain(:contents, :update_or_create).
         with(variant, { quantity: 5, max_quantity: 5 })
 
-      cart_service.send(:attempt_cart_add, variant, quantity, quantity)
+      cart_service.__send__(:attempt_cart_add, variant, quantity, quantity)
     end
 
     it "removes variants which have become out of stock" do
@@ -209,12 +209,12 @@ describe CartService do
       expect(cart_service).to receive(:cart_add).with(variant, 123, 123).and_call_original
       expect(order).to receive_message_chain(:contents, :remove).with(variant)
 
-      cart_service.send(:attempt_cart_add, variant, quantity, quantity)
+      cart_service.__send__(:attempt_cart_add, variant, quantity, quantity)
     end
   end
 
   describe "#final_quantities" do
-    let(:v) { double(:variant, on_hand: 10) }
+    let(:v) { instance_double(Spree::Variant, on_hand: 10) }
 
     context "when backorders are not allowed" do
       before do
@@ -223,24 +223,24 @@ describe CartService do
 
       context "getting quantity and max_quantity" do
         it "returns full amount when available" do
-          expect(cart_service.send(:final_quantities, v, 5, nil)).
+          expect(cart_service.__send__(:final_quantities, v, 5, nil)).
             to eq({ quantity: 5, max_quantity: nil })
         end
 
         it "returns a limited amount when not entirely available" do
-          expect(cart_service.send(:final_quantities, v, 15, nil)).
+          expect(cart_service.__send__(:final_quantities, v, 15, nil)).
             to eq({ quantity: 10, max_quantity: nil })
         end
       end
 
       context "when max_quantity is provided" do
         it "returns full amount when available" do
-          expect(cart_service.send(:final_quantities, v, 5, 6)).
+          expect(cart_service.__send__(:final_quantities, v, 5, 6)).
             to eq({ quantity: 5, max_quantity: 6 })
         end
 
         it "also returns the full amount when not entirely available" do
-          expect(cart_service.send(:final_quantities, v, 15, 16)).
+          expect(cart_service.__send__(:final_quantities, v, 15, 16)).
             to eq({ quantity: 10, max_quantity: 16 })
         end
       end
@@ -252,12 +252,12 @@ describe CartService do
       end
 
       it "does not limit quantity" do
-        expect(cart_service.send(:final_quantities, v, 15, nil)).
+        expect(cart_service.__send__(:final_quantities, v, 15, nil)).
           to eq({ quantity: 15, max_quantity: nil })
       end
 
       it "does not limit max_quantity" do
-        expect(cart_service.send(:final_quantities, v, 15, 16)).
+        expect(cart_service.__send__(:final_quantities, v, 15, 16)).
           to eq({ quantity: 15, max_quantity: 16 })
       end
     end
@@ -265,42 +265,46 @@ describe CartService do
 
   describe "validations" do
     describe "checking order cycle is provided for a variant, OR is not needed" do
-      let(:variant) { double(:variant) }
+      let(:variant) { instance_double(Spree::Variant) }
 
       it "returns false and errors when order cycle is not provided" do
-        expect(cart_service.send(:check_order_cycle_provided)).to be false
+        expect(cart_service.__send__(:check_order_cycle_provided)).to be false
         expect(cart_service.errors.to_a).to eq(["Please choose an order cycle for this order."])
       end
 
       it "returns true when order cycle is provided" do
-        cart_service.instance_variable_set :@order_cycle, double(:order_cycle)
-        expect(cart_service.send(:check_order_cycle_provided)).to be true
+        cart_service.instance_variable_set :@order_cycle, instance_double(OrderCycle)
+        expect(cart_service.__send__(:check_order_cycle_provided)).to be true
       end
     end
 
     describe "checking variant is available under the distributor" do
-      let(:product) { double(:product) }
-      let(:variant) { double(:variant, product:) }
-      let(:order_cycle_distributed_variants) { double(:order_cycle_distributed_variants) }
+      let(:product) { instance_double(Spree::Product) }
+      let(:variant) { instance_double(Spree::Variant, product:) }
+      let(:order_cycle_distributed_variants) {
+        instance_double(OrderCycles::DistributedVariantsService)
+      }
 
       before do
-        expect(OrderCycleDistributedVariants)
+        expect(OrderCycles::DistributedVariantsService)
           .to receive(:new).with(234, 123).and_return(order_cycle_distributed_variants)
         cart_service.instance_eval { @distributor = 123; @order_cycle = 234 }
       end
 
-      it "delegates to OrderCycleDistributedVariants, returning true when available" do
+      it "delegates to OrderCycles::DistributedVariantsService, returning true when available" do
         expect(order_cycle_distributed_variants).to receive(:available_variants)
           .and_return([variant])
 
-        expect(cart_service.send(:check_variant_available_under_distribution, variant)).to be true
+        expect(cart_service.__send__(:check_variant_available_under_distribution,
+                                     variant)).to be true
         expect(cart_service.errors).to be_empty
       end
 
-      it "delegates to OrderCycleDistributedVariants, returning false and erroring otherwise" do
+      it "delegates to OrderCycles::DistributedVariantsService, returns false - error otherwise" do
         expect(order_cycle_distributed_variants).to receive(:available_variants).and_return([])
 
-        expect(cart_service.send(:check_variant_available_under_distribution, variant)).to be false
+        expect(cart_service.__send__(:check_variant_available_under_distribution,
+                                     variant)).to be false
         expect(cart_service.errors.to_a)
           .to eq(["That product is not available from the chosen distributor or order cycle."])
       end

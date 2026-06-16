@@ -2,14 +2,27 @@
 
 DfcProvider::Engine.routes.draw do
   resources :addresses, only: [:show]
-  resources :enterprises, only: [:show] do
+  resources :enterprises, only: [:index, :show] do
     resources :catalog_items, only: [:index, :show, :update]
     resources :offers, only: [:show, :update]
+    resources :platforms, only: [:index, :show, :update]
     resources :supplied_products, only: [:create, :show, :update]
     resources :social_medias, only: [:show]
   end
   resources :enterprise_groups, only: [:index, :show] do
     resources :affiliated_by, only: [:create, :destroy], module: 'enterprise_groups'
   end
-  resources :persons, only: [:show]
+  resources :events, only: [:create]
+  resources :organizations, only: [:index, :show]
+  resources :persons, only: [:show] do
+    get :webid, to: "webids#user_webid"
+    get :prefs
+    get :private_type_index
+  end
+  resources :supplied_products, only: [:index]
+  resources :product_groups, only: [:show]
+
+  resource :webid, only: [:show]
+
+  resource :affiliate_sales_data, only: [:show]
 end

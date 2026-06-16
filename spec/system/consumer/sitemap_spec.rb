@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe 'sitemap' do
+RSpec.describe 'sitemap' do
   let(:enterprise) { create(:distributor_enterprise) }
   let!(:group) { create(:enterprise_group, enterprises: [enterprise], on_front_page: true) }
 
@@ -12,8 +12,6 @@ describe 'sitemap' do
     expect(page.source).to have_content return_page(group_url(group))
   end
 end
-
-private
 
 def return_page(website)
   # routing does not include the port of the session, this method adds it

@@ -9,6 +9,12 @@ module CheckoutCallbacks
     # Otherwise we fail on duplicate indexes or end up with negative stock.
     prepend_around_action CurrentOrderLocker, only: [:edit, :update]
 
+    # We want to download the latest stock data before anything else happens.
+    # We don't want it to be in the same database transaction as the order
+    # locking because this action locks a different set of variants and it
+    # could cause race conditions.
+    prepend_around_action :sync_stock, only: :update
+
     prepend_before_action :check_hub_ready_for_checkout
     prepend_before_action :check_order_cycle_expiry
     prepend_before_action :require_order_cycle
@@ -19,11 +25,18 @@ module CheckoutCallbacks
 
     before_action :ensure_order_not_completed
     before_action :ensure_checkout_allowed
-    before_action :handle_insufficient_stock
     before_action :check_authorization
   end
 
   private
+
+  def sync_stock
+    if current_order&.state == "confirmation"
+      StockSyncJob.sync_linked_catalogs_now(current_order)
+    end
+
+    yield
+  end
 
   def load_order
     @order = current_order
@@ -31,11 +44,13 @@ module CheckoutCallbacks
     @order.checkout_processing = true
 
     redirect_to(main_app.shop_path) && return if redirect_to_shop?
+
     redirect_to_cart_path && return unless valid_order_line_items?
   end
 
   def load_saved_addresses
-    finder = OpenFoodNetwork::AddressFinder.new(@order.email, @order.customer, spree_current_user)
+    finder = OpenFoodNetwork::AddressFinder.new(email: @order.email, customer: @order.customer,
+                                                user: spree_current_user)
 
     @order.bill_address ||= finder.bill_address
     @order.ship_address ||= finder.ship_address
@@ -61,12 +76,6 @@ module CheckoutCallbacks
         render json: { path: main_app.cart_path }, status: :bad_request
       end
     end
-  end
-
-  def valid_order_line_items?
-    @order.insufficient_stock_lines.empty? &&
-      OrderCycleDistributedVariants.new(@order.order_cycle, @order.distributor).
-        distributes_order_variants?(@order)
   end
 
   def ensure_order_not_completed

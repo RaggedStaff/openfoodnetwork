@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 module Spree
   module Admin
-    describe TaxRatesController, type: :controller do
+    RSpec.describe TaxRatesController do
       include AuthenticationHelper
 
       let!(:default_tax_zone) { create(:zone, default_tax: true) }
@@ -27,7 +25,7 @@ module Spree
             it "updates the record" do
               expect {
                 spree_put :update, id: tax_rate.id, tax_rate: params
-              }.to_not change{ Spree::TaxRate.with_deleted.count }
+              }.not_to change{ Spree::TaxRate.with_deleted.count }
 
               expect(response).to redirect_to spree.admin_tax_rates_url
               expect(tax_rate.reload.name).to eq "Updated Rate"

@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe ProductImport::EntryProcessor do
+RSpec.describe ProductImport::EntryProcessor do
   let(:importer) { double(:importer) }
   let(:validator) { double(:validator) }
   let(:import_settings) { double(:import_settings) }
@@ -147,6 +145,52 @@ describe ProductImport::EntryProcessor do
     context 'when ResetAbsent was not called' do
       it 'returns 0' do
         expect(entry_processor.products_reset_count).to eq(0)
+      end
+    end
+  end
+
+  describe "#count_existing_items" do
+    let(:settings) { instance_double(ProductImport::Settings, importing_into_inventory?: false) }
+    let(:editable_enterprises) do
+      {
+        "#{supplier1.name}": supplier1.id,
+        "#{supplier2.name}": supplier2.id
+      }
+    end
+    let(:supplier1) { create(:supplier_enterprise) }
+    let(:supplier2) { create(:supplier_enterprise) }
+    let!(:products) { create_list(:simple_product, 3, supplier_id: supplier1.id) }
+
+    before do
+      allow(ProductImport::Settings).to receive(:new) { settings }
+
+      enterprises = {
+        "#{supplier1.name}": { id: supplier1.id },
+        "#{supplier2.name}": { id: supplier2.id }
+      }
+      allow(spreadsheet_data).to receive(:enterprises_index).and_return(enterprises)
+
+      create_list(:simple_product, 2, supplier_id: supplier2.id)
+    end
+
+    it "returns the total of existing variants for the given enterprises" do
+      entry_processor.count_existing_items
+
+      expect(entry_processor.total_enterprise_products).to eq(5)
+    end
+
+    context "when importing into inventory" do
+      let(:settings) { instance_double(ProductImport::Settings, importing_into_inventory?: true) }
+
+      it "returns the total of existing variant override for the given enterprises" do
+        products.each do |p|
+          variant = p.variants.first
+          create(:variant_override, variant:, hub: variant.supplier)
+        end
+
+        entry_processor.count_existing_items
+
+        expect(entry_processor.total_enterprise_products).to eq(3)
       end
     end
   end

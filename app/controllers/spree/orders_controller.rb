@@ -9,7 +9,7 @@ module Spree
 
     layout 'darkswarm'
 
-    rescue_from ActiveRecord::RecordNotFound, with: :render_404
+    rescue_from ActiveRecord::RecordNotFound, with: :render404
     helper 'spree/orders'
 
     respond_to :html, :json
@@ -29,7 +29,10 @@ module Spree
       hide_ofn_navigation(@order.distributor)
     end
 
-    def show; end
+    def show
+      @paid_with_credit = @order.payments.customer_credit.sum(:amount)
+      @payment_total = @order.payment_total - @paid_with_credit.to_f
+    end
 
     def empty
       if @order = current_order
@@ -42,7 +45,7 @@ module Spree
     # Patching to redirect to shop if order is empty
     def edit
       @insufficient_stock_lines = @order.insufficient_stock_lines
-      @unavailable_order_variants = OrderCycleDistributedVariants.
+      @unavailable_order_variants = OrderCycles::DistributedVariantsService.
         new(current_order_cycle, current_distributor).unavailable_order_variants(@order)
 
       if @order.line_items.empty?
@@ -60,7 +63,7 @@ module Spree
       @insufficient_stock_lines = []
       @order = order_to_update
       unless @order
-        flash[:error] = t(:order_not_found)
+        flash[:error] = t(:order_not_updated)
         redirect_to(main_app.root_path) && return
       end
 
@@ -70,19 +73,20 @@ module Spree
         @order.recreate_all_fees! # Enterprise fees on line items and on the order itself
 
         # Re apply the voucher
-        VoucherAdjustmentsService.new(@order).update
-        @order.update_totals_and_states
+        OrderManagement::Order::Updater.new(@order).update_voucher
 
         if @order.complete?
           @order.update_payment_fees!
           @order.create_tax_charge!
         end
 
+        AmendBackorderJob.perform_later(@order) if @order.completed?
+
         respond_with(@order) do |format|
           format.html do
             if params.key?(:checkout)
               @order.next_transition.run_callbacks if @order.cart?
-              redirect_to main_app.checkout_step_path(@order.checkout_steps.first)
+              redirect_to main_app.checkout_step_path("address")
             elsif @order.complete?
               redirect_to main_app.order_path(@order)
             else
@@ -100,9 +104,9 @@ module Spree
 
     def cancel
       @order = Spree::Order.find_by!(number: params[:id])
-      authorize! :cancel, @order
+      authorize! :cancel, @order, session[:access_token]
 
-      if CustomerOrderCancellation.new(@order).call
+      if Orders::CustomerCancellationService.new(@order).call
         flash[:success] = I18n.t(:orders_your_order_has_been_cancelled)
       else
         flash[:error] = I18n.t(:orders_could_not_cancel)

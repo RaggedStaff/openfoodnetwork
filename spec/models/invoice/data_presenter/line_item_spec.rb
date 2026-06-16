@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Invoice::DataPresenter::LineItem do
+RSpec.describe Invoice::DataPresenter::LineItem do
   subject(:presenter) { described_class.new(data) }
 
   describe "#amount_with_adjustments_without_taxes" do

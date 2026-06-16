@@ -2,20 +2,17 @@
 
 require "system_helper"
 
-describe "As a consumer, I want to checkout my order" do
+RSpec.describe "As a consumer, I want to checkout my order" do
   include ShopWorkflow
   include CheckoutHelper
   include FileHelper
-  include StripeHelper
-  include StripeStubs
-  include PaypalHelper
   include AuthenticationHelper
 
   let!(:zone) { create(:zone_with_member) }
   let(:supplier) { create(:supplier_enterprise) }
   let(:distributor) { create(:distributor_enterprise, charges_sales_tax: true) }
   let(:product) {
-    create(:taxed_product, supplier:, price: 10, zone:, tax_rate_amount: 0.1)
+    create(:taxed_product, supplier_id: supplier.id, price: 10, zone:, tax_rate_amount: 0.1)
   }
   let(:variant) { product.variants.first }
   let!(:order_cycle) {
@@ -69,7 +66,7 @@ describe "As a consumer, I want to checkout my order" do
 
   before do
     add_enterprise_fee enterprise_fee
-    set_order order
+    pick_order order
 
     distributor.shipping_methods.push(shipping_methods)
   end
@@ -152,7 +149,7 @@ describe "As a consumer, I want to checkout my order" do
               before do
                 expect {
                   proceed_to_payment
-                }.to_not change {
+                }.not_to change {
                   user.reload.bill_address
                 }
               end
@@ -206,7 +203,7 @@ describe "As a consumer, I want to checkout my order" do
               before do
                 expect {
                   proceed_to_payment
-                }.to_not change {
+                }.not_to change {
                            user.reload.ship_address
                          }
               end
@@ -348,6 +345,43 @@ describe "As a consumer, I want to checkout my order" do
 
             expect(page).to have_field "shipping_method_#{free_shipping.id}", checked: false
             expect(page).to have_field "shipping_method_#{shipping_with_fee.id}", checked: false
+          end
+        end
+
+        context "wiht customer credit" do
+          let(:credit_amount) { 100.00 }
+          let(:customer) { create(:customer, user:, enterprise: distributor) }
+
+          before do
+            order.update(customer_id: customer.id)
+            order.update_totals_and_states
+
+            create(
+              :customer_account_transaction,
+              amount: credit_amount,
+              customer: order.customer,
+            )
+            visit checkout_step_path(:details)
+            fill_out_details
+            fill_out_billing_address
+            choose free_shipping.name
+            proceed_to_payment
+          end
+
+          it "adds a customer credit payment" do
+            credit_payment = order.payments.find_by(payment_method: Spree::PaymentMethod.customer_credit)
+            expect(credit_payment).not_to be_nil
+            expect(credit_payment.amount).to eq(10.00) # order.total is 10.00
+          end
+
+          context "when credit doesn't cover the whole order" do
+            let(:credit_amount) { 5.00 }
+
+            it "adds a customer credit payment using the remaining credit" do
+              credit_payment = order.payments.find_by(payment_method: Spree::PaymentMethod.customer_credit)
+              expect(credit_payment).not_to be_nil
+              expect(credit_payment.amount).to eq(5.00) # order.total is 10.00
+            end
           end
         end
       end

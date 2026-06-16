@@ -3,7 +3,7 @@
 require 'system_helper'
 require 'open_food_network/permissions'
 
-describe "Product Import" do
+RSpec.describe "Product Import" do
   include AdminHelper
   include AuthenticationHelper
   include WebHelper
@@ -24,23 +24,26 @@ describe "Product Import" do
   let!(:tax_category2) { create(:tax_category) }
   let!(:shipping_category) { create(:shipping_category) }
 
-  let!(:product) { create(:simple_product, supplier: enterprise2, name: 'Hypothetical Cake') }
+  let!(:product) { create(:simple_product, supplier_id: enterprise2.id, name: 'Hypothetical Cake') }
   let!(:variant) {
     create(:variant, product_id: product.id, price: '8.50', on_hand: 100, unit_value: '500',
-                     display_name: 'Preexisting Banana')
+                     display_name: 'Preexisting Banana', supplier: enterprise2)
   }
   let!(:product2) {
-    create(:simple_product, supplier: enterprise, on_hand: 100, name: 'Beans', unit_value: '500',
-                            description: '', primary_taxon_id: category.id)
+    create(:simple_product, supplier_id: enterprise.id, on_hand: 100, name: 'Beans',
+                            unit_value: '500', description: '', primary_taxon_id: category.id)
   }
   let!(:product3) {
-    create(:simple_product, supplier: enterprise, on_hand: 100, name: 'Sprouts', unit_value: '500')
+    create(:simple_product, supplier_id: enterprise.id, on_hand: 100, name: 'Sprouts',
+                            unit_value: '500')
   }
   let!(:product4) {
-    create(:simple_product, supplier: enterprise, on_hand: 100, name: 'Cabbage', unit_value: '500')
+    create(:simple_product, supplier_id: enterprise.id, on_hand: 100, name: 'Cabbage',
+                            unit_value: '500')
   }
   let!(:product5) {
-    create(:simple_product, supplier: enterprise2, on_hand: 100, name: 'Lettuce', unit_value: '500')
+    create(:simple_product, supplier_id: enterprise2.id, on_hand: 100, name: 'Lettuce',
+                            unit_value: '500')
   }
   let!(:variant_override) {
     create(:variant_override, variant_id: product4.variants.first.id, hub: enterprise2,
@@ -51,7 +54,7 @@ describe "Product Import" do
                               count_on_hand: 96)
   }
 
-  let(:shipping_category_id_str) { Spree::ShippingCategory.all.first.id.to_s }
+  let(:shipping_category_id_str) { Spree::ShippingCategory.first.id.to_s }
 
   describe "when importing products from uploaded file" do
     before do
@@ -78,33 +81,31 @@ describe "Product Import" do
       proceed_to_validation
 
       expect(page).to have_selector '.item-count', text: "2"
-      expect(page).to have_no_selector '.invalid-count'
+      expect(page).not_to have_selector '.invalid-count'
       expect(page).to have_selector '.create-count', text: "2"
-      expect(page).to have_no_selector '.update-count'
+      expect(page).not_to have_selector '.update-count'
 
       save_data
 
       expect(page).to have_selector '.created-count', text: '2'
-      expect(page).to have_no_selector '.updated-count'
+      expect(page).not_to have_selector '.updated-count'
 
       carrots = Spree::Product.find_by(name: 'Carrots')
       potatoes = Spree::Product.find_by(name: 'Potatoes')
-      expect(potatoes.supplier).to eq enterprise
-      expect(potatoes.on_hand).to eq 6
+      expect(potatoes.variants.first.supplier).to eq enterprise
+      expect(potatoes.variants.first.on_hand).to eq 6
       expect(potatoes.variants.first.price).to eq 6.50
       expect(potatoes.variants.first.import_date).to be_within(1.minute).of Time.zone.now
 
-      wait_until { page.find("a.button.view").present? }
-
       click_link 'Go To Products Page'
-
       expect(page).to have_content 'Bulk Edit Products'
-      wait_until { page.find("#p_#{potatoes.id}").present? }
-      expect(page).to have_field "product_name", with: carrots.name
-      expect(page).to have_field "product_name", with: potatoes.name
+
+      # displays product list
+      expect(page).to have_field("_products_2_name", with: carrots.name.to_s)
+      expect(page).to have_field("_products_5_name", with: potatoes.name.to_s)
     end
 
-    it "displays info about invalid entries but no save button if all items are invalid" do
+    it "displays info about invalid entries and no save button if any items are invalid" do
       csv_data = <<~CSV
         name, producer, category, on_hand, price, units, unit_type, shipping_category_id
         Carrots, User Enterprise, Vegetables, 5, 3.20, 500, g, #{shipping_category_id_str}
@@ -124,14 +125,14 @@ describe "Product Import" do
       proceed_to_validation
 
       expect(page).to have_selector '.item-count', text: "4"
-      expect(page).to have_selector '.invalid-count', text: "3"
-      expect(page).to have_selector ".create-count", text: "1"
-      expect(page).to have_no_selector '.update-count'
+      expect(page).to have_selector '.invalid-count', text: "2"
+      expect(page).to have_selector ".create-count", text: "2"
+      expect(page).not_to have_selector '.update-count'
 
-      expect(page).to have_no_selector 'input[type=submit][value="Save"]'
+      expect(page).not_to have_selector 'input[type=submit][value="Save"]'
     end
 
-    it "displays info about inconsistent variant unit names, within the same product" do
+    it "allows variants of the same product to have different variant unit names" do
       csv_data = <<~CSV
         name, producer, category, on_hand, price, units, unit_type, variant_unit_name, \
           shipping_category_id
@@ -147,12 +148,14 @@ describe "Product Import" do
       click_button 'Upload'
 
       proceed_to_validation
-      find('div.header-description', text: 'Items contain errors').click
-      expect(page).to have_content "Variant_unit_name must be the same for products " \
-                                   "with the same name"
-      expect(page).to have_content "Imported file contains invalid entries"
 
-      expect(page).to have_no_selector 'input[type=submit][value="Save"]'
+      expect(page).to have_selector '.item-count', text: "2"
+      expect(page).not_to have_selector '.invalid-count'
+      expect(page).to have_selector '.create-count', text: "2"
+
+      save_data
+
+      expect(page).to have_selector '.created-count', text: '2'
     end
 
     it "handles saving of named tax and shipping categories" do
@@ -173,12 +176,12 @@ describe "Product Import" do
 
       expect(page).to have_selector '.item-count', text: "1"
       expect(page).to have_selector '.create-count', text: "1"
-      expect(page).to have_no_selector '.update-count'
+      expect(page).not_to have_selector '.update-count'
 
       save_data
 
       expect(page).to have_selector '.created-count', text: '1'
-      expect(page).to have_no_selector '.updated-count'
+      expect(page).not_to have_selector '.updated-count'
 
       carrots = Spree::Product.find_by(name: 'Carrots')
       expect(carrots.variants.first.tax_category).to eq tax_category
@@ -186,6 +189,8 @@ describe "Product Import" do
     end
 
     it "records a timestamp on import that can be viewed and filtered under Bulk Edit Products" do
+      pending "This feature was removed, see:
+        https://github.com/openfoodfoundation/openfoodnetwork/issues/10694#issuecomment-1578097339"
       csv_data = <<~CSV
         name, producer, category, on_hand, price, units, unit_type, shipping_category_id
         Carrots, User Enterprise, Vegetables, 5, 3.20, 500, g, #{shipping_category_id_str}
@@ -210,11 +215,16 @@ describe "Product Import" do
 
       click_link 'Go To Products Page'
 
-      wait_until { page.find("#p_#{carrots.id}").present? }
+      # displays product list
+      expect(page).to have_field("_products_2_name", with: carrots.name.to_s)
+      expect(page).to have_field("_products_5_name", with: potatoes.name.to_s)
 
-      expect(page).to have_field "product_name", with: carrots.name
-      expect(page).to have_field "product_name", with: potatoes.name
-      toggle_columns "Import"
+      click_button "Save changes"
+
+      ofn_drop_down("Columns").click
+      within ofn_drop_down("Columns") do
+        check "Import"
+      end
 
       within "tr#p_#{carrots.id} td.import_date" do
         expect(page).to have_content Time.zone.now.year
@@ -227,8 +237,8 @@ describe "Product Import" do
 
       expect(page).to have_field "product_name", with: carrots.name
       expect(page).to have_field "product_name", with: potatoes.name
-      expect(page).to have_no_field "product_name", with: product.name
-      expect(page).to have_no_field "product_name", with: product2.name
+      expect(page).not_to have_field "product_name", with: product.name
+      expect(page).not_to have_field "product_name", with: product2.name
     end
 
     it "can reset product stock to zero for products not present in the CSV" do
@@ -238,10 +248,14 @@ describe "Product Import" do
       CSV
       File.write('/tmp/test.csv', csv_data)
 
+      # setting a variant to have negative stock, with the on demand option set to true
+      cabbage_variant = Spree::Product.find_by(name: 'Cabbage').variants.first
+      cabbage_variant.on_demand = true
+      cabbage_variant.on_hand = -30
+
       visit main_app.admin_product_import_path
 
       attach_file 'file', '/tmp/test.csv'
-
       check "settings_reset_all_absent"
 
       click_button 'Upload'
@@ -253,9 +267,9 @@ describe "Product Import" do
       expect(page).to have_selector '.created-count', text: '1'
       expect(page).to have_selector '.reset-count', text: '3'
 
-      expect(Spree::Product.find_by(name: 'Carrots').on_hand).to eq 500
-      expect(Spree::Product.find_by(name: 'Cabbage').on_hand).to eq 0
-      expect(Spree::Product.find_by(name: 'Beans').on_hand).to eq 0
+      expect(Spree::Product.find_by(name: 'Carrots').variants.first.on_hand).to eq 500
+      expect(Spree::Product.find_by(name: 'Cabbage').variants.first.on_hand).to eq 0
+      expect(Spree::Product.find_by(name: 'Beans').variants.first.on_hand).to eq 0
     end
 
     it "can save a new product and variant of that product at the same time, " \
@@ -278,11 +292,11 @@ describe "Product Import" do
       proceed_to_validation
 
       expect(page).to have_selector '.item-count', text: "3"
-      expect(page).to_not have_selector '.invalid-count'
+      expect(page).not_to have_selector '.invalid-count'
       expect(page).to have_selector '.create-count', text: "3"
-      expect(page).to_not have_selector '.update-count'
-      expect(page).to_not have_selector '.inv-create-count'
-      expect(page).to_not have_selector '.inv-update-count'
+      expect(page).not_to have_selector '.update-count'
+      expect(page).not_to have_selector '.inv-create-count'
+      expect(page).not_to have_selector '.inv-update-count'
 
       save_data
 
@@ -299,251 +313,252 @@ describe "Product Import" do
       expect(big_bag.product.id).to eq small_bag.product.id
     end
 
-    it "can import items into inventory" do
-      csv_data = <<~CSV
-        name, distributor, producer, category, on_hand, price, units
-        Beans, Another Enterprise, User Enterprise, Vegetables, 5, 3.20, 500
-        Sprouts, Another Enterprise, User Enterprise, Vegetables, 6, 6.50, 500
-        Cabbage, Another Enterprise, User Enterprise, Vegetables, 2001, 1.50, 500
-      CSV
-      File.write('/tmp/test.csv', csv_data)
-
-      visit main_app.admin_product_import_path
-      select 'Inventories', from: "settings_import_into"
-      attach_file 'file', '/tmp/test.csv'
-      click_button 'Upload'
-
-      proceed_to_validation
-
-      expect(page).to have_selector '.item-count', text: "3"
-      expect(page).to have_no_selector '.invalid-count'
-      expect(page).to have_no_selector '.create-count'
-      expect(page).to have_no_selector '.update-count'
-      expect(page).to have_selector '.inv-create-count', text: "2"
-      expect(page).to have_selector '.inv-update-count', text: "1"
-
-      save_data
-
-      expect(page).to have_no_selector '.created-count'
-      expect(page).to have_no_selector '.updated-count'
-      expect(page).to have_selector '.inv-created-count', text: '2'
-      expect(page).to have_selector '.inv-updated-count', text: '1'
-
-      beans_override = VariantOverride.where(variant_id: product2.variants.first.id,
-                                             hub_id: enterprise2.id).first
-      sprouts_override = VariantOverride.where(variant_id: product3.variants.first.id,
-                                               hub_id: enterprise2.id).first
-      cabbage_override = VariantOverride.where(variant_id: product4.variants.first.id,
-                                               hub_id: enterprise2.id).first
-
-      expect(Float(beans_override.price)).to eq 3.20
-      expect(beans_override.count_on_hand).to eq 5
-
-      expect(Float(sprouts_override.price)).to eq 6.50
-      expect(sprouts_override.count_on_hand).to eq 6
-
-      expect(Float(cabbage_override.price)).to eq 1.50
-      expect(cabbage_override.count_on_hand).to eq 2001
-
-      click_link 'Go To Inventory Page'
-      expect(page).to have_content 'Inventory'
-
-      select enterprise2.name, from: "hub_id", visible: false
-
-      within '#variant-overrides' do
-        expect(page).to have_content 'Beans'
-        expect(page).to have_content 'Sprouts'
-        expect(page).to have_content 'Cabbage'
-      end
-    end
-
-    it "handles a unit of kg for inventory import" do
-      product = create(:simple_product, supplier: enterprise, on_hand: 100, name: 'Beets',
-                                        unit_value: '1000', variant_unit_scale: 1000)
-      csv_data = <<~CSV
-        name, distributor, producer, category, on_hand, price, unit_type, units, on_demand
-        Beets, Another Enterprise, User Enterprise, Vegetables, , 3.20, kg, 1, 1
-      CSV
-      File.write('/tmp/test.csv', csv_data)
-
-      visit main_app.admin_product_import_path
-      select 'Inventories', from: "settings_import_into"
-      attach_file 'file', '/tmp/test.csv'
-      click_button 'Upload'
-
-      proceed_to_validation
-
-      expect(page).to have_selector '.item-count', text: "1"
-      expect(page).to have_no_selector '.invalid-count'
-      expect(page).to have_selector '.inv-create-count', text: '1'
-
-      save_data
-
-      expect(page).to have_selector '.inv-created-count', text: '1'
-
-      visit main_app.admin_inventory_path
-
-      expect(page).to have_content "Beets"
-      expect(page).to have_select(
-        "variant-overrides-#{Spree::Product.find_by(name: 'Beets').variants.first.id}-on_demand",
-        selected: "Yes"
-      )
-      expect(page).to have_input(
-        "variant-overrides-#{Spree::Product.find_by(name: 'Beets').variants.first.id}-price",
-        with: "3.2"
-      )
-    end
-
-    describe "Item type products" do
-      let!(:product) {
-        create(:simple_product, supplier: enterprise, on_hand: nil, name: 'Aubergine',
-                                unit_value: '1', variant_unit_scale: nil, variant_unit: "items",
-                                variant_unit_name: "Bag")
-      }
-      it "are sucessfully imported to inventory" do
+    context "when importing into inventory", feature: :inventory do
+      it "can import items into inventory" do
         csv_data = <<~CSV
-          name, distributor, producer, category, on_hand, price, unit_type, units, on_demand, \
-            variant_unit_name
-          Aubergine, Another Enterprise, User Enterprise, Vegetables, , 3.3, kg, 1, 1, Bag
+          name, distributor, producer, category, on_hand, price, units
+          Beans, Another Enterprise, User Enterprise, Vegetables, 5, 3.20, 500
+          Sprouts, Another Enterprise, User Enterprise, Vegetables, 6, 6.50, 500
+          Cabbage, Another Enterprise, User Enterprise, Vegetables, 2001, 1.50, 500
         CSV
-
         File.write('/tmp/test.csv', csv_data)
+
         visit main_app.admin_product_import_path
         select 'Inventories', from: "settings_import_into"
         attach_file 'file', '/tmp/test.csv'
         click_button 'Upload'
+
         proceed_to_validation
+
+        expect(page).to have_selector '.item-count', text: "3"
+        expect(page).not_to have_selector '.invalid-count'
+        expect(page).not_to have_selector '.create-count'
+        expect(page).not_to have_selector '.update-count'
+        expect(page).to have_selector '.inv-create-count', text: "2"
+        expect(page).to have_selector '.inv-update-count', text: "1"
+
+        save_data
+
+        expect(page).not_to have_selector '.created-count'
+        expect(page).not_to have_selector '.updated-count'
+        expect(page).to have_selector '.inv-created-count', text: '2'
+        expect(page).to have_selector '.inv-updated-count', text: '1'
+
+        beans_override = VariantOverride.where(variant_id: product2.variants.first.id,
+                                               hub_id: enterprise2.id).first
+        sprouts_override = VariantOverride.where(variant_id: product3.variants.first.id,
+                                                 hub_id: enterprise2.id).first
+        cabbage_override = VariantOverride.where(variant_id: product4.variants.first.id,
+                                                 hub_id: enterprise2.id).first
+
+        expect(Float(beans_override.price)).to eq 3.20
+        expect(beans_override.count_on_hand).to eq 5
+
+        expect(Float(sprouts_override.price)).to eq 6.50
+        expect(sprouts_override.count_on_hand).to eq 6
+
+        expect(Float(cabbage_override.price)).to eq 1.50
+        expect(cabbage_override.count_on_hand).to eq 2001
+
+        click_link 'Go To Inventory Page'
+        expect(page).to have_content 'Inventory'
+
+        select enterprise2.name, from: "hub_id", visible: false
+
+        within '#variant-overrides' do
+          expect(page).to have_content 'Beans'
+          expect(page).to have_content 'Sprouts'
+          expect(page).to have_content 'Cabbage'
+        end
+      end
+
+      it "handles a unit of kg for inventory import" do
+        product = create(:simple_product, supplier_id: enterprise.id, on_hand: 100, name: 'Beets',
+                                          unit_value: '1000', variant_unit_scale: 1000)
+        csv_data = <<~CSV
+          name, distributor, producer, category, on_hand, price, unit_type, units, on_demand
+          Beets, Another Enterprise, User Enterprise, Vegetables, , 3.20, kg, 1, 1
+        CSV
+        File.write('/tmp/test.csv', csv_data)
+
+        visit main_app.admin_product_import_path
+        select 'Inventories', from: "settings_import_into"
+        attach_file 'file', '/tmp/test.csv'
+        click_button 'Upload'
+
+        proceed_to_validation
+
         expect(page).to have_selector '.item-count', text: "1"
-        expect(page).to have_no_selector '.invalid-count'
+        expect(page).not_to have_selector '.invalid-count'
         expect(page).to have_selector '.inv-create-count', text: '1'
+
         save_data
 
         expect(page).to have_selector '.inv-created-count', text: '1'
 
         visit main_app.admin_inventory_path
 
-        expect(page).to have_content "Aubergine"
+        expect(page).to have_content "Beets"
         expect(page).to have_select(
-          "variant-overrides-#{Spree::Product.find_by(name: 'Aubergine').variants.first.id}" \
-          "-on_demand", selected: "Yes"
+          "variant-overrides-#{Spree::Product.find_by(name: 'Beets').variants.first.id}-on_demand",
+          selected: "Yes"
         )
         expect(page).to have_input(
-          "variant-overrides-#{Spree::Product.find_by(name: 'Aubergine').variants.first.id}" \
-          "-price", with: "3.3"
+          "variant-overrides-#{Spree::Product.find_by(name: 'Beets').variants.first.id}-price",
+          with: "3.2"
         )
-      end
-
-      it "displays the appropriate error message, when variant unit names are inconsistent" do
-        csv_data = <<~CSV
-          name, distributor, producer, category, on_hand, price, unit_type, units, on_demand, \
-            variant_unit_name
-          Aubergine, Another Enterprise, User Enterprise, Vegetables, , 3.3, kg, 1, 1, Bag
-          Aubergine, Another Enterprise, User Enterprise, Vegetables, , 6.6, kg, 1, 1, Big-Bag
-        CSV
-
-        File.write('/tmp/test.csv', csv_data)
-        visit main_app.admin_product_import_path
-        select 'Inventories', from: "settings_import_into"
-        attach_file 'file', '/tmp/test.csv'
-        click_button 'Upload'
-        proceed_to_validation
-
-        find('div.header-description', text: 'Items contain errors').click
-        expect(page).to have_content "Variant_unit_name must be the same for products " \
-                                     "with the same name"
-        expect(page).to have_content "Imported file contains invalid entries"
-        expect(page).to have_no_selector 'input[type=submit][value="Save"]'
-
-        visit main_app.admin_inventory_path
-
-        expect(page).not_to have_content "Aubergine"
-      end
-
-      it "invalidates units value if 0 or non-numeric" do
-        csv_data = <<~CSV
-          name, distributor, producer, category, on_hand, price, unit_type, units, on_demand, \
-            variant_unit_name
-          Aubergine, Another Enterprise, User Enterprise, Vegetables, , 3.3, kg, 1, 1, Bag
-          Beans, Another Enterprise, User Enterprise, Vegetables, 3, 3.0, kg, 0, 1, Bag
-          Cabbage, Another Enterprise, User Enterprise, Vegetables, 1, 4.3, kg, XX, , Bag
-        CSV
-
-        File.write('/tmp/test.csv', csv_data)
-        visit main_app.admin_product_import_path
-        select 'Inventories', from: "settings_import_into"
-        attach_file 'file', '/tmp/test.csv'
-        click_button 'Upload'
-        proceed_to_validation
-        expect(page).to have_selector '.item-count', text: "3"
-        expect(page).to have_selector '.invalid-count', text: "2"
-        expect(page).to have_selector '.inv-create-count', text: '1'
-
-        find('div.header-description', text: 'Items contain errors').click
-        expect(page).to have_content "line 4: Cabbage - Units incorrect value"
-        expect(page).to have_content "line 3: Beans - Units incorrect value"
-        expect(page).to have_content "Imported file contains invalid entries"
-        expect(page).to have_no_selector 'input[type=submit][value="Save"]'
-        expect(page).not_to have_content "line 2: Aubergine"
-      end
-
-      it "Price validation" do
-        csv_data = <<~CSV
-          name, distributor, producer, category, on_hand, price, unit_type, units, on_demand, \
-            variant_unit_name
-          Aubergine, Another Enterprise, User Enterprise, Vegetables, , 3.3, kg, 1, 1, Bag
-          Beans, Another Enterprise, User Enterprise, Vegetables, 3, , kg, 2, 1, Bag
-          Cabbage, Another Enterprise, User Enterprise, Vegetables, 1, t6, kg, 3, , Bag
-        CSV
-
-        File.write('/tmp/test.csv', csv_data)
-        visit main_app.admin_product_import_path
-        select 'Inventories', from: "settings_import_into"
-        attach_file 'file', '/tmp/test.csv'
-        click_button 'Upload'
-        proceed_to_validation
-        expect(page).to have_selector '.item-count', text: "3"
-        expect(page).to have_selector '.invalid-count', text: "2"
-        expect(page).to have_selector '.inv-create-count', text: '1'
-
-        find('div.header-description', text: 'Items contain errors').click
-        expect(page).to have_content "line 4: Cabbage - Price incorrect value"
-        expect(page).to have_content "line 3: Beans - Price can't be blank"
-        expect(page).to have_content "Imported file contains invalid entries"
-        expect(page).to have_no_selector 'input[type=submit][value="Save"]'
-        expect(page).not_to have_content "line 2: Aubergine"
       end
     end
 
-    it "handles on_demand and on_hand validations with inventory - nill or empty values" do
-      csv_data = <<~CSV
-        name, distributor, producer, category, on_hand, price, units, on_demand
-        Beans, Another Enterprise, User Enterprise, Vegetables, , 3.20, 500, 1
-        Sprouts, Another Enterprise, User Enterprise, Vegetables, 6, 6.50, 500, 0
-        Cabbage, Another Enterprise, User Enterprise, Vegetables, , 1.50, 500,
-        Aubergine, Another Enterprise, User Enterprise, Vegetables, , 1.50, 500,
-      CSV
-      File.write('/tmp/test.csv', csv_data)
+    describe "Item type products" do
+      let!(:product) {
+        create(:simple_product, supplier_id: enterprise.id, on_hand: nil, name: 'Aubergine',
+                                unit_value: '1', variant_unit_scale: nil, variant_unit: "items",
+                                variant_unit_name: "Bag")
+      }
 
-      visit main_app.admin_product_import_path
-      select 'Inventories', from: "settings_import_into"
-      attach_file 'file', '/tmp/test.csv'
-      click_button 'Upload'
+      context "when importing into inventory", feature: :inventory do
+        it "are sucessfully imported to inventory" do
+          csv_data = <<~CSV
+            name, distributor, producer, category, on_hand, price, unit_type, units, on_demand, \
+              variant_unit_name
+            Aubergine, Another Enterprise, User Enterprise, Vegetables, , 3.3, kg, 1, 1, Bag
+          CSV
 
-      proceed_to_validation
+          File.write('/tmp/test.csv', csv_data)
+          visit main_app.admin_product_import_path
+          select 'Inventories', from: "settings_import_into"
+          attach_file 'file', '/tmp/test.csv'
+          click_button 'Upload'
+          proceed_to_validation
+          expect(page).to have_selector '.item-count', text: "1"
+          expect(page).not_to have_selector '.invalid-count'
+          expect(page).to have_selector '.inv-create-count', text: '1'
+          save_data
 
-      expect(page).to have_selector '.item-count', text: "4"
-      expect(page).to have_selector '.inv-create-count', text: '2'
-      expect(page).to have_selector '.invalid-count', text: "2"
+          expect(page).to have_selector '.inv-created-count', text: '1'
 
-      find('div.header-description', text: 'Items contain errors').click
-      expect(page)
-        .to have_content "line 4: Cabbage - On_hand incorrect value - On_demand incorrect value"
-      expect(page)
-        .to have_content "line 5: Aubergine - On_hand incorrect value - On_demand incorrect value"
-      expect(page).to have_content "Imported file contains invalid entries"
-      expect(page).to have_no_selector 'input[type=submit][value="Save"]'
-      expect(page).not_to have_content "line 2: Beans"
-      expect(page).not_to have_content "line 3: Sprouts"
+          visit main_app.admin_inventory_path
+
+          expect(page).to have_content "Aubergine"
+          expect(page).to have_select(
+            "variant-overrides-#{Spree::Product.find_by(name: 'Aubergine').variants.first.id}" \
+            "-on_demand", selected: "Yes"
+          )
+          expect(page).to have_input(
+            "variant-overrides-#{Spree::Product.find_by(name: 'Aubergine').variants.first.id}" \
+            "-price", with: "3.3"
+          )
+        end
+
+        it "allows variants of the same product to have different variant unit names" do
+          csv_data = <<~CSV
+            name, distributor, producer, category, on_hand, price, unit_type, units, on_demand, \
+              variant_unit_name
+            Aubergine, Another Enterprise, User Enterprise, Vegetables, , 3.3, kg, 1, 1, Bag
+            Aubergine, Another Enterprise, User Enterprise, Vegetables, , 6.6, kg, 1, 1, Big-Bag
+          CSV
+
+          File.write('/tmp/test.csv', csv_data)
+          visit main_app.admin_product_import_path
+          select 'Inventories', from: "settings_import_into"
+          attach_file 'file', '/tmp/test.csv'
+          click_button 'Upload'
+          proceed_to_validation
+
+          expect(page).to have_selector '.item-count', text: "2"
+          expect(page).not_to have_selector '.invalid-count'
+          expect(page).to have_selector '.inv-create-count', text: '2'
+          expect(page).not_to have_selector '.inv-update-count'
+        end
+
+        it "invalidates units value if 0 or non-numeric" do
+          csv_data = <<~CSV
+            name, distributor, producer, category, on_hand, price, unit_type, units, on_demand, \
+              variant_unit_name
+            Aubergine, Another Enterprise, User Enterprise, Vegetables, , 3.3, kg, 1, 1, Bag
+            Beans, Another Enterprise, User Enterprise, Vegetables, 3, 3.0, kg, 0, 1, Bag
+            Cabbage, Another Enterprise, User Enterprise, Vegetables, 1, 4.3, kg, XX, , Bag
+          CSV
+
+          File.write('/tmp/test.csv', csv_data)
+          visit main_app.admin_product_import_path
+          select 'Inventories', from: "settings_import_into"
+          attach_file 'file', '/tmp/test.csv'
+          click_button 'Upload'
+          proceed_to_validation
+          expect(page).to have_selector '.item-count', text: "3"
+          expect(page).to have_selector '.invalid-count', text: "2"
+          expect(page).to have_selector '.inv-create-count', text: '1'
+
+          find('div.header-description', text: 'Items contain errors').click
+          expect(page).to have_content "line 4: Cabbage - Units incorrect value"
+          expect(page).to have_content "line 3: Beans - Units incorrect value"
+          expect(page).to have_content "Imported file contains invalid entries"
+          expect(page).not_to have_selector 'input[type=submit][value="Save"]'
+          expect(page).not_to have_content "line 2: Aubergine"
+        end
+
+        it "Price validation" do
+          csv_data = <<~CSV
+            name, distributor, producer, category, on_hand, price, unit_type, units, on_demand, \
+              variant_unit_name
+            Aubergine, Another Enterprise, User Enterprise, Vegetables, , 3.3, kg, 1, 1, Bag
+            Beans, Another Enterprise, User Enterprise, Vegetables, 3, , kg, 2, 1, Bag
+            Cabbage, Another Enterprise, User Enterprise, Vegetables, 1, t6, kg, 3, , Bag
+          CSV
+
+          File.write('/tmp/test.csv', csv_data)
+          visit main_app.admin_product_import_path
+          select 'Inventories', from: "settings_import_into"
+          attach_file 'file', '/tmp/test.csv'
+          click_button 'Upload'
+          proceed_to_validation
+          expect(page).to have_selector '.item-count', text: "3"
+          expect(page).to have_selector '.invalid-count', text: "2"
+          expect(page).to have_selector '.inv-create-count', text: '1'
+
+          find('div.header-description', text: 'Items contain errors').click
+          expect(page).to have_content "line 4: Cabbage - Price incorrect value"
+          expect(page).to have_content "line 3: Beans - Price can't be blank"
+          expect(page).to have_content "Imported file contains invalid entries"
+          expect(page).not_to have_selector 'input[type=submit][value="Save"]'
+          expect(page).not_to have_content "line 2: Aubergine"
+        end
+
+        it "handles on_demand and on_hand validations with inventory - nill or empty values" do
+          csv_data = <<~CSV
+            name, distributor, producer, category, on_hand, price, units, on_demand
+            Beans, Another Enterprise, User Enterprise, Vegetables, , 3.20, 500, 1
+            Sprouts, Another Enterprise, User Enterprise, Vegetables, 6, 6.50, 500, 0
+            Cabbage, Another Enterprise, User Enterprise, Vegetables, , 1.50, 500,
+            Aubergine, Another Enterprise, User Enterprise, Vegetables, , 1.50, 500,
+          CSV
+          File.write('/tmp/test.csv', csv_data)
+
+          visit main_app.admin_product_import_path
+          select 'Inventories', from: "settings_import_into"
+          attach_file 'file', '/tmp/test.csv'
+          click_button 'Upload'
+
+          proceed_to_validation
+
+          expect(page).to have_selector '.item-count', text: "4"
+          expect(page).to have_selector '.inv-create-count', text: '2'
+          expect(page).to have_selector '.invalid-count', text: "2"
+
+          find('div.header-description', text: 'Items contain errors').click
+          expect(page)
+            .to have_content "line 4: Cabbage - On_hand incorrect value - On_demand incorrect value"
+          expect(page).to have_content(
+            "line 5: Aubergine - On_hand incorrect value - On_demand incorrect value"
+          )
+          expect(page).to have_content "Imported file contains invalid entries"
+          expect(page).not_to have_selector 'input[type=submit][value="Save"]'
+          expect(page).not_to have_content "line 2: Beans"
+          expect(page).not_to have_content "line 3: Sprouts"
+        end
+      end
     end
 
     it "handles on_demand and on_hand validations - non-numeric values" do
@@ -577,7 +592,7 @@ describe "Product Import" do
       expect(page).to have_content "line 5: Aubergine ( Bag ) - On_hand incorrect value - " \
                                    "On_demand incorrect value"
       expect(page).to have_content "Imported file contains invalid entries"
-      expect(page).to have_no_selector 'input[type=submit][value="Save"]'
+      expect(page).not_to have_selector 'input[type=submit][value="Save"]'
       expect(page).not_to have_content "line 2: Beans"
       expect(page).not_to have_content "line 3: Potatoes"
     end
@@ -611,36 +626,9 @@ describe "Product Import" do
       expect(page).to have_content "line 5: Aubergine ( Bag ) - On_hand incorrect value - " \
                                    "On_demand incorrect value"
       expect(page).to have_content "Imported file contains invalid entries"
-      expect(page).to have_no_selector 'input[type=submit][value="Save"]'
+      expect(page).not_to have_selector 'input[type=submit][value="Save"]'
       expect(page).not_to have_content "line 2: Beans"
       expect(page).not_to have_content "line 3: Sprouts"
-    end
-
-    it "handles on_demand and on_hand validations with inventory - With both values set" do
-      csv_data = <<~CSV
-        name, distributor, producer, category, on_hand, price, units, on_demand
-        Beans, Another Enterprise, User Enterprise, Vegetables, 6, 3.20, 500, 1
-        Sprouts, Another Enterprise, User Enterprise, Vegetables, 6, 6.50, 500, 1
-        Cabbage, Another Enterprise, User Enterprise, Vegetables, 0, 1.50, 500, 1
-      CSV
-      File.write('/tmp/test.csv', csv_data)
-
-      visit main_app.admin_product_import_path
-      select 'Inventories', from: "settings_import_into"
-      attach_file 'file', '/tmp/test.csv'
-      click_button 'Upload'
-
-      proceed_to_validation
-
-      expect(page).to have_selector '.item-count', text: "3"
-      expect(page).to have_selector '.invalid-count', text: "3"
-
-      find('div.header-description', text: 'Items contain errors').click
-      expect(page).to have_content "line 2: Beans - Count_on_hand must be blank if on demand"
-      expect(page).to have_content "line 3: Sprouts - Count_on_hand must be blank if on demand"
-      expect(page).to have_content "line 4: Cabbage - Count_on_hand must be blank if on demand"
-      expect(page).to have_content "Imported file contains invalid entries"
-      expect(page).to have_no_selector 'input[type=submit][value="Save"]'
     end
 
     it "imports lines with all allowed units" do
@@ -663,21 +651,29 @@ describe "Product Import" do
       proceed_to_validation
 
       expect(page).to have_selector '.item-count', text: "2"
-      expect(page).to have_no_selector '.invalid-count'
+      expect(page).not_to have_selector '.invalid-count'
       expect(page).to have_selector '.create-count', text: "2"
-      expect(page).to have_no_selector '.update-count'
+      expect(page).not_to have_selector '.update-count'
 
       save_data
 
       expect(page).to have_selector '.created-count', text: '2'
-      expect(page).to have_no_selector '.updated-count'
+      expect(page).not_to have_selector '.updated-count'
+
+      default_variant_selector = "tr:has(input[aria-label=Name][value='Carrots'])"
 
       visit spree.admin_products_path
 
-      within "#p_#{Spree::Product.find_by(name: 'Carrots').id}" do
-        expect(page).to have_input "product_name", with: "Carrots"
-        expect(page).to have_select "variant_unit_with_scale", selected: "Weight (lb)"
-        expect(page).to have_content "5" # on_hand
+      carrots = Spree::Product.find_by(name: 'Carrots')
+
+      within "#product_#{carrots.id}" do
+        expect(page).to have_input("[products][2][variants_attributes][0][display_name]",
+                                   text: "Carrots")
+        expect(page).to have_input("[products][2][variants_attributes][0][unit_to_display]",
+                                   text: "1 lb")
+        within(:xpath, '//*[@id="products-form"]/table/tbody[3]/tr[2]/td[7]') do
+          expect(page).to have_content("5")
+        end
       end
     end
 
@@ -699,24 +695,28 @@ describe "Product Import" do
       proceed_to_validation
 
       expect(page).to have_selector '.item-count', text: "1"
-      expect(page).to have_no_selector '.invalid-count'
+      expect(page).not_to have_selector '.invalid-count'
       expect(page).to have_selector '.create-count', text: "1"
-      expect(page).to have_no_selector '.update-count'
+      expect(page).not_to have_selector '.update-count'
 
       save_data
 
       expect(page).to have_selector '.created-count', text: '1'
-      expect(page).to have_no_selector '.updated-count'
-      expect(page).to have_content "GO TO PRODUCTS PAGE"
-      expect(page).to have_content "UPLOAD ANOTHER FILE"
+
+      expect(page).not_to have_selector '.updated-count'
+      expect(page).to have_content "Go To Products Page"
+      expect(page).to have_content "Upload Another File"
 
       visit spree.admin_products_path
 
-      within "#p_#{Spree::Product.find_by(name: 'Cupcake').id}" do
-        expect(page).to have_input "product_name", with: "Cupcake"
-        expect(page).to have_select "variant_unit_with_scale", selected: "Items"
-        expect(page).to have_input "variant_unit_name", with: "Bunch"
-        expect(page).to have_content "5" # on_hand
+      expect(page).to have_input("[products][2][variants_attributes][0][display_name]",
+                                 text: "Cupcake")
+      expect(page).to have_select("_products_2_variants_attributes_0_variant_unit_with_scale",
+                                  selected: "Items")
+      expect(page).to have_input("[products][2][variants_attributes][0][variant_unit_name]",
+                                 text: "Bunch")
+      within(:xpath, '//*[@id="products-form"]/table/tbody[3]/tr[2]/td[7]') do
+        expect(page).to have_content("5")
       end
     end
 
@@ -739,10 +739,10 @@ describe "Product Import" do
 
       expect(page).to have_selector '.item-count', text: "1"
       expect(page).to have_selector '.invalid-count', text: "1"
-      expect(page).to have_no_selector ".create-count"
-      expect(page).to have_no_selector '.update-count'
+      expect(page).not_to have_selector ".create-count"
+      expect(page).not_to have_selector '.update-count'
 
-      expect(page).to have_no_selector 'input[type=submit][value="Save"]'
+      expect(page).not_to have_selector 'input[type=submit][value="Save"]'
     end
 
     context 'when using other language than English' do
@@ -781,7 +781,7 @@ describe "Product Import" do
 
           product_headings.each do |heading|
             expect(page).to have_content(
-              I18n.t("admin.product_import.product_headings.#{heading}").upcase
+              I18n.t("admin.product_import.product_headings.#{heading}")
             )
           end
         end
@@ -800,7 +800,7 @@ describe "Product Import" do
       click_button 'Upload'
 
       expect(page).to have_content "Importer could not process file: invalid filetype"
-      expect(page).to have_no_selector 'input[type=submit][value="Save"]'
+      expect(page).not_to have_selector 'input[type=submit][value="Save"]'
       expect(page).to have_content "Select a spreadsheet to upload"
       File.delete('/tmp/test.txt')
     end
@@ -820,9 +820,9 @@ describe "Product Import" do
       attach_file 'file', '/tmp/test.csv'
       click_button 'Upload'
 
-      expect(page).to have_no_selector '.create-count'
-      expect(page).to have_no_selector '.update-count'
-      expect(page).to have_no_selector 'input[type=submit][value="Save"]'
+      expect(page).not_to have_selector '.create-count'
+      expect(page).not_to have_selector '.update-count'
+      expect(page).not_to have_selector 'input[type=submit][value="Save"]'
       File.delete('/tmp/test.csv')
     end
 
@@ -837,9 +837,9 @@ describe "Product Import" do
       attach_file 'file', '/tmp/test.csv'
       click_button 'Upload'
 
-      expect(page).to have_no_selector '.create-count'
-      expect(page).to have_no_selector '.update-count'
-      expect(page).to have_no_selector 'input[type=submit][value="Save"]'
+      expect(page).not_to have_selector '.create-count'
+      expect(page).not_to have_selector '.update-count'
+      expect(page).not_to have_selector 'input[type=submit][value="Save"]'
       expect(flash_message).to match("Product Import encountered a malformed CSV: %s" % '')
 
       File.delete('/tmp/test.csv')
@@ -874,7 +874,7 @@ describe "Product Import" do
       expect(page).to have_selector '.create-count', text: "1"
 
       expect(page.body).to have_content 'you do not have permission'
-      expect(page).to have_no_selector 'a.button.proceed'
+      expect(page).not_to have_selector 'a.button.proceed'
     end
   end
 

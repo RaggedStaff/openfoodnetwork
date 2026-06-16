@@ -1,127 +1,6 @@
 # frozen_string_literal: false
 
-require 'spec_helper'
-
-describe Spree::Admin::ProductsController, type: :controller do
-  describe 'bulk_update' do
-    context "updating a product we do not have access to" do
-      let(:s_managed) { create(:enterprise) }
-      let(:s_unmanaged) { create(:enterprise) }
-      let(:product) do
-        create(:simple_product, supplier: s_unmanaged, name: 'Peas')
-      end
-
-      before do
-        controller_login_as_enterprise_user [s_managed]
-        spree_post :bulk_update,
-                   "products" => [{ "id" => product.id, "name" => "Pine nuts" }]
-      end
-
-      it "denies access" do
-        expect(response).to redirect_to unauthorized_path
-      end
-
-      it "does not update any product" do
-        expect(product.reload.name).not_to eq("Pine nuts")
-      end
-    end
-
-    context "when changing a product's variant_unit" do
-      let(:producer) { create(:enterprise) }
-      let!(:product) do
-        create(
-          :simple_product,
-          supplier: producer,
-          variant_unit: 'items',
-          variant_unit_scale: nil,
-          variant_unit_name: 'bunches',
-          unit_value: nil,
-          unit_description: 'some description'
-        )
-      end
-
-      before { controller_login_as_enterprise_user([producer]) }
-
-      it 'succeeds' do
-        spree_post :bulk_update,
-                   "products" => [
-                     {
-                       "id" => product.id,
-                       "variant_unit" => "weight",
-                       "variant_unit_scale" => 1
-                     }
-                   ]
-
-        expect(response).to have_http_status(302)
-      end
-
-      it 'does not redirect to bulk_products' do
-        spree_post :bulk_update,
-                   "products" => [
-                     {
-                       "id" => product.id,
-                       "variant_unit" => "weight",
-                       "variant_unit_scale" => 1
-                     }
-                   ]
-
-        expect(response).to redirect_to(
-          '/api/v0/products/bulk_products'
-        )
-      end
-    end
-
-    context 'when passing empty variants_attributes' do
-      let(:producer) { create(:enterprise) }
-      let!(:product) do
-        create(
-          :simple_product,
-          supplier: producer,
-          variant_unit: 'items',
-          variant_unit_scale: nil,
-          variant_unit_name: 'bunches',
-          unit_value: nil,
-          unit_description: 'bunches'
-        )
-      end
-      let!(:another_product) do
-        create(
-          :simple_product,
-          supplier: producer,
-          variant_unit: 'weight',
-          variant_unit_scale: 1000,
-          variant_unit_name: nil
-        )
-      end
-
-      before { controller_login_as_enterprise_user([producer]) }
-
-      it 'does not fail' do
-        spree_post :bulk_update,
-                   "products" => [
-                     {
-                       "id" => another_product.id,
-                       "variants_attributes" => [{}]
-                     },
-                     {
-                       "id" => product.id,
-                       "variants_attributes" => [
-                         {
-                           "on_hand" => 2,
-                           "price" => "5.0",
-                           "unit_value" => 4,
-                           "unit_description" => "",
-                           "display_name" => "name"
-                         }
-                       ]
-                     }
-                   ]
-
-        expect(response).to have_http_status(:found)
-      end
-    end
-  end
-
+RSpec.describe Spree::Admin::ProductsController do
   context "creating a new product" do
     let(:supplier) { create(:supplier_enterprise) }
     let(:taxon) { create(:taxon) }
@@ -137,7 +16,6 @@ describe Spree::Admin::ProductsController, type: :controller do
 
     before do
       controller_login_as_admin
-      create(:stock_location)
     end
 
     it "redirects to products when the user hits 'create'" do
@@ -165,33 +43,28 @@ describe Spree::Admin::ProductsController, type: :controller do
 
         spree_put :create, product: product_attrs_with_image
 
-        expect(response.status).to eq 200
+        expect(response).to have_http_status :ok
+      end
+    end
+
+    describe "when variant attributes are missing" do
+      it 'renders form with errors' do
+        spree_post :create, product: product_attrs.merge!(
+          { supplier_id: nil, primary_taxon_id: nil }
+        ),
+                            button: 'create'
+        expect(response).to have_http_status :ok
+        expect(response).to render_template('spree/admin/products/new')
       end
     end
   end
 
   describe "updating a product" do
     let(:producer) { create(:enterprise) }
-    let!(:product) { create(:simple_product, supplier: producer) }
+    let!(:product) { create(:simple_product, supplier_id: producer.id) }
 
     before do
       controller_login_as_enterprise_user [producer]
-    end
-
-    describe "change product supplier" do
-      let(:distributor) { create(:distributor_enterprise) }
-      let!(:order_cycle) {
-        create(:simple_order_cycle, variants: [product.variants.first], coordinator: distributor,
-                                    distributors: [distributor])
-      }
-
-      it "should remove product from existing Order Cycles" do
-        new_producer = create(:enterprise)
-        spree_put :update, id: product, product: { supplier_id: new_producer.id }
-
-        expect(product.reload.supplier.id).to eq new_producer.id
-        expect(order_cycle.reload.distributed_variants).to_not include product.variants.first
-      end
     end
 
     describe "product stock setting with errors" do
@@ -227,7 +100,7 @@ describe Spree::Admin::ProductsController, type: :controller do
             expect(Spree::Property.count).to be 1
             expect(Spree::ProductProperty.count).to be 0
             property_names = product.reload.properties.map(&:name)
-            expect(property_names).to_not include 'a different name'
+            expect(property_names).not_to include 'a different name'
           end
         end
 

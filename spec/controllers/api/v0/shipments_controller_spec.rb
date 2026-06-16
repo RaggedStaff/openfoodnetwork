@@ -1,14 +1,10 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Api::V0::ShipmentsController, type: :controller do
+RSpec.describe Api::V0::ShipmentsController do
   render_views
 
   let!(:shipment) { create(:shipment) }
-  let!(:attributes) do
-    [:id, :tracking, :number, :cost, :shipped_at, :stock_location_name, :order_id]
-  end
+  let(:attributes) { %w[id tracking number cost shipped_at order_id] }
   let(:current_api_user) { build(:user) }
 
   before do
@@ -31,21 +27,19 @@ describe Api::V0::ShipmentsController, type: :controller do
     let(:current_api_user) { build(:admin_user) }
     let!(:order) { shipment.order }
     let(:order_ship_address) { create(:address) }
-    let!(:stock_location) { Spree::StockLocation.first || create(:stock_location) }
     let!(:variant) { create(:variant) }
     let(:params) do
       { quantity: 2,
         variant_id: variant.to_param,
         order_id: order.number,
-        stock_location_id: stock_location.to_param,
         format: :json }
     end
     let(:error_message) { "broken shipments creation" }
 
     before do
       order.update_attribute :ship_address_id, order_ship_address.id
-      order.update_attribute :distributor, variant.product.supplier
-      shipment.shipping_method.distributors << variant.product.supplier
+      order.update_attribute :distributor, variant.supplier
+      shipment.shipping_method.distributors << variant.supplier
     end
 
     context '#create' do
@@ -71,7 +65,7 @@ describe Api::V0::ShipmentsController, type: :controller do
         expect(order.reload.line_items.first.variant.price).to eq(variant.price)
       end
 
-      it 'updates existing shipment with variant override if an VO is sent' do
+      it 'updates existing shipment with variant override if an VO is sent', feature: :inventory do
         hub = create(:distributor_enterprise)
         order.update_attribute(:distributor, hub)
         shipment.shipping_method.distributors << hub
@@ -109,7 +103,7 @@ describe Api::V0::ShipmentsController, type: :controller do
       allow_any_instance_of(Spree::Order).to receive_messages(paid?: true, complete?: true)
       api_put :ready, order_id: shipment.order.to_param, id: shipment.to_param
 
-      expect(attributes.all?{ |attr| json_response.key? attr.to_s }).to be_truthy
+      expect(json_response.keys).to include(*attributes)
       expect(json_response["state"]).to eq("ready")
       expect(shipment.reload.state).to eq("ready")
     end
@@ -120,7 +114,7 @@ describe Api::V0::ShipmentsController, type: :controller do
 
       api_put :ready, order_id: shipment.order.to_param, id: shipment.to_param
 
-      expect(attributes.all?{ |attr| json_response.key? attr.to_s }).to be_truthy
+      expect(json_response.keys).to include(*attributes)
       expect(json_response["state"]).to eq("ready")
       expect(shipment.reload.state).to eq("ready")
     end
@@ -130,7 +124,7 @@ describe Api::V0::ShipmentsController, type: :controller do
       api_put :ready, order_id: shipment.order.to_param, id: shipment.to_param
 
       expect(json_response["error"]).to eq("Cannot ready shipment.")
-      expect(response.status).to eq(422)
+      expect(response).to have_http_status(:unprocessable_entity)
     end
 
     describe "#add and #remove" do
@@ -154,7 +148,7 @@ describe Api::V0::ShipmentsController, type: :controller do
         it 'adds a variant to a shipment' do
           expect {
             api_put :add, params.merge(variant_id: new_variant.to_param)
-            expect(response.status).to eq(200)
+            expect(response).to have_http_status(:ok)
           }.to change { inventory_units_for(new_variant).size }.by(2)
         end
 
@@ -167,7 +161,7 @@ describe Api::V0::ShipmentsController, type: :controller do
         it 'removes a variant from a shipment' do
           expect {
             api_put :remove, params.merge(variant_id: existing_variant.to_param)
-            expect(response.status).to eq(200)
+            expect(response).to have_http_status(:ok)
           }.to change { inventory_units_for(existing_variant).size }.by(-2)
         end
 
@@ -193,15 +187,15 @@ describe Api::V0::ShipmentsController, type: :controller do
         it "doesn't adjust stock when adding a variant" do
           expect {
             api_put :add, params.merge(variant_id: existing_variant.to_param)
-            expect(response.status).to eq(422)
-          }.to_not change { existing_variant.reload.on_hand }
+            expect(response).to have_http_status(:unprocessable_entity)
+          }.not_to change { existing_variant.reload.on_hand }
         end
 
         it "doesn't adjust stock when removing a variant" do
           expect {
             api_put :remove, params.merge(variant_id: existing_variant.to_param)
-            expect(response.status).to eq(422)
-          }.to_not change { existing_variant.reload.on_hand }
+            expect(response).to have_http_status(:unprocessable_entity)
+          }.not_to change { existing_variant.reload.on_hand }
         end
       end
 
@@ -287,7 +281,7 @@ describe Api::V0::ShipmentsController, type: :controller do
             expect(order.payment_state).to eq "paid" # order is fully paid for
 
             api_put :update, params
-            expect(response.status).to eq 200
+            expect(response).to have_http_status :ok
 
             order.reload
 
@@ -300,7 +294,7 @@ describe Api::V0::ShipmentsController, type: :controller do
           it "updates closed adjustments" do
             expect {
               api_put :update, params
-              expect(response.status).to eq 200
+              expect(response).to have_http_status :ok
             }.to change { order.reload.shipment.fee_adjustment.amount }
           end
         end
@@ -324,7 +318,7 @@ describe Api::V0::ShipmentsController, type: :controller do
                        id: shipment.to_param,
                        shipment: { tracking: "123123" }
 
-        expect(attributes.all?{ |attr| json_response.key? attr.to_s }).to be_truthy
+        expect(json_response.keys).to include(*attributes)
         expect(json_response["state"]).to eq("shipped")
       end
     end
@@ -350,7 +344,7 @@ describe Api::V0::ShipmentsController, type: :controller do
           expect_error_response
         end
 
-        it 'adds a variant override to the shipment' do
+        it 'adds a variant override to the shipment', feature: :inventory do
           hub = create(:distributor_enterprise)
           order.update_attribute(:distributor, hub)
           variant_override = create(:variant_override, hub:, variant:)
@@ -364,22 +358,32 @@ describe Api::V0::ShipmentsController, type: :controller do
 
         context "when line items have fees" do
           let(:fee_order) {
-            instance_double(Spree::Order, number: "123", distributor: variant.product.supplier)
+            instance_double(Spree::Order, number: "123", distributor: variant.supplier)
           }
           let(:contents) { instance_double(Spree::OrderContents) }
+          let(:fee_order_shipment) {
+            instance_double(Spree::Shipment)
+          }
 
           before do
             allow(Spree::Order).to receive(:find_by!) { fee_order }
-            allow(controller).to receive(:find_and_update_shipment) {}
-            allow(controller).to receive(:refuse_changing_cancelled_orders) {}
+            allow(controller).to receive(:refuse_changing_cancelled_orders)
             allow(fee_order).to receive(:contents) { contents }
-            allow(contents).to receive(:add) {}
+            allow(contents).to receive_messages(add: {}, remove: {})
+            allow(fee_order).to receive_message_chain(:shipments, :find_by!) { fee_order_shipment }
+            allow(fee_order_shipment).to receive_messages(update: nil, reload: nil, persisted?: nil)
             allow(fee_order).to receive(:recreate_all_fees!)
           end
 
           it "recalculates fees for the line item" do
             params[:order_id] = fee_order.number
             spree_put :add, params
+            expect(fee_order).to have_received(:recreate_all_fees!)
+          end
+
+          it "recalculates fees for the line item when qty is decreased" do
+            params[:order_id] = fee_order.number
+            spree_put :remove, params
             expect(fee_order).to have_received(:recreate_all_fees!)
           end
         end
@@ -413,8 +417,8 @@ describe Api::V0::ShipmentsController, type: :controller do
     end
 
     def expect_valid_response
-      expect(response.status).to eq 200
-      attributes.all?{ |attr| json_response.key? attr.to_s }
+      expect(response).to have_http_status :ok
+      expect(json_response.keys).to include(*attributes)
     end
 
     def make_order_contents_fail
@@ -423,7 +427,7 @@ describe Api::V0::ShipmentsController, type: :controller do
     end
 
     def expect_error_response
-      expect(response.status).to eq 422
+      expect(response).to have_http_status :unprocessable_entity
       expect(json_response["exception"]).to eq error_message
     end
   end

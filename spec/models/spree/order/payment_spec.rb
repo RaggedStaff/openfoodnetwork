@@ -1,9 +1,7 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 module Spree
-  describe Spree::Order do
+  RSpec.describe Spree::Order do
     before { Stripe.api_key = "sk_test_12345" }
     let(:order) { build(:order) }
     let(:updater) { OrderManagement::Order::Updater.new(order) }
@@ -15,13 +13,13 @@ module Spree
       create(:credit_card)
     }
     let(:payment1) {
-      create(:payment, amount: 50, payment_method:, source:, response_code: "12345")
+      create(:payment, order:, amount: 50, payment_method:, source:, response_code: "12345")
     }
     let(:payment2) {
-      create(:payment, amount: 50, payment_method:, source:, response_code: "12345")
+      create(:payment, order:, amount: 50, payment_method:, source:, response_code: "12345")
     }
     let(:payment3) {
-      create(:payment, amount: 50, payment_method:, source:, response_code: "12345")
+      create(:payment, order:, amount: 50, payment_method:, source:, response_code: "12345")
     }
     let(:failed_payment) {
       create(:payment, amount: 50, state: 'failed', payment_method:, source:,
@@ -35,6 +33,12 @@ module Spree
     }
 
     before do
+      # mock the call with "ofn.payment_transition" so we don't call the related listener
+      # and services
+      allow(ActiveSupport::Notifications).to receive(:instrument).and_call_original
+      allow(ActiveSupport::Notifications).to receive(:instrument)
+        .with("ofn.payment_transition", any_args).and_return(nil)
+
       allow(order).to receive_message_chain(:line_items, :empty?).and_return(false)
       allow(order).to receive_messages total: 100
       stub_request(:get, "https://api.stripe.com/v1/payment_intents/12345").
@@ -87,7 +91,7 @@ module Spree
 
         expect(zero_order.payment_state).to eq "paid"
         expect(zero_payment.reload.state).to eq "completed"
-        expect(zero_payment.captured_at).to_not be_nil
+        expect(zero_payment.captured_at).not_to be_nil
       end
     end
 

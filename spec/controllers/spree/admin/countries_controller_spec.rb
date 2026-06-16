@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 module Spree
   module Admin
-    describe CountriesController, type: :controller do
+    RSpec.describe CountriesController do
       include AuthenticationHelper
 
       describe "#update" do

@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe TaxRateUpdater do
+RSpec.describe TaxRateUpdater do
   let!(:old_tax_rate) {
     create(:tax_rate, name: "Test Rate", amount: 0.2, calculator: Calculator::DefaultTax.new)
   }
@@ -12,7 +10,7 @@ describe TaxRateUpdater do
 
   describe "#updated_rate" do
     it "returns a cloned (unsaved) tax rate with the new attributes assigned" do
-      expect(new_tax_rate).to_not be old_tax_rate
+      expect(new_tax_rate).not_to be old_tax_rate
       expect(new_tax_rate.amount).to eq params[:amount]
       expect(new_tax_rate.id).to be_nil
       expect(new_tax_rate.calculator.class).to eq old_tax_rate.calculator.class
@@ -34,9 +32,9 @@ describe TaxRateUpdater do
     context "when saving the new tax_rate fails" do
       it "does not delete the old tax_rate and returns a falsey value" do
         expect(new_tax_rate).to receive(:save) { false }
-        expect(old_tax_rate).to_not receive(:destroy)
+        expect(old_tax_rate).not_to receive(:destroy)
 
-        expect(service.transition_rate!).to_not be_truthy
+        expect(service.transition_rate!).not_to be_truthy
       end
     end
   end

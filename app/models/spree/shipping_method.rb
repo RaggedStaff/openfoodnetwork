@@ -3,6 +3,7 @@
 module Spree
   class ShippingMethod < ApplicationRecord
     include CalculatedAdjustments
+
     DISPLAY_ON_OPTIONS = {
       both: "",
       back_end: "back_end"
@@ -37,12 +38,11 @@ module Spree
     after_save :touch_distributors
 
     scope :managed_by, lambda { |user|
-      if user.has_spree_role?('admin')
+      if user.admin?
         where(nil)
       else
         joins(:distributors).
-          where('distributors_shipping_methods.distributor_id IN (?)',
-                user.enterprises.select(&:id)).
+          where(distributors_shipping_methods: { distributor_id: user.enterprises.select(&:id) }).
           select('DISTINCT spree_shipping_methods.*')
       end
     }
@@ -53,7 +53,7 @@ module Spree
     }
     scope :for_distributor, lambda { |distributor|
       joins(:distributors).
-        where('enterprises.id = ?', distributor)
+        where(enterprises: { id: distributor })
     }
 
     scope :by_name, -> { order('spree_shipping_methods.name ASC') }
@@ -88,16 +88,20 @@ module Spree
 
     # Return the services (pickup, delivery) that different distributors provide, in the format:
     # {distributor_id => {pickup: true, delivery: false}, ...}
-    def self.services
-      Hash[
-        Spree::ShippingMethod.
-          joins(:distributor_shipping_methods).
-          group('distributor_id').
-          select("distributor_id").
-          select("BOOL_OR(spree_shipping_methods.require_ship_address = 'f') AS pickup").
-          select("BOOL_OR(spree_shipping_methods.require_ship_address = 't') AS delivery").
-          map { |sm| [sm.distributor_id.to_i, { pickup: sm.pickup, delivery: sm.delivery }] }
-      ]
+    #
+    # Optionally, specify some distributor_ids as a parameter to scope the results
+    def self.services(distributor_ids = nil)
+      methods = Spree::ShippingMethod.joins(:distributor_shipping_methods).group('distributor_id')
+
+      if distributor_ids.present?
+        methods = methods.where(distributor_shipping_methods: { distributor_id: distributor_ids })
+      end
+
+      methods.
+        pluck(Arel.sql("distributor_id"),
+              Arel.sql("BOOL_OR(spree_shipping_methods.require_ship_address = 'f') AS pickup"),
+              Arel.sql("BOOL_OR(spree_shipping_methods.require_ship_address = 't') AS delivery")).
+        to_h { |(distributor_id, pickup, delivery)| [distributor_id.to_i, { pickup:, delivery: }] }
     end
 
     def self.backend

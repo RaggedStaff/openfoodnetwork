@@ -41,8 +41,8 @@ module OpenFoodNetwork
     end
 
     def fees_name_by_type_for(variant)
-      per_item_enterprise_fee_applicators_for(variant).each_with_object({}) do |applicator, fees|
-        fees[applicator.enterprise_fee.fee_type.to_sym] = applicator.enterprise_fee.name
+      per_item_enterprise_fee_applicators_for(variant).to_h do |applicator|
+        [applicator.enterprise_fee.fee_type.to_sym, applicator.enterprise_fee.name]
       end
     end
 
@@ -111,7 +111,7 @@ module OpenFoodNetwork
       EnterpriseFee.
         per_item.
         joins(exchanges: :exchange_variants).
-        where('exchanges.order_cycle_id = ?', @order_cycle.id).
+        where(exchanges: { order_cycle_id: @order_cycle.id }).
         merge(Exchange.supplying_to(@distributor)).
         select('enterprise_fees.*, exchange_variants.variant_id AS variant_id')
     end

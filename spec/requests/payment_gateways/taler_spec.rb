@@ -1,0 +1,97 @@
+# frozen_string_literal: true
+
+require 'spec_helper'
+
+RSpec.describe "/payment_gateways/taler/:id" do
+  let(:shop) { create(:distributor_enterprise) }
+  let(:taler) {
+    Spree::PaymentMethod::Taler.create!(
+      name: "Taler",
+      environment: "test",
+      distributors: [shop],
+      preferred_instance_url: "https://backend.demo.taler.net/instances/sandbox",
+      preferred_password: "sandbox",
+    )
+  }
+  let!(:order) { create(:order_ready_for_confirmation, payment_method: taler) }
+
+  it "completes the order", :vcr do
+    payment = Spree::Payment.last
+    payment.update!(
+      source: taler,
+      payment_method: taler,
+      # This is a Taler order id of a paid order on the test backend.
+      # It may be gone when you try to re-record this test.
+      # To create a new order, you need user interaction with a wallet.
+      response_code: "2026.020-03R3ETNZZ0DVA",
+      redirect_auth_url: "https://merchant.backend.where-we-paid.com",
+    )
+
+    get payment_gateways_confirm_taler_path(payment_id: payment.id)
+    expect(response).to redirect_to(order_path(order, order_token: order.token))
+
+    payment.reload
+    expect(payment.state).to eq "completed"
+  end
+
+  it "redirects when payment invalid" do
+    payment = Spree::Payment.last
+    payment.update!(
+      source: taler,
+      payment_method: taler,
+      state: "processing", # invalid state to start processing again
+    )
+
+    get payment_gateways_confirm_taler_path(payment_id: payment.id)
+    expect(response).to redirect_to "/checkout/payment"
+
+    payment.reload
+    expect(payment.state).to eq "processing"
+
+    order.reload
+    expect(order.state).to eq "confirmation"
+  end
+
+  it "redirects when payment failed" do
+    payment = Spree::Payment.last
+    payment.update!(
+      source: taler,
+      payment_method: taler,
+      response_code: "2026.020-03R3ETNZZ0DVA",
+    )
+
+    allow_any_instance_of(Taler::Order)
+      .to receive(:fetch).with("order_status").and_return("claimed")
+
+    get payment_gateways_confirm_taler_path(payment_id: payment.id)
+    expect(response).to redirect_to "/checkout/payment"
+
+    payment.reload
+    expect(payment.state).to eq "failed"
+
+    order.reload
+    expect(order.state).to eq "confirmation"
+  end
+
+  it "handles all variants going out of stock" do
+    payment = Spree::Payment.last
+    payment.update!(
+      source: taler,
+      payment_method: taler,
+      response_code: "2026.020-03R3ETNZZ0DVA",
+    )
+
+    allow_any_instance_of(Taler::Order)
+      .to receive(:fetch).with("order_status").and_return("paid")
+    order.line_items[0].variant.on_hand = 0
+
+    get payment_gateways_confirm_taler_path(payment_id: payment.id)
+    expect(response).to redirect_to "/checkout/details"
+
+    payment.reload
+    expect(payment.state).to eq "completed"
+
+    order.reload
+    expect(order.state).to eq "confirmation"
+  end
+end

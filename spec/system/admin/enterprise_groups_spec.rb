@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe '
+RSpec.describe '
     As an administrator
     I want to manage enterprise groups
 ' do
@@ -103,7 +103,7 @@ describe '
       first("a.delete-resource").click
     end
 
-    expect(page).to have_no_content 'EGEGEG'
+    expect(page).not_to have_content 'EGEGEG'
 
     expect(EnterpriseGroup.all).not_to include eg
   end

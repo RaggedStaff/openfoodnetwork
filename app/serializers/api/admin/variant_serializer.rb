@@ -6,7 +6,11 @@ module Api
       attributes :id, :name, :producer_name, :image, :sku, :import_date, :tax_category_id,
                  :options_text, :unit_value, :unit_description, :unit_to_display,
                  :display_as, :display_name, :name_to_display, :variant_overrides_count,
-                 :price, :on_demand, :on_hand, :in_stock, :stock_location_id, :stock_location_name
+                 :price, :on_demand, :on_hand, :in_stock,
+                 :variant_unit, :variant_unit_scale, :variant_unit_name, :variant_unit_with_scale
+
+      has_one :primary_taxon, key: :category_id, embed: :id
+      has_one :supplier, key: :producer_id, embed: :id
 
       def name
         if object.full_name.present?
@@ -29,7 +33,7 @@ module Api
       end
 
       def producer_name
-        object.product.supplier.name
+        object.supplier.name
       end
 
       def image
@@ -38,18 +42,6 @@ module Api
 
       def in_stock
         object.in_stock?
-      end
-
-      def stock_location_id
-        return if object.stock_items.empty?
-
-        options[:stock_location]&.id || object.stock_items.first.stock_location.id
-      end
-
-      def stock_location_name
-        return if object.stock_items.empty?
-
-        options[:stock_location]&.name || object.stock_items.first.stock_location.name
       end
 
       def variant_overrides_count

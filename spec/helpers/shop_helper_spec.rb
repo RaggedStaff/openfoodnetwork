@@ -1,7 +1,6 @@
 # frozen_string_literal: false
 
-require 'spec_helper'
-describe ShopHelper, type: :helper do
+RSpec.describe ShopHelper do
   describe "shop_tabs" do
     context "distributor with groups" do
       let(:group) { create(:enterprise_group) }
@@ -24,7 +23,7 @@ describe ShopHelper, type: :helper do
       end
 
       it "should not return the groups tab" do
-        expect(helper.shop_tabs).to_not include(name: "groups", show: true, title: "Groups")
+        expect(helper.shop_tabs).not_to include(name: "groups", show: true, title: "Groups")
       end
     end
 

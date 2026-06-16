@@ -1,12 +1,10 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe SubscriptionMailer, type: :mailer do
+RSpec.describe SubscriptionMailer do
   include ActionView::Helpers::SanitizeHelper
 
-  describe '#placement_email' do
-    subject(:email) { SubscriptionMailer.placement_email(order, changes) }
+  describe '#placement_email (customer)' do
+    subject(:mail) { described_class.placement_email(order, changes) }
     let(:changes) { {} }
 
     let(:shop) { create(:enterprise) }
@@ -15,11 +13,16 @@ describe SubscriptionMailer, type: :mailer do
     let(:proxy_order) { create(:proxy_order, subscription:) }
     let!(:order) { proxy_order.initialise_order! }
 
+    context "white labelling" do
+      it_behaves_like 'email with inactive white labelling', :mail
+      it_behaves_like 'customer facing email with active white labelling', :mail
+    end
+
     context "when changes have been made to the order" do
       before { changes[order.line_items.first.id] = 2 }
 
       it "sends the email, which notifies the customer of changes made" do
-        expect { email.deliver_now }.to change { SubscriptionMailer.deliveries.count }.by(1)
+        expect { mail.deliver_now }.to change { SubscriptionMailer.deliveries.count }.by(1)
 
         body = SubscriptionMailer.deliveries.last.body.encoded
 
@@ -30,43 +33,38 @@ describe SubscriptionMailer, type: :mailer do
 
     context "and changes have not been made to the order" do
       it "sends the email" do
-        expect { email.deliver_now }.to change { SubscriptionMailer.deliveries.count }.by(1)
+        expect { mail.deliver_now }.to change { SubscriptionMailer.deliveries.count }.by(1)
 
         body = SubscriptionMailer.deliveries.last.body.encoded
 
         expect(body).to include "This order was automatically created for you."
-        expect(body).to_not include "Unfortunately, not all products " \
+        expect(body).not_to include "Unfortunately, not all products " \
                                     "that you requested were available."
       end
     end
 
     describe "linking to order page" do
-      let(:order_link_href) { "href=\"#{order_url(order)}\"" }
-      let(:order_link_style) { "style='[^']+'" }
-
       let(:shop) { create(:enterprise, allow_order_changes: true) }
 
+      let(:content) { Capybara::Node::Simple.new(body) }
       let(:body) { SubscriptionMailer.deliveries.last.body.encoded }
 
-      before { email.deliver_now }
+      before { mail.deliver_now }
 
       context "when the customer has a user account" do
         let(:customer) { create(:customer, enterprise: shop) }
 
         it "provides link to make changes" do
-          expect(body).to match %r{<a #{order_link_href} #{order_link_style}>make changes</a>}
-          expect(body).to_not match %r{
-            <a #{order_link_href} #{order_link_style}>view details of this order</a>
-          }
+          expect(content).to have_link "make changes", href: order_url(order)
+          expect(content).not_to have_link "view details of this order", href: order_url(order)
         end
 
         context "when the distributor does not allow changes to the order" do
           let(:shop) { create(:enterprise, allow_order_changes: false) }
 
           it "provides link to view details" do
-            expect(body).to_not match %r{<a #{order_link_href} #{order_link_style}>make changes</a>}
-            expect(body)
-              .to match %r{<a #{order_link_href} #{order_link_style}>view details of this order</a>}
+            expect(content).not_to have_link "make changes", href: order_url(order)
+            expect(content).to have_link "view details of this order", href: order_url(order)
           end
         end
       end
@@ -75,14 +73,14 @@ describe SubscriptionMailer, type: :mailer do
         let(:customer) { create(:customer, enterprise: shop, user: nil) }
 
         it "does not provide link" do
-          expect(body).to_not match /#{order_link_href}/
+          expect(body).not_to match order_url(order)
         end
 
         context "when the distributor does not allow changes to the order" do
           let(:shop) { create(:enterprise, allow_order_changes: false) }
 
           it "does not provide link" do
-            expect(body).to_not match /#{order_link_href}/
+            expect(body).not_to match order_url(order)
           end
         end
       end
@@ -92,7 +90,7 @@ describe SubscriptionMailer, type: :mailer do
       before { allow(order).to receive(:new_outstanding_balance) { 123 } }
 
       it 'renders the amount as money' do
-        expect(email.body).to include('$123')
+        expect(mail.body).to include('$123')
       end
     end
 
@@ -100,13 +98,13 @@ describe SubscriptionMailer, type: :mailer do
       before { allow(order).to receive(:new_outstanding_balance) { 0 } }
 
       it 'displays the payment status' do
-        expect(email.body).to include('NOT PAID')
+        expect(mail.body).to include('NOT PAID')
       end
     end
   end
 
-  describe '#confirmation_email' do
-    subject(:email) { SubscriptionMailer.confirmation_email(order) }
+  describe '#confirmation_email (customer)' do
+    subject(:mail) { described_class.confirmation_email(order) }
 
     let(:customer) { create(:customer) }
     let(:subscription) { create(:subscription, customer:, with_items: true) }
@@ -115,14 +113,15 @@ describe SubscriptionMailer, type: :mailer do
     let(:user) { order.user }
 
     it "sends the email" do
-      expect { email.deliver_now }.to change{ SubscriptionMailer.deliveries.count }.by(1)
+      expect { mail.deliver_now }.to change{ SubscriptionMailer.deliveries.count }.by(1)
 
       body = SubscriptionMailer.deliveries.last.body.encoded
       expect(body).to include "This order was automatically placed for you"
     end
 
-    it "display the OFN header by default" do
-      expect(email.body).to include(ContentConfig.url_for(:footer_logo))
+    context "white labelling" do
+      it_behaves_like 'email with inactive white labelling', :mail
+      it_behaves_like 'customer facing email with active white labelling', :mail
     end
 
     describe "linking to order page" do
@@ -132,7 +131,7 @@ describe SubscriptionMailer, type: :mailer do
         let(:customer) { create(:customer) }
 
         it "provides link to view details" do
-          expect(email.body.encoded).to include(order_url(order))
+          expect(mail.body.encoded).to include(order_url(order))
         end
       end
 
@@ -140,7 +139,7 @@ describe SubscriptionMailer, type: :mailer do
         let(:customer) { create(:customer, user: nil) }
 
         it "does not provide link" do
-          expect(email.body).to_not match /#{order_link_href}/
+          expect(mail.body).not_to match /#{order_link_href}/
         end
       end
     end
@@ -149,7 +148,7 @@ describe SubscriptionMailer, type: :mailer do
       before { allow(order).to receive(:new_outstanding_balance) { 123 } }
 
       it 'renders the amount as money' do
-        expect(email.body).to include('$123')
+        expect(mail.body).to include('$123')
       end
     end
 
@@ -157,40 +156,36 @@ describe SubscriptionMailer, type: :mailer do
       before { allow(order).to receive(:new_outstanding_balance) { 0 } }
 
       it 'displays the payment status' do
-        expect(email.body).to include('NOT PAID')
-      end
-    end
-
-    context 'when hide OFN navigation is enabled for the distributor of the order' do
-      before do
-        allow(order.distributor).to receive(:hide_ofn_navigation).and_return(true)
-      end
-
-      it 'does not display the OFN navigation' do
-        expect(email.body).to_not include(ContentConfig.url_for(:footer_logo))
+        expect(mail.body).to include('NOT PAID')
       end
     end
   end
 
-  describe "empty order notification" do
+  describe "#empty_order_email (customer)" do
+    subject(:mail) { described_class.empty_email(order, {}) }
+
     let(:subscription) { create(:subscription, with_items: true) }
     let(:proxy_order) { create(:proxy_order, subscription:) }
+    let(:distributor) { create(:distributor_enterprise) }
     let!(:order) { proxy_order.initialise_order! }
 
-    before do
-      expect do
-        SubscriptionMailer.empty_email(order, {}).deliver_now
-      end.to change{ SubscriptionMailer.deliveries.count }.by(1)
+    context "white labelling" do
+      it_behaves_like 'email with inactive white labelling', :mail
+      it_behaves_like 'customer facing email with active white labelling', :mail
     end
 
     it "sends the email" do
+      expect { mail.deliver_now }.to change{ SubscriptionMailer.deliveries.count }.by(1)
+
       body = SubscriptionMailer.deliveries.last.body.encoded
       expect(body).to include "We tried to place a new order with"
       expect(body).to include "Unfortunately, none of products that you ordered were available"
     end
   end
 
-  describe "failed payment notification" do
+  describe "#failed_payment_email (customer)" do
+    subject(:mail) { described_class.failed_payment_email(order) }
+
     let(:customer) { create(:customer) }
     let(:subscription) { create(:subscription, customer:, with_items: true) }
     let(:proxy_order) { create(:proxy_order, subscription:) }
@@ -198,13 +193,16 @@ describe SubscriptionMailer, type: :mailer do
 
     before do
       order.errors.add(:base, "This is a payment failure error")
+    end
 
-      expect do
-        SubscriptionMailer.failed_payment_email(order).deliver_now
-      end.to change{ SubscriptionMailer.deliveries.count }.by(1)
+    context "white labelling" do
+      it_behaves_like 'email with inactive white labelling', :mail
+      it_behaves_like 'customer facing email with active white labelling', :mail
     end
 
     it "sends the email" do
+      expect { mail.deliver_now }.to change{ SubscriptionMailer.deliveries.count }.by(1)
+
       body = strip_tags(SubscriptionMailer.deliveries.last.body.encoded)
       expect(body).to include 'We tried to process a payment, but had some problems...'
       email_so_failed_payment_explainer_html = "The payment for your subscription with <strong>%s" \
@@ -219,10 +217,8 @@ describe SubscriptionMailer, type: :mailer do
     end
 
     describe "linking to order page" do
-      let(:order_link_href) { "href=\"#{order_url(order)}\"" }
-
-      let(:email) { SubscriptionMailer.deliveries.last }
-      let(:body) { email.body.encoded }
+      let(:order_link_href) { "href=['\"]#{order_url(order)}['\"]" }
+      let(:body) { mail.body.encoded }
 
       context "when the customer has a user account" do
         let(:customer) { create(:customer) }
@@ -236,45 +232,49 @@ describe SubscriptionMailer, type: :mailer do
         let(:customer) { create(:customer, user: nil) }
 
         it "does not provide link" do
-          expect(body).to_not match /#{order_link_href}/
+          expect(body).not_to match /#{order_link_href}/
         end
       end
     end
   end
 
-  describe "order placement summary" do
+  describe "#order_placement_summary_email (hub)" do
+    subject(:mail) { described_class.placement_summary_email(summary) }
+
     let!(:shop) { create(:enterprise, :with_logo_image) }
     let!(:summary) { double(:summary, shop_id: shop.id) }
     let(:body) { strip_tags(SubscriptionMailer.deliveries.last.body.encoded) }
     let(:scope) { "subscription_mailer" }
+    let(:order) { build(:order_with_distributor) }
 
     before do
       allow(summary).to receive(:unrecorded_ids) { [] }
       allow(summary).to receive(:subscription_issues) { [] }
+      allow(summary).to receive(:order_count) { 37 }
+      allow(summary).to receive(:issue_count) { 0 }
+      allow(summary).to receive(:issues) { {} }
+    end
+
+    it "renders the shop's logo" do
+      mail.deliver_now
+      expect(SubscriptionMailer.deliveries.last.body).to include "logo.png"
+    end
+
+    context "white labelling" do
+      it_behaves_like 'email with inactive white labelling', :mail
+      it_behaves_like 'non-customer facing email with active white labelling', :mail
     end
 
     context "when no issues were encountered while processing subscriptions" do
-      before do
-        allow(summary).to receive(:order_count) { 37 }
-        allow(summary).to receive(:issue_count) { 0 }
-        allow(summary).to receive(:issues) { {} }
-      end
-
       it "sends the email, which notifies the enterprise that all orders " \
          "were successfully processed" do
-        SubscriptionMailer.placement_summary_email(summary).deliver_now
-
+        mail.deliver_now
         expect(body).to include("Below is a summary of the subscription orders " \
                                 "that have just been placed for %s." % shop.name)
         expect(body).to include("A total of %d subscriptions were marked " \
                                 "for automatic processing." % 37)
         expect(body).to include 'All were processed successfully.'
-        expect(body).to_not include 'Details of the issues encountered are provided below.'
-      end
-
-      it "renders the shop's logo" do
-        SubscriptionMailer.placement_summary_email(summary).deliver_now
-        expect(SubscriptionMailer.deliveries.last.body).to include "logo.png"
+        expect(body).not_to include 'Details of the issues encountered are provided below.'
       end
     end
 
@@ -294,7 +294,7 @@ describe SubscriptionMailer, type: :mailer do
 
       context "when no unrecorded issues are present" do
         it "sends the email, which notifies the enterprise that some issues were encountered" do
-          SubscriptionMailer.placement_summary_email(summary).deliver_now
+          mail.deliver_now
           expect(body).to include("Below is a summary of the subscription orders " \
                                   "that have just been placed for %s." % shop.name)
           expect(body).to include("A total of %d subscriptions were marked " \
@@ -325,7 +325,7 @@ describe SubscriptionMailer, type: :mailer do
 
         it "sends the email, which notifies the enterprise that some issues were encountered" do
           expect(summary).to receive(:orders_affected_by).with(:other) { [order3, order4] }
-          SubscriptionMailer.placement_summary_email(summary).deliver_now
+          mail.deliver_now
           expect(body).to include("Error Encountered (%d orders)" % 2)
           expect(body).to include 'Automatic processing of these orders failed due to an error. ' \
                                   'The error has been listed where possible.'
@@ -351,7 +351,7 @@ describe SubscriptionMailer, type: :mailer do
         allow(summary).to receive(:issue_count) { 2 }
         allow(summary).to receive(:issues) { { changes: { 1 => nil, 2 => nil } } }
         allow(summary).to receive(:orders_affected_by) { [order1, order2] }
-        SubscriptionMailer.placement_summary_email(summary).deliver_now
+        mail.deliver_now
       end
 
       it "sends the email, which notifies the enterprise that some issues were encountered" do
@@ -370,29 +370,34 @@ describe SubscriptionMailer, type: :mailer do
         expect(body).to include order2.number
 
         # No error messages reported when non provided
-        expect(body).to_not include 'No error message provided'
+        expect(body).not_to include 'No error message provided'
       end
     end
   end
 
-  describe "order confirmation summary" do
+  describe "#order_confirmation_summary_email (hub)" do
+    subject(:mail) { SubscriptionMailer.confirmation_summary_email(summary) }
     let!(:shop) { create(:enterprise) }
     let!(:summary) { double(:summary, shop_id: shop.id) }
     let(:body) { strip_tags(SubscriptionMailer.deliveries.last.body.encoded) }
     let(:scope) { "subscription_mailer" }
+    let(:order) { build(:order_with_distributor) }
 
     before do
       allow(summary).to receive(:unrecorded_ids) { [] }
       allow(summary).to receive(:subscription_issues) { [] }
+      allow(summary).to receive(:order_count) { 37 }
+      allow(summary).to receive(:issue_count) { 0 }
+      allow(summary).to receive(:issues) { {} }
+    end
+
+    context "white labelling" do
+      it_behaves_like 'email with inactive white labelling', :mail
+      it_behaves_like 'non-customer facing email with active white labelling', :mail
     end
 
     context "when no issues were encountered while processing subscriptions" do
-      before do
-        allow(summary).to receive(:order_count) { 37 }
-        allow(summary).to receive(:issue_count) { 0 }
-        allow(summary).to receive(:issues) { {} }
-        SubscriptionMailer.confirmation_summary_email(summary).deliver_now
-      end
+      before { mail.deliver_now }
 
       it "sends the email, which notifies the enterprise " \
          "that all orders were successfully processed" do
@@ -401,7 +406,7 @@ describe SubscriptionMailer, type: :mailer do
         expect(body).to include("A total of %d subscriptions were marked " \
                                 "for automatic processing." % 37)
         expect(body).to include 'All were processed successfully.'
-        expect(body).to_not include 'Details of the issues encountered are provided below.'
+        expect(body).not_to include 'Details of the issues encountered are provided below.'
       end
     end
 
@@ -421,7 +426,7 @@ describe SubscriptionMailer, type: :mailer do
 
       context "when no unrecorded issues are present" do
         it "sends the email, which notifies the enterprise that some issues were encountered" do
-          SubscriptionMailer.confirmation_summary_email(summary).deliver_now
+          mail.deliver_now
           expect(body).to include("Below is a summary of the subscription orders " \
                                   "that have just been finalised for %s." % shop.name)
           expect(body).to include("A total of %d subscriptions were marked " \
@@ -452,7 +457,7 @@ describe SubscriptionMailer, type: :mailer do
 
         it "sends the email, which notifies the enterprise that some issues were encountered" do
           expect(summary).to receive(:orders_affected_by).with(:other) { [order3, order4] }
-          SubscriptionMailer.confirmation_summary_email(summary).deliver_now
+          mail.deliver_now
           expect(body).to include("Failed Payment (%d orders)" % 2)
           expect(body).to include 'Automatic processing of payment for these orders failed ' \
                                   'due to an error. The error has been listed where possible.'
@@ -478,7 +483,7 @@ describe SubscriptionMailer, type: :mailer do
         allow(summary).to receive(:issue_count) { 2 }
         allow(summary).to receive(:issues) { { changes: { 1 => nil, 2 => nil } } }
         allow(summary).to receive(:orders_affected_by) { [order1, order2] }
-        SubscriptionMailer.confirmation_summary_email(summary).deliver_now
+        mail.deliver_now
       end
 
       it "sends the email, which notifies the enterprise that some issues were encountered" do
@@ -497,7 +502,7 @@ describe SubscriptionMailer, type: :mailer do
         expect(body).to include order2.number
 
         # No error messages reported when non provided
-        expect(body).to_not include 'No error message provided'
+        expect(body).not_to include 'No error message provided'
       end
     end
   end

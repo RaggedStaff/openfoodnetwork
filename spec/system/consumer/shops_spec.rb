@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe 'Shops' do
+RSpec.describe 'Shops' do
   include AuthenticationHelper
   include UIComponentHelper
   include WebHelper
@@ -42,9 +42,8 @@ describe 'Shops' do
       it "by URL" do
         pending("#9649")
         visit shops_path(anchor: "/?query=xyzzy")
-        sleep 1
-        expect(page).not_to have_content distributor.name
         expect(page).to have_content "Sorry, no results found for xyzzy. Try another search?"
+        expect(page).not_to have_content distributor.name
       end
 
       it "by typing in the search field" do
@@ -74,8 +73,8 @@ describe 'Shops' do
     end
 
     it "does not show hubs that are not in an order cycle" do
-      expect(page).to have_no_selector 'hub.inactive'
-      expect(page).to have_no_selector 'hub', text: d2.name
+      expect(page).not_to have_selector 'hub.inactive'
+      expect(page).not_to have_selector 'hub', text: d2.name
     end
 
     it "does not show profiles" do
@@ -112,8 +111,8 @@ describe 'Shops' do
       create(:simple_order_cycle, distributors: [d1, d2],
                                   coordinator: create(:distributor_enterprise))
     }
-    let!(:p1) { create(:simple_product, supplier: producer) }
-    let!(:p2) { create(:simple_product, supplier: create(:supplier_enterprise)) }
+    let!(:p1) { create(:simple_product, supplier_id: producer.id) }
+    let!(:p2) { create(:simple_product, supplier_id: create(:supplier_enterprise).id) }
     let(:ex_d1) { order_cycle.exchanges.outgoing.where(receiver_id: d1).first }
     let(:ex_d2) { order_cycle.exchanges.outgoing.where(receiver_id: d2).first }
 
@@ -184,7 +183,7 @@ describe 'Shops' do
         variants: [product.variants.first]
       )
     }
-    let(:product) { create(:simple_product, supplier: producer) }
+    let(:product) { create(:simple_product, supplier_id: producer.id) }
 
     before do
       product.set_property 'Local', 'XYZ 123'
@@ -207,7 +206,7 @@ describe 'Shops' do
   end
 
   describe "hub producer modal" do
-    let!(:product) { create(:simple_product, supplier: producer, primary_taxon: taxon) }
+    let!(:product) { create(:simple_product, supplier_id: producer.id, primary_taxon: taxon) }
     let!(:taxon) { create(:taxon, name: 'Fruit') }
     let!(:order_cycle) {
       create(
@@ -246,7 +245,7 @@ describe 'Shops' do
 
       it "does not show the producer modal" do
         open_enterprise_modal producer
-        expect(page).to_not have_selector(".reveal-modal")
+        expect(page).not_to have_selector(".reveal-modal")
       end
     end
   end

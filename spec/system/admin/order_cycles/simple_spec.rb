@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe '
+RSpec.describe '
     As an administrator
     I want to manage simple order cycles
 ' do
@@ -138,6 +138,38 @@ describe '
     let!(:distributor_managed_fee) {
       create(:enterprise_fee, enterprise: distributor_managed, name: 'Managed distributor fee')
     }
+    let!(:supplier_permitted_fee1) {
+      create(:enterprise_fee, :per_item, enterprise: supplier_permitted,
+                                         name: 'Supplier distributor fee1')
+    }
+    let!(:supplier_permitted_fee2) {
+      create(:enterprise_fee, :flat_rate, enterprise: supplier_permitted,
+                                          name: 'Supplier distributor fee2')
+    }
+    let!(:supplier_permitted_fee3) {
+      create(:enterprise_fee, :per_item, enterprise: supplier_permitted,
+                                         name: 'Supplier distributor fee3')
+    }
+    let!(:supplier_permitted_fee4) {
+      create(:enterprise_fee, :flat_rate, enterprise: supplier_permitted,
+                                          name: 'Supplier distributor fee4')
+    }
+    let!(:distributor_permitted_fee1) {
+      create(:enterprise_fee, :per_item, enterprise: distributor_permitted,
+                                         name: 'Distributor distributor fee1')
+    }
+    let!(:distributor_permitted_fee2) {
+      create(:enterprise_fee, :flat_rate, enterprise: distributor_permitted,
+                                          name: 'Distributor distributor fee2')
+    }
+    let!(:distributor_permitted_fee3) {
+      create(:enterprise_fee, :per_item, enterprise: distributor_permitted,
+                                         name: 'Distributor distributor fee3')
+    }
+    let!(:distributor_permitted_fee4) {
+      create(:enterprise_fee, :flat_rate, enterprise: distributor_permitted,
+                                          name: 'Distributor distributor fee4')
+    }
     let!(:shipping_method) {
       create(:shipping_method,
              distributors: [distributor_managed, distributor_unmanaged, distributor_permitted])
@@ -146,10 +178,8 @@ describe '
       create(:payment_method,
              distributors: [distributor_managed, distributor_unmanaged, distributor_permitted])
     }
-    let!(:product_managed) { create(:product, supplier: supplier_managed) }
-    let!(:variant_managed) { product_managed.variants.first }
-    let!(:product_permitted) { create(:product, supplier: supplier_permitted) }
-    let!(:variant_permitted) { product_permitted.variants.first }
+    let!(:variant_managed) { create(:variant, supplier: supplier_managed) }
+    let!(:variant_permitted) { create(:variant, supplier: supplier_permitted) }
     let!(:schedule) {
       create(:schedule, name: 'Schedule1',
                         order_cycles: [
@@ -185,12 +215,12 @@ describe '
 
     context "that is a manager of the coordinator" do
       before do
-        @new_user = create(:user)
-        @new_user.enterprise_roles.build(enterprise: supplier_managed).save
-        @new_user.enterprise_roles.build(enterprise: distributor_managed).save
-        @new_user.enterprise_roles.build(enterprise: other_distributor_managed).save
+        new_user = create(:user)
+        new_user.enterprise_roles.build(enterprise: supplier_managed).save
+        new_user.enterprise_roles.build(enterprise: distributor_managed).save
+        new_user.enterprise_roles.build(enterprise: other_distributor_managed).save
 
-        login_as @new_user
+        login_as new_user
       end
 
       it "viewing a list of order cycles I am coordinating" do
@@ -207,7 +237,7 @@ describe '
 
         # I should see only the order cycle I am coordinating
         expect(page).to have_selector "tr.order-cycle-#{oc_user_coordinating.id}"
-        expect(page).to_not have_selector "tr.order-cycle-#{oc_for_other_user.id}"
+        expect(page).not_to have_selector "tr.order-cycle-#{oc_for_other_user.id}"
 
         toggle_columns "Producers", "Shops"
 
@@ -218,6 +248,7 @@ describe '
         expect(page).to have_selector 'td.shops', text: distributor_unmanaged.name
       end
 
+      # TODO
       it "creating a new order cycle" do
         distributor_managed.update_attribute(:enable_subscriptions, true)
         visit admin_order_cycles_path
@@ -241,9 +272,8 @@ describe '
         select 'Managed distributor fee', from: 'order_cycle_coordinator_fee_0_id'
 
         click_button 'Create'
-
-        # Wait for API requests to finish:
-        sleep 2
+        expect(page).to have_content 'Your order cycle has been created.'
+        click_button "Dismiss"
 
         expect(page).to have_select 'new_supplier_id', with_options: [
           "Managed supplier",
@@ -258,12 +288,23 @@ describe '
         click_button 'Add supplier'
         expect(page).to have_content "Permitted supplier"
 
+        within("tr.supplier-#{supplier_permitted.id}") { click_button 'Add fee' }
+        expect(page).to have_select(
+          "order_cycle_incoming_exchange_1_enterprise_fees_0_enterprise_id", minimum: 1
+        )
+        select "Permitted supplier",
+               from: "order_cycle_incoming_exchange_1_enterprise_fees_0_enterprise_id"
+        expect(page).to have_select(
+          "order_cycle_incoming_exchange_1_enterprise_fees_0_enterprise_fee_id",
+          options: ["", supplier_permitted_fee1.name, supplier_permitted_fee3.name]
+        )
+
         select_incoming_variant supplier_managed, 0, variant_managed
         select_incoming_variant supplier_permitted, 1, variant_permitted
 
         click_button 'Save and Next'
         expect(page).to have_content 'Your order cycle has been updated.'
-        expect(page).to_not have_content "Loading..."
+        expect(page).not_to have_content "Loading..."
 
         expect(page).to have_select 'new_distributor_id'
         expect(page).not_to have_select 'new_distributor_id',
@@ -273,6 +314,18 @@ describe '
         select 'Permitted distributor', from: 'new_distributor_id'
         click_button 'Add distributor'
         expect(page).to have_content "Permitted distributor"
+
+        within("tr.distributor-#{distributor_permitted.id}") { click_button 'Add fee' }
+        expect(page).to have_select(
+          "order_cycle_outgoing_exchange_1_enterprise_fees_0_enterprise_id", minimum: 1
+        )
+        select "Permitted distributor",
+               from: "order_cycle_outgoing_exchange_1_enterprise_fees_0_enterprise_id"
+        expect(page).to have_select(
+          "order_cycle_outgoing_exchange_1_enterprise_fees_0_enterprise_fee_id",
+          options: ["", distributor_permitted_fee1.name, distributor_permitted_fee2.name,
+                    distributor_permitted_fee3.name, distributor_permitted_fee4.name]
+        )
 
         expect(page).to have_input 'order_cycle_outgoing_exchange_0_pickup_time'
         fill_in 'order_cycle_outgoing_exchange_0_pickup_time', with: 'pickup time'
@@ -334,7 +387,7 @@ describe '
 
           visit edit_admin_order_cycle_path(oc)
 
-          expect(page).to have_content 'Re notify producers'.upcase
+          expect(page).to have_content "Re notify producers"
         end
 
         it "allows removing exchanges" do
@@ -375,8 +428,7 @@ describe '
                                       distributors: [distributor_managed],
                                       name: 'Order Cycle 1' )
         end
-        let(:product) { create(:product, supplier: supplier_managed) }
-        let(:v1) { create(:variant, product: ) }
+        let(:v1) { create(:variant, supplier: supplier_managed) }
         let(:inventory_item_v1) {
           create(:inventory_item, enterprise: distributor_managed, variant: v1, visible: false)
         }
@@ -399,37 +451,44 @@ describe '
           oc.update prefers_product_selection_from_coordinator_inventory_only: false
         end
 
-        shared_examples "inventory warning" do
-          |inventory_visible, inventory_only, it_description, expect_message|
-          before do
-            # hides/displays variant within coordinator's inventory
-            inventory_item_v1.update!(visible: inventory_visible)
-            # changes coordinator's inventory preferences
-            supplier_managed.update preferred_product_selection_from_inventory_only: inventory_only
+        it "shows a warning when going to 'outgoing products' tab" do
+          # hides/displays variant within coordinator's inventory
+          inventory_item_v1.update!(visible: false)
+          # changes coordinator's inventory preferences
+          supplier_managed.update preferred_product_selection_from_inventory_only: true
+
+          visit edit_admin_order_cycle_path(oc)
+          click_link "Outgoing Products"
+          expect(page).to have_content "Managed distributor"
+          within "tr.distributor-#{distributor_managed.id}" do
+            page.find("td.products").click
           end
 
-          it "#{it_description} a warning when going to 'outgoing products' tab" do
-            visit edit_admin_order_cycle_path(oc)
-            click_link "Outgoing Products"
-            within "tr.distributor-#{distributor_managed.id}" do
-              page.find("td.products").click
-            end
-
-            # we need this assertion here to assure there is enough time to
-            # toggle the variant box and evaluate the following assertion
-            expect(page).to have_content product.name.upcase
-
-            # iterates between true / false, depending on the test case
-            expectation = expect_message ? :to : :not_to
-            expect(page).public_send(expectation,
-                                     have_content(%(No variant available for this product
-                (hidden via inventory settings)).squish))
-          end
+          # we need this assertion here to assure there is enough time to
+          # toggle the variant box and evaluate the following assertion
+          expect(page).to have_content v1.product.name
         end
 
-        it_behaves_like "inventory warning", false, true, "shows", true
-        it_behaves_like "inventory warning", false, false, "does not show", false do
-          before { pending("#11851") }
+        it "doesn't show a warning when going to 'outgoing products' tab" do
+          pending("#11851")
+
+          # hides/displays variant within coordinator's inventory
+          inventory_item_v1.update!(visible: false)
+          # changes coordinator's inventory preferences
+          supplier_managed.update preferred_product_selection_from_inventory_only: false
+
+          visit edit_admin_order_cycle_path(oc)
+          click_link "Outgoing Products"
+          within "tr.distributor-#{distributor_managed.id}" do
+            page.find("td.products").click
+          end
+
+          # we need this assertion here to assure there is enough time to
+          # toggle the variant box and evaluate the following assertion
+          expect(page).to have_content v1.product.name
+
+          expect(page).not_to have_content "No variant available for this product"
+          expect(page).to have_content "(Some variants might be hidden via inventory settings)"
         end
       end
 
@@ -464,8 +523,8 @@ describe '
                       distributor_permitted,
                       distributor_unmanaged
                     ], name: 'Order Cycle 1')
-        v1 = create(:variant, product: create(:product, supplier: supplier_managed) )
-        v2 = create(:variant, product: create(:product, supplier: supplier_managed) )
+        v1 = create(:variant, supplier: supplier_managed)
+        v2 = create(:variant, supplier: supplier_managed)
 
         # Incoming exchange
         ex_in = oc.exchanges.where(sender_id: supplier_managed, receiver_id: distributor_managed,
@@ -496,6 +555,14 @@ describe '
         expect(page).to have_selector "tr.distributor-#{distributor_permitted.id}"
         expect(page).to have_selector 'tr.distributor', count: 2
 
+        # Toggling all products displays the css section of the distributed products
+        click_link "Expand all"
+        expect(page).to have_css ".exchange-distributed-products", count: 2
+
+        # Colapsing all products hides the css section of the distributed products
+        click_link "Collapse all"
+        expect(page).not_to have_css ".exchange-distributed-products"
+
         # Open the products list for managed_supplier's incoming exchange
         within "tr.distributor-#{distributor_managed.id}" do
           page.find("td.products").click
@@ -514,8 +581,7 @@ describe '
           "table.exchanges tr.distributor-#{distributor_managed.id} td.tags"
         )
 
-        # When I save, any exchanges that I can't manage remain
-        click_button 'Save'
+        click_button "Save"
         expect(page).to have_content "Your order cycle has been updated."
 
         oc.reload
@@ -548,8 +614,8 @@ describe '
                       distributor_permitted,
                       distributor_unmanaged
                     ], name: 'Order Cycle 1')
-        v1 = create(:variant, product: create(:product, supplier: supplier_managed) )
-        v2 = create(:variant, product: create(:product, supplier: supplier_managed) )
+        v1 = create(:variant, supplier: supplier_managed)
+        v2 = create(:variant, supplier: supplier_managed)
 
         # Incoming exchange
         ex_in = oc.exchanges.where(sender_id: supplier_managed, receiver_id: distributor_managed,
@@ -578,7 +644,7 @@ describe '
         expect(page).to have_selector "tr.supplier-#{supplier_managed.id}"
         expect(page).to have_selector 'tr.supplier', count: 1
 
-        expect(page).to_not have_content "Loading..."
+        expect(page).not_to have_content "Loading..."
 
         # Open the products list for managed_supplier's incoming exchange
         within "tr.supplier-#{supplier_managed.id}" do
@@ -614,9 +680,9 @@ describe '
   describe "simplified interface for enterprise users selling only their own produce" do
     let(:user) { create(:user) }
     let(:enterprise) { create(:enterprise, is_primary_producer: true, sells: 'own') }
-    let!(:p1) { create(:simple_product, supplier: enterprise) }
-    let!(:p2) { create(:simple_product, supplier: enterprise) }
-    let!(:p3) { create(:simple_product, supplier: enterprise) }
+    let!(:p1) { create(:product, supplier_id: enterprise.id) }
+    let!(:p2) { create(:product, supplier_id: enterprise.id) }
+    let!(:p3) { create(:product, supplier_id: enterprise.id) }
     let!(:v1) { p1.variants.first }
     let!(:v2) { p2.variants.first }
     let!(:v3) { p3.variants.first }
@@ -774,7 +840,7 @@ describe '
       uncheck "order_cycle_incoming_exchange_0_variants_#{v3.id}"
 
       # Add tags
-      expect(page).to have_content "TAGS"
+      expect(page).to have_content "Tags"
 
       within "tags-with-translation" do
         find(:css, "tags-input .tags input").set "wholesale\n"
@@ -787,11 +853,16 @@ describe '
       click_button 'Add coordinator fee'
       select 'that fee', from: 'order_cycle_coordinator_fee_0_id'
 
+      # Click dismiss on distributor warning
+      click_button 'Dismiss'
+
       # When I update, or update and close, both work
       click_button 'Save'
       expect(page).to have_content 'Your order cycle has been updated.'
 
       fill_in 'order_cycle_outgoing_exchange_0_pickup_instructions', with: 'yyz'
+
+      scroll_to(:bottom)
       click_button 'Save and Back to List'
 
       # Then my order cycle should have been updated
@@ -847,15 +918,19 @@ describe '
     accept_alert do
       first('a.delete-order-cycle').click
     end
-    expect(page).to_not have_selector "tr.order-cycle-#{order_cycle.id}"
+    expect(page).not_to have_selector "tr.order-cycle-#{order_cycle.id}"
   end
 
   private
 
   def expect_payment_methods_to_be_checked_for(distributor)
-    distributor.distributor_payment_method_ids.each do |distributor_payment_method_id|
+    # Exclude internal payment method
+    distributor_payment_methods = distributor.distributor_payment_methods.reject { |dpm|
+      dpm.payment_method.nil?
+    }
+    distributor_payment_methods.each do |distributor_payment_method|
       expect(page).to have_checked_field(
-        "order_cycle_selected_distributor_payment_method_ids_#{distributor_payment_method_id}"
+        "order_cycle_selected_distributor_payment_method_ids_#{distributor_payment_method.id}"
       )
     end
   end

@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Spree::Admin::PaymentsController, type: :controller do
+RSpec.describe Spree::Admin::PaymentsController do
   let!(:shop) { create(:enterprise) }
   let!(:user) { shop.owner }
   let!(:order) { create(:order, distributor: shop, state: 'complete') }
@@ -78,7 +76,7 @@ describe Spree::Admin::PaymentsController, type: :controller do
         context "where further action is required" do
           before do
             allow_any_instance_of(Spree::Payment).to receive(:authorize!) do |payment|
-              payment.update cvv_response_message: "https://www.stripe.com/authorize"
+              payment.update redirect_auth_url: "https://www.stripe.com/authorize"
               payment.update state: "requires_authorization"
             end
           end
@@ -133,7 +131,7 @@ describe Spree::Admin::PaymentsController, type: :controller do
       end
 
       def expect_redirect_to(path)
-        expect(response.status).to eq 302
+        expect(response).to have_http_status :found
         expect(response.location).to eq path
       end
     end
@@ -158,7 +156,7 @@ describe Spree::Admin::PaymentsController, type: :controller do
       let(:params) { { e: 'credit', order_id: order.number, id: payment.id } }
 
       before do
-        request.env["HTTP_REFERER"] = "http://foo.com"
+        request.env["HTTP_REFERER"] = "http://test.host"
         allow(Spree::Payment).to receive(:find).with(payment.id.to_s) { payment }
       end
 
@@ -169,7 +167,7 @@ describe Spree::Admin::PaymentsController, type: :controller do
         spree_put :fire, params
 
         expect(flash[:error]).to eq('error message')
-        expect(response).to redirect_to('http://foo.com')
+        expect(response).to redirect_to('http://test.host')
       end
 
       it 'handles validation errors' do
@@ -178,7 +176,7 @@ describe Spree::Admin::PaymentsController, type: :controller do
         spree_put :fire, params
 
         expect(flash[:error]).to eq('validation error')
-        expect(response).to redirect_to('http://foo.com')
+        expect(response).to redirect_to("http://test.host")
       end
 
       it 'displays a success message and redirects to the referer' do
@@ -194,7 +192,7 @@ describe Spree::Admin::PaymentsController, type: :controller do
       let(:params) { { e: 'refund', order_id: order.number, id: payment.id } }
 
       before do
-        request.env["HTTP_REFERER"] = "http://foo.com"
+        request.env["HTTP_REFERER"] = "http://test.host"
         allow(Spree::Payment).to receive(:find).with(payment.id.to_s) { payment }
       end
 
@@ -205,7 +203,7 @@ describe Spree::Admin::PaymentsController, type: :controller do
         spree_put :fire, params
 
         expect(flash[:error]).to eq('error message')
-        expect(response).to redirect_to('http://foo.com')
+        expect(response).to redirect_to('http://test.host')
       end
 
       it 'handles validation errors' do
@@ -214,7 +212,7 @@ describe Spree::Admin::PaymentsController, type: :controller do
         spree_put :fire, params
 
         expect(flash[:error]).to eq('validation error')
-        expect(response).to redirect_to('http://foo.com')
+        expect(response).to redirect_to('http://test.host')
       end
 
       it 'displays a success message and redirects to the referer' do
@@ -232,9 +230,9 @@ describe Spree::Admin::PaymentsController, type: :controller do
 
       before do
         allow(PaymentMailer).to receive(:authorize_payment) { mail_mock }
-        request.env["HTTP_REFERER"] = "http://foo.com"
+        request.env["HTTP_REFERER"] = "http://test.host"
         allow(Spree::Payment).to receive(:find).with(payment.id.to_s) { payment }
-        allow(payment).to receive(:cvv_response_message).and_return("https://www.stripe.com/authorize")
+        allow(payment).to receive(:redirect_auth_url).and_return("https://www.stripe.com/authorize")
         allow(payment).to receive(:requires_authorization?) { true }
       end
 
@@ -251,14 +249,14 @@ describe Spree::Admin::PaymentsController, type: :controller do
       let(:params) { { e: 'unrecognized_event', order_id: order.number, id: payment.id } }
 
       before do
-        request.env["HTTP_REFERER"] = "http://foo.com"
+        request.env["HTTP_REFERER"] = "http://test.host"
         allow(Spree::Payment).to receive(:find).with(payment.id.to_s) { payment }
       end
 
       it 'does not process the event' do
         spree_put :fire, params
 
-        expect(payment).to_not receive(:unrecognized_event)
+        expect(payment).not_to receive(:unrecognized_event)
         expect(flash[:error]).to eq('Could not update the payment')
       end
     end
@@ -280,7 +278,7 @@ describe Spree::Admin::PaymentsController, type: :controller do
 
       it "renders the payments tab" do
         spree_get :index, order_id: order.number
-        expect(response.status).to eq 200
+        expect(response).to have_http_status :ok
       end
 
       context "order is then resumed" do
@@ -290,7 +288,7 @@ describe Spree::Admin::PaymentsController, type: :controller do
 
         it "still renders the payments tab" do
           spree_get :index, order_id: order.number
-          expect(response.status).to eq 200
+          expect(response).to have_http_status :ok
         end
       end
     end
@@ -304,7 +302,7 @@ describe Spree::Admin::PaymentsController, type: :controller do
 
       it "redirects to the order details page" do
         spree_get :index, order_id: order.number
-        expect(response.status).to eq 302
+        expect(response).to have_http_status :found
         expect(response.location).to eq spree.edit_admin_order_url(order)
       end
     end

@@ -14,16 +14,17 @@ module Api
       def create
         variant = scoped_variant(params[:variant_id])
         quantity = params[:quantity].to_i
-        @shipment = get_or_create_shipment(params[:stock_location_id])
+        @shipment = @order.shipment || @order.shipments.create
 
         @order.contents.add(variant, quantity, @shipment)
 
         @shipment.refresh_rates
         @shipment.save!
 
-        OrderWorkflow.new(@order).advance_to_payment if @order.line_items.any?
+        Orders::WorkflowService.new(@order).advance_to_payment if @order.line_items.any?
 
         @order.recreate_all_fees!
+        AmendBackorderJob.perform_later(@order) if @order.completed?
 
         render json: @shipment, serializer: Api::ShipmentSerializer, status: :ok
       end
@@ -73,6 +74,7 @@ module Api
 
         @order.contents.add(variant, quantity, @shipment)
         @order.recreate_all_fees!
+        AmendBackorderJob.perform_later(@order) if @order.completed?
 
         render json: @shipment, serializer: Api::ShipmentSerializer, status: :ok
       end
@@ -84,6 +86,9 @@ module Api
 
         @order.contents.remove(variant, quantity, @shipment, restock_item)
         @shipment.reload if @shipment.persisted?
+
+        @order.recreate_all_fees!
+        AmendBackorderJob.perform_later(@order) if @order.completed?
 
         render json: @shipment, serializer: Api::ShipmentSerializer, status: :ok
       end
@@ -107,16 +112,14 @@ module Api
 
       def scoped_variant(variant_id)
         variant = Spree::Variant.find(variant_id)
+
         OpenFoodNetwork::ScopeVariantToHub.new(@order.distributor).scope(variant)
+
         variant
       end
 
-      def get_or_create_shipment(stock_location_id)
-        @order.shipment || @order.shipments.create(stock_location_id:)
-      end
-
       def shipment_params
-        return {} unless params.has_key? :shipment
+        return {} unless params.key? :shipment
 
         params.require(:shipment).permit(:tracking, :selected_shipping_rate_id)
       end

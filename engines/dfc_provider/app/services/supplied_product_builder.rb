@@ -1,73 +1,38 @@
 # frozen_string_literal: true
 
 class SuppliedProductBuilder < DfcBuilder
-  def self.supplied_product(variant)
-    id = urls.enterprise_supplied_product_url(
-      enterprise_id: variant.product.supplier_id,
+  def self.semantic_id(variant)
+    urls.enterprise_supplied_product_url(
+      enterprise_id: variant.supplier_id,
       id: variant.id,
     )
+  end
+
+  def self.supplied_product(variant)
+    product_uri = urls.enterprise_url(
+      variant.supplier_id,
+      spree_product_id: variant.product_id
+    )
+    product_group = ProductGroupBuilder.product_group(variant.product)
 
     DfcProvider::SuppliedProduct.new(
-      id,
+      semantic_id(variant),
       name: variant.product_and_full_name,
       description: variant.description,
       productType: product_type(variant),
       quantity: QuantitativeValueBuilder.quantity(variant),
+      isVariantOf: [product_group],
+      spree_product_uri: product_uri,
       spree_product_id: variant.product.id,
       image_url: variant.product&.image&.url(:product)
     )
   end
 
-  def self.import_variant(supplied_product)
-    product_id = supplied_product.spree_product_id
-
-    if product_id.present?
-      product = Spree::Product.find(product_id)
-      Spree::Variant.new(
-        product:,
-        price: 0,
-      ).tap do |variant|
-        apply(supplied_product, variant)
-      end
-    else
-      product = import_product(supplied_product)
-      product.ensure_standard_variant
-      product.variants.first
-    end
-  end
-
-  def self.import_product(supplied_product)
-    Spree::Product.new(
-      name: supplied_product.name,
-      description: supplied_product.description,
-      price: 0, # will be in DFC Offer
-      primary_taxon: taxon(supplied_product)
-    ).tap do |product|
-      QuantitativeValueBuilder.apply(supplied_product.quantity, product)
-    end
-  end
-
-  def self.apply(supplied_product, variant)
-    variant.product.assign_attributes(
-      description: supplied_product.description,
-      primary_taxon: taxon(supplied_product)
-    )
-
-    variant.display_name = supplied_product.name
-    QuantitativeValueBuilder.apply(supplied_product.quantity, variant.product)
-    variant.unit_value = variant.product.unit_value
-  end
-
   def self.product_type(variant)
-    taxon_dfc_id = variant.product.primary_taxon&.dfc_id
+    taxon_dfc_id = variant.primary_taxon&.dfc_id
 
-    DfcProductTypeFactory.for(taxon_dfc_id)
+    DataFoodConsortium::ConnectorV1::SKOSParser.concepts[taxon_dfc_id]
   end
 
-  def self.taxon(supplied_product)
-    dfc_id = supplied_product.productType.semanticId
-    Spree::Taxon.find_by(dfc_id: )
-  end
-
-  private_class_method :product_type, :taxon
+  private_class_method :product_type
 end

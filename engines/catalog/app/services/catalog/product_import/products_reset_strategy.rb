@@ -20,12 +20,7 @@ module Catalog
       attr_reader :excluded_items_ids, :enterprise_ids
 
       def enterprise_variants_relation
-        relation = Spree::Variant
-          .joins(:product)
-          .where(
-            spree_products: { supplier_id: enterprise_ids },
-            spree_variants: { deleted_at: nil }
-          )
+        relation = Spree::Variant.where(supplier_id: enterprise_ids)
 
         return relation if excluded_items_ids.blank?
 
@@ -42,8 +37,10 @@ module Catalog
 
       def reset_variant_on_hand_and_on_demand(variant)
         was_on_demand = variant.on_demand
-        variant.on_demand = false
+        # Reset on_hand value first because a negative level wouldn't be valid
+        # with on_demand being false.
         variant.on_hand = 0
+        variant.on_demand = false
         variant.on_hand.zero? || was_on_demand
       end
     end

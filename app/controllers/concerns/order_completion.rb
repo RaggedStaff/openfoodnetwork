@@ -26,7 +26,7 @@ module OrderCompletion
   # Builds an order setting the token and distributor of the one specified
   def build_new_order(distributor, token)
     new_order = current_order(true)
-    new_order.set_distributor!(distributor)
+    new_order.assign_distributor!(distributor)
     new_order.tokenized_permission.token = token
     new_order.tokenized_permission.save!
   end
@@ -50,9 +50,7 @@ module OrderCompletion
   end
 
   def order_invalid!
-    Bugsnag.notify("Notice: invalid order loaded during checkout") do |payload|
-      payload.add_metadata :order, @order
-    end
+    Alert.raise_with_record("Notice: invalid order loaded during checkout", @order)
 
     flash[:error] = t('checkout.order_not_loaded')
     redirect_to main_app.shop_path
@@ -64,7 +62,7 @@ module OrderCompletion
       return redirect_to order_failed_route(step: 'payment')
     end
 
-    if OrderWorkflow.new(@order).next && @order.complete?
+    if Orders::WorkflowService.new(@order).next && @order.complete?
       processing_succeeded
       redirect_to order_completion_route
     else
@@ -92,10 +90,11 @@ module OrderCompletion
   end
 
   def notify_failure(error = RuntimeError.new(order_processing_error))
-    Bugsnag.notify(error) do |payload|
-      payload.add_metadata :order, @order
-    end
-    flash[:error] = order_processing_error if flash.blank?
+    return if flash.present?
+
+    Rails.logger.error "OrderCompletion#notify_failure: #{error}"
+    Alert.raise_with_record(error, @order)
+    flash[:error] = order_processing_error
   end
 
   def order_processing_error
@@ -105,6 +104,8 @@ module OrderCompletion
   end
 
   def gateway_error(error)
+    Rails.logger.error "OrderCompletion#gateway_error: #{error}"
+    Alert.raise_with_record(error, @order)
     flash[:error] = t(:spree_gateway_error_flash_for_checkout, error: error.message)
   end
 end

@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe ProductsRenderer do
+RSpec.describe ProductsRenderer do
   let(:distributor) { create(:distributor_enterprise) }
   let(:order_cycle) { create(:simple_order_cycle, distributors: [distributor]) }
   let(:exchange) { order_cycle.exchanges.to_enterprises(distributor).outgoing.first }
@@ -16,19 +14,19 @@ describe ProductsRenderer do
     let(:cakes_supplier) { create(:supplier_enterprise) }
     let!(:product_apples) {
       create(:product, name: "apples", primary_taxon_id: fruits.id,
-                       supplier_id: fruits_supplier.id)
+                       supplier_id: fruits_supplier.id, inherits_properties: true)
     }
     let!(:product_banana_bread) {
       create(:product, name: "banana bread", primary_taxon_id: cakes.id,
-                       supplier_id: cakes_supplier.id)
+                       supplier_id: cakes_supplier.id, inherits_properties: true)
     }
     let!(:product_cherries) {
       create(:product, name: "cherries", primary_taxon_id: fruits.id,
-                       supplier_id: fruits_supplier.id)
+                       supplier_id: fruits_supplier.id, inherits_properties: true)
     }
     let!(:product_doughnuts) {
       create(:product, name: "doughnuts", primary_taxon_id: cakes.id,
-                       supplier_id: cakes_supplier.id)
+                       supplier_id: cakes_supplier.id, inherits_properties: true)
     }
 
     before do
@@ -38,43 +36,20 @@ describe ProductsRenderer do
       exchange.variants << product_doughnuts.variants.first
     end
 
-    describe "sorting" do
-      it "sorts products by the distributor's preferred taxon list" do
-        allow(distributor)
-          .to receive(:preferred_shopfront_taxon_order) { "#{cakes.id},#{fruits.id}" }
-        products = products_renderer.send(:products)
-        expect(products)
-          .to eq([product_banana_bread, product_doughnuts, product_apples, product_cherries])
-      end
-
-      it "sorts products by the distributor's preferred producer list" do
-        allow(distributor)
-          .to receive(:preferred_shopfront_product_sorting_method) { "by_producer" }
-        allow(distributor).to receive(:preferred_shopfront_producer_order) {
-          "#{cakes_supplier.id},#{fruits_supplier.id}"
-        }
-        products = products_renderer.send(:products)
-        expect(products)
-          .to eq([product_banana_bread, product_doughnuts, product_apples, product_cherries])
-      end
-
-      it "alphabetizes products by name when taxon list is not set" do
-        allow(distributor).to receive(:preferred_shopfront_taxon_order) { "" }
-        products = products_renderer.send(:products)
-        expect(products)
-          .to eq([product_apples, product_banana_bread, product_cherries, product_doughnuts])
-      end
-    end
-
     context "filtering" do
       it "filters products by name_or_meta_keywords_or_variants_display_as_or_" \
-         "variants_display_name_or_supplier_name_cont" do
-        products_renderer = ProductsRenderer.new(distributor, order_cycle, customer, { q: {
-                                                   "#{[:name, :meta_keywords, :variants_display_as,
-                                                       :variants_display_name, :supplier_name]
-                                                   .join('_or_')}_cont": "apples",
-                                                 } })
-        products = products_renderer.send(:products)
+         "variants_display_name_or_variants_supplier_name_cont" do
+        params = [:name, :meta_keywords, :variants_display_as, :variants_display_name,
+                  :variants_supplier_name]
+        ransack_param = "#{params.join('_or_')}_cont"
+        products_renderer = ProductsRenderer.new(
+          distributor,
+          order_cycle,
+          customer,
+          { q: { "#{ransack_param}": "apples" } }
+        )
+
+        products = products_renderer.__send__(:products)
         expect(products).to eq([product_apples])
       end
 
@@ -89,21 +64,74 @@ describe ProductsRenderer do
                                                       value: '1', position: 1 })
           products_renderer = ProductsRenderer.new(distributor, order_cycle, customer,
                                                    { q: {
-                                                     with_properties: [property_organic.id]
+                                                     with_properties: [property_organic.id, 999]
                                                    } })
-          products = products_renderer.send(:products)
+          products = products_renderer.__send__(:products)
           expect(products).to eq([product_apples])
         end
 
         it "filters products with a producer property" do
           fruits_supplier.producer_properties.create!({ property_id: property_organic.id,
                                                         value: '1', position: 1 })
-          products_renderer = ProductsRenderer.new(distributor, order_cycle, customer,
-                                                   { q: {
-                                                     with_properties: [property_organic.id]
-                                                   } })
-          products = products_renderer.send(:products)
+
+          search_param = { q: { "with_variants_supplier_properties" => [property_organic.id] } }
+          products_renderer = ProductsRenderer.new(distributor, order_cycle, customer, search_param)
+
+          products = products_renderer.__send__(:products)
           expect(products).to eq([product_apples, product_cherries])
+        end
+
+        it "filters products with a product property or a producer property" do
+          cakes_supplier.producer_properties.create!({ property_id: property_organic.id,
+                                                       value: '1', position: 1 })
+          product_apples.product_properties.create!({ property_id: property_conventional.id,
+                                                      value: '1', position: 1 })
+
+          search_param = { q:
+            {
+              "with_variants_supplier_properties" => [property_organic.id],
+              "with_properties" => [property_conventional.id]
+            } }
+          products_renderer = ProductsRenderer.new(distributor, order_cycle, customer, search_param)
+
+          products = products_renderer.__send__(:products)
+          expect(products).to eq([product_apples, product_banana_bread, product_doughnuts])
+        end
+
+        it "filters product with property and taxon set" do
+          stone_fruit = create(:taxon, name: "Stone fruit")
+          product_peach =
+            create(:product, name: "peach", primary_taxon_id: stone_fruit.id,
+                             supplier_id: fruits_supplier.id, inherits_properties: true)
+
+          fruits_supplier.producer_properties.create!({ property_id: property_organic.id,
+                                                        value: '1', position: 1 })
+          exchange.variants << product_peach.variants.first
+
+          search_param = { q:
+            {
+              "with_variants_supplier_properties" => [property_organic.id],
+              "variants_primary_taxon_id_in_any" => [stone_fruit.id],
+            } }
+
+          products_renderer = ProductsRenderer.new(distributor, order_cycle, customer, search_param)
+
+          products = products_renderer.__send__(:products)
+          expect(products).to eq([product_peach])
+        end
+
+        it "filters out products with inherits_properties set to false" do
+          product_cherries.update!(inherits_properties: false)
+          product_banana_bread.update!(inherits_properties: false)
+
+          fruits_supplier.producer_properties.create!({ property_id: property_organic.id,
+                                                        value: '1', position: 1 })
+
+          search_param = { q: { "with_variants_supplier_properties" => [property_organic.id] } }
+          products_renderer = ProductsRenderer.new(distributor, order_cycle, customer, search_param)
+
+          products = products_renderer.__send__(:products)
+          expect(products).to eq([product_apples])
         end
 
         it "filters products with property when sorting is enabled" do
@@ -122,8 +150,21 @@ describe ProductsRenderer do
                                                    { q: {
                                                      with_properties: [property_organic.id]
                                                    } })
-          products = products_renderer.send(:products)
+          products = products_renderer.__send__(:products)
           expect(products).to eq([product_cherries, product_banana_bread, product_doughnuts])
+        end
+
+        it "filters products with producer properties when sorting is enabled" do
+          allow(distributor).to receive(:preferred_shopfront_taxon_order) {
+            "#{fruits.id},#{cakes.id}"
+          }
+          fruits_supplier.producer_properties.create!({ property_id: property_organic.id,
+                                                        value: '1', position: 1 })
+          search_param = { q: { "with_variants_supplier_properties" => [property_organic.id] } }
+          products_renderer = ProductsRenderer.new(distributor, order_cycle, customer, search_param)
+
+          products = products_renderer.__send__(:products)
+          expect(products).to eq([product_apples, product_cherries])
         end
       end
     end
@@ -162,15 +203,23 @@ describe ProductsRenderer do
       expect(products_renderer.products_json).to include "998.0"
     end
 
-    it "includes the primary taxon" do
-      taxon = create(:taxon)
-      allow_any_instance_of(Spree::Product).to receive(:primary_taxon).and_return taxon
-      expect(products_renderer.products_json).to include taxon.name
-    end
+    context "when inventory is enabled", feature: :inventory do
+      it "loads tag_list for variants" do
+        products_renderer = ProductsRenderer.new(distributor, order_cycle, customer, {},
+                                                 inventory_enabled: true)
+        VariantOverride.create(variant:, hub: distributor, tag_list: 'lalala')
+        expect(products_renderer.products_json).to include "[\"lalala\"]"
+      end
 
-    it "loads tag_list for variants" do
-      VariantOverride.create(variant:, hub: distributor, tag_list: 'lalala')
-      expect(products_renderer.products_json).to include "[\"lalala\"]"
+      it "loads variant override" do
+        products_renderer = ProductsRenderer.new(distributor, order_cycle, customer, {},
+                                                 inventory_enabled: true)
+        VariantOverride.create(variant:, hub: distributor, price: 25.00)
+
+        json = products_renderer.products_json
+        first_variant = JSON.parse(json).first["variants"].first
+        expect(first_variant["price_with_fees"]).to eq("25.0")
+      end
     end
   end
 
@@ -191,17 +240,17 @@ describe ProductsRenderer do
                        inventory_items: [create(:inventory_item, enterprise: hub, visible: false)])
     }
     let(:products_renderer) { ProductsRenderer.new(hub, oc, customer) }
-    let(:variants) { products_renderer.send(:variants_for_shop_by_id) }
+    let(:variants) { products_renderer.__send__(:variants_for_shop_by_id) }
 
     it "scopes variants to distribution" do
       expect(variants[p.id]).to include v1
-      expect(variants[p.id]).to_not include v2
+      expect(variants[p.id]).not_to include v2
     end
 
     it "does not render variants that have been hidden by the hub" do
       # but does render 'new' variants, ie. v1
       expect(variants[p.id]).to include v1, v3
-      expect(variants[p.id]).to_not include v4
+      expect(variants[p.id]).not_to include v4
     end
 
     context "when hub opts to only see variants in its inventory" do
@@ -212,7 +261,7 @@ describe ProductsRenderer do
       it "doesn't render variants that haven't been explicitly added to inventory for the hub" do
         # but does render 'new' variants, ie. v1
         expect(variants[p.id]).to include v3
-        expect(variants[p.id]).to_not include v1, v4
+        expect(variants[p.id]).not_to include v1, v4
       end
     end
   end

@@ -3,6 +3,7 @@
 class Invoice
   class DataPresenter
     include ::ActionView::Helpers::NumberHelper
+
     attr_reader :invoice
 
     delegate :display_number, :data, :previous_invoice, to: :invoice
@@ -91,6 +92,14 @@ class Invoice
       Spree::Money.new(shipment.amount + shipment.additional_tax_total, currency:)
     end
 
+    def display_line_item_tax_rate(item)
+      all_tax_adjustments.select { |a|
+        a.adjustable.type == 'Spree::LineItem' && a.adjustable.id == item.id
+      }.map(&:originator).map(&:amount).sort.map { |amount|
+        number_to_percentage(amount * 100, precision: 1)
+      }.join(", ")
+    end
+
     def display_shipment_tax_rates
       all_eligible_adjustments.select { |a|
         a.originator.type == 'Spree::TaxRate' && a.adjustable_type == 'Spree::Shipment'
@@ -124,8 +133,8 @@ class Invoice
     end
 
     def tax_rate_by_id
-      all_tax_adjustments.each_with_object({}) do |adjustment, tax_rates|
-        tax_rates[adjustment.originator.id] = adjustment.originator
+      all_tax_adjustments.to_h do |adjustment|
+        [adjustment.originator.id, adjustment.originator]
       end
     end
 
@@ -134,7 +143,7 @@ class Invoice
     end
 
     def paid?
-      data[:payment_state] == 'paid' || data[:payment_state] == 'credit_owed'
+      ['paid', 'credit_owed'].include?(data[:payment_state])
     end
 
     def outstanding_balance?

@@ -1,9 +1,8 @@
 # frozen_string_literal: false
 
-require 'spec_helper'
 require 'open_food_network/permissions'
 
-describe ProductImport::ProductImporter do
+RSpec.describe ProductImport::ProductImporter do
   let!(:admin) { create(:admin_user) }
   let!(:user) { create(:user) }
   let!(:user2) { create(:user) }
@@ -36,67 +35,70 @@ describe ProductImport::ProductImporter do
   let!(:shipping_category) { create(:shipping_category) }
 
   let!(:product) {
-    create(:simple_product, supplier: enterprise2, name: 'Hypothetical Cake', description: nil,
-                            primary_taxon_id: category2.id)
+    create(:simple_product, name: 'Hypothetical Cake', description: nil,
+                            primary_taxon_id: category2.id, supplier_id: enterprise2.id,
+                            variants: [])
   }
   let!(:variant) {
     create(:variant, product_id: product.id, price: '8.50', on_hand: '100', unit_value: '500',
-                     display_name: 'Preexisting Banana')
+                     display_name: 'Preexisting Banana', supplier: enterprise2)
   }
   let!(:variant_with_empty_display_name) {
     create(:variant, product_id: product.id, price: '8.50', on_hand: '100', unit_value: '500',
-                     display_name: '')
+                     display_name: '', supplier: enterprise2)
   }
   let!(:product2) {
-    create(:simple_product, supplier: enterprise, on_hand: '100', name: 'Beans', unit_value: '500',
-                            primary_taxon_id: category.id, description: nil)
+    create(:simple_product, on_hand: '100', name: 'Beans', unit_value: '500',
+                            primary_taxon_id: category.id, description: nil, variants: [] )
   }
   let!(:product3) {
-    create(:simple_product, supplier: enterprise, on_hand: '100', name: 'Sprouts',
-                            unit_value: '500', primary_taxon_id: category.id)
+    create(:simple_product, on_hand: '100', name: 'Sprouts', unit_value: '500',
+                            primary_taxon_id: category.id, supplier_id: enterprise.id)
   }
   let!(:product4) {
-    create(:simple_product, supplier: enterprise, on_hand: '100', name: 'Cabbage', unit_value: '1',
+    create(:simple_product, on_hand: '100', name: 'Cabbage', unit_value: '1',
                             variant_unit_scale: nil, variant_unit: "items",
-                            variant_unit_name: "Whole", primary_taxon_id: category.id)
+                            variant_unit_name: "Whole", primary_taxon_id: category.id,
+                            supplier_id: enterprise.id)
   }
   let!(:product5) {
-    create(:simple_product, supplier: enterprise2, on_hand: '100', name: 'Lettuce',
-                            unit_value: '500', primary_taxon_id: category.id)
+    create(:simple_product, on_hand: '100', name: 'Lettuce', unit_value: '500',
+                            primary_taxon_id: category.id, supplier_id: enterprise2.id)
   }
   let!(:product6) {
-    create(:simple_product, supplier: enterprise3, on_hand: '100', name: 'Beetroot',
+    create(:simple_product, on_hand: '100', name: 'Beetroot',
                             unit_value: '500', on_demand: true, variant_unit_scale: 1,
-                            variant_unit: 'weight', primary_taxon_id: category.id, description: nil)
+                            variant_unit: 'weight', primary_taxon_id: category.id, description: nil,
+                            supplier_id: enterprise3.id)
   }
   let!(:product7) {
-    create(:simple_product, supplier: enterprise3, on_hand: '100', name: 'Tomato',
-                            unit_value: '500', variant_unit_scale: 1,
-                            variant_unit: 'weight', primary_taxon_id: category.id,
-                            description: nil)
+    create(:simple_product, on_hand: '100', name: 'Tomato', unit_value: '500',
+                            variant_unit_scale: 1, variant_unit: 'weight',
+                            primary_taxon_id: category.id, description: nil,
+                            supplier_id: enterprise3.id)
   }
 
   let!(:product8) {
-    create(:simple_product, supplier: enterprise, on_hand: '100', name: 'Oats', description: "",
+    create(:simple_product, on_hand: '100', name: 'Oats', description: "",
                             unit_value: '500', variant_unit_scale: 1, variant_unit: 'weight',
                             primary_taxon_id: category4.id)
   }
   let!(:product9) {
-    create(:simple_product, supplier: enterprise, on_hand: '100', name: 'Oats', description: "",
+    create(:simple_product, on_hand: '100', name: 'Oats', description: "",
                             unit_value: '500', variant_unit_scale: 1, variant_unit: 'weight',
                             primary_taxon_id: category4.id)
   }
   let!(:variant2) {
     create(:variant, product_id: product8.id, price: '4.50', on_hand: '100', unit_value: '500',
-                     display_name: 'Porridge Oats')
+                     display_name: 'Porridge Oats', supplier: enterprise)
   }
   let!(:variant3) {
     create(:variant, product_id: product8.id, price: '5.50', on_hand: '100', unit_value: '500',
-                     display_name: 'Rolled Oats')
+                     display_name: 'Rolled Oats', supplier: enterprise)
   }
   let!(:variant4) {
     create(:variant, product_id: product9.id, price: '6.50', on_hand: '100', unit_value: '500',
-                     display_name: 'Flaked Oats')
+                     display_name: 'Flaked Oats', supplier: enterprise)
   }
 
   let!(:variant_override) {
@@ -154,55 +156,60 @@ describe ProductImport::ProductImporter do
       expect(importer.updated_ids).to be_a(Array)
       expect(importer.updated_ids.count).to eq 5
 
-      carrots = Spree::Product.find_by(name: 'Carrots')
-      expect(carrots.supplier).to eq enterprise
-      expect(carrots.on_hand).to eq 5
-      expect(carrots.variants.first.price).to eq 3.20
-      expect(carrots.variants.first.unit_value).to eq 500
-      expect(carrots.variant_unit).to eq 'weight'
-      expect(carrots.variant_unit_scale).to eq 1
-      expect(carrots.variants.first.on_demand).to_not eq true
-      expect(carrots.variants.first.import_date).to be_within(1.minute).of Time.zone.now
+      carrots_variant = find_variant("Carrots")
 
-      potatoes = Spree::Product.find_by(name: 'Potatoes')
-      expect(potatoes.supplier).to eq enterprise
-      expect(potatoes.on_hand).to eq 6
-      expect(potatoes.variants.first.price).to eq 6.50
-      expect(potatoes.variants.first.unit_value).to eq 2000
-      expect(potatoes.variant_unit).to eq 'weight'
-      expect(potatoes.variant_unit_scale).to eq 1000
-      expect(potatoes.variants.first.on_demand).to_not eq true
-      expect(potatoes.variants.first.import_date).to be_within(1.minute).of Time.zone.now
+      expect(carrots_variant.supplier).to eq enterprise
+      expect(carrots_variant.price).to eq 3.20
+      expect(carrots_variant.unit_value).to eq 500
+      expect(carrots_variant.variant_unit).to eq 'weight'
+      expect(carrots_variant.variant_unit_scale).to eq 1
+      expect(carrots_variant.on_demand).not_to eq true
+      expect(carrots_variant.on_hand).to eq 5
+      expect(carrots_variant.import_date).to be_within(1.minute).of Time.zone.now
 
-      pea_soup = Spree::Product.find_by(name: 'Pea Soup')
-      expect(pea_soup.supplier).to eq enterprise
-      expect(pea_soup.on_hand).to eq 8
-      expect(pea_soup.variants.first.price).to eq 5.50
-      expect(pea_soup.variants.first.unit_value).to eq 0.75
-      expect(pea_soup.variant_unit).to eq 'volume'
-      expect(pea_soup.variant_unit_scale).to eq 0.001
-      expect(pea_soup.variants.first.on_demand).to_not eq true
-      expect(pea_soup.variants.first.import_date).to be_within(1.minute).of Time.zone.now
+      potatoes_variant = find_variant("Potatoes")
 
-      salad = Spree::Product.find_by(name: 'Salad')
-      expect(salad.supplier).to eq enterprise
-      expect(salad.on_hand).to eq 7
-      expect(salad.variants.first.price).to eq 4.50
-      expect(salad.variants.first.unit_value).to eq 1
-      expect(salad.variant_unit).to eq 'items'
-      expect(salad.variant_unit_scale).to eq nil
-      expect(salad.variants.first.on_demand).to_not eq true
-      expect(salad.variants.first.import_date).to be_within(1.minute).of Time.zone.now
+      expect(potatoes_variant.supplier).to eq enterprise
+      expect(potatoes_variant.price).to eq 6.50
+      expect(potatoes_variant.unit_value).to eq 2000
+      expect(potatoes_variant.variant_unit).to eq 'weight'
+      expect(potatoes_variant.variant_unit_scale).to eq 1000
+      expect(potatoes_variant.on_demand).not_to eq true
+      expect(potatoes_variant.on_hand).to eq 6
+      expect(potatoes_variant.import_date).to be_within(1.minute).of Time.zone.now
 
-      buns = Spree::Product.find_by(name: 'Hot Cross Buns')
-      expect(buns.supplier).to eq enterprise
-      expect(buns.on_hand).to eq 7
-      expect(buns.variants.first.price).to eq 3.50
-      expect(buns.variants.first.unit_value).to eq 1
-      expect(buns.variant_unit).to eq 'items'
-      expect(buns.variant_unit_scale).to eq nil
-      expect(buns.variants.first.on_demand).to eq true
-      expect(buns.variants.first.import_date).to be_within(1.minute).of Time.zone.now
+      pea_soup_variant = find_variant("Pea Soup")
+
+      expect(pea_soup_variant.supplier).to eq enterprise
+      expect(pea_soup_variant.price).to eq 5.50
+      expect(pea_soup_variant.unit_value).to eq 0.75
+      expect(pea_soup_variant.variant_unit).to eq 'volume'
+      expect(pea_soup_variant.variant_unit_scale).to eq 0.001
+      expect(pea_soup_variant.on_demand).not_to eq true
+      expect(pea_soup_variant.on_hand).to eq 8
+      expect(pea_soup_variant.import_date).to be_within(1.minute).of Time.zone.now
+
+      salad_variant = find_variant("Salad")
+
+      expect(salad_variant.supplier).to eq enterprise
+      expect(salad_variant.price).to eq 4.50
+      expect(salad_variant.unit_value).to eq 1
+      expect(salad_variant.variant_unit).to eq 'items'
+      expect(salad_variant.variant_unit_scale).to eq nil
+      expect(salad_variant.on_demand).not_to eq true
+      expect(salad_variant.on_hand).to eq 7
+      expect(salad_variant.import_date).to be_within(1.minute).of Time.zone.now
+
+      buns_variant = find_variant("Hot Cross Buns")
+
+      expect(buns_variant.supplier).to eq enterprise
+      expect(buns_variant.price).to eq 3.50
+      expect(buns_variant.unit_value).to eq 1
+      expect(buns_variant.variant_unit).to eq 'items'
+      expect(buns_variant.variant_unit_scale).to eq nil
+      expect(buns_variant.on_demand).to eq true
+      expect(buns_variant.on_hand).to eq 7
+      expect(buns_variant.import_date).to be_within(1.minute).of Time.zone.now
     end
   end
 
@@ -235,11 +242,11 @@ describe ProductImport::ProductImporter do
       expect(importer.updated_ids).to be_a(Array)
       expect(importer.updated_ids.count).to eq 1
 
-      carrots = Spree::Product.find_by(name: 'Good Carrots')
-      expect(carrots.supplier).to eq enterprise
-      expect(carrots.on_hand).to eq 5
-      expect(carrots.variants.first.price).to eq 3.20
-      expect(carrots.variants.first.import_date).to be_within(1.minute).of Time.zone.now
+      carrots_variant = find_variant("Good Carrots")
+      expect(carrots_variant.on_hand).to eq 5
+      expect(carrots_variant.supplier).to eq enterprise
+      expect(carrots_variant.price).to eq 3.20
+      expect(carrots_variant.import_date).to be_within(1.minute).of Time.zone.now
 
       expect(Spree::Product.find_by(name: 'Bad Potatoes')).to eq nil
     end
@@ -281,13 +288,14 @@ describe ProductImport::ProductImporter do
 
       expect(importer.products_created_count).to eq 1
 
-      carrots = Spree::Product.find_by(name: 'Good Carrots')
-      expect(carrots.on_hand).to eq 5
-      expect(carrots.variants.first.price).to eq 3.20
-      expect(carrots.primary_taxon.name).to eq "Vegetables"
-      expect(carrots.variants.first.shipping_category).to eq shipping_category
-      expect(carrots.supplier).to eq enterprise
-      expect(carrots.variants.first.unit_presentation).to eq "500g"
+      carrots_variant = find_variant("Good Carrots")
+
+      expect(carrots_variant.on_hand).to eq 5
+      expect(carrots_variant.primary_taxon.name).to eq "Vegetables"
+      expect(carrots_variant.supplier).to eq enterprise
+      expect(carrots_variant.price).to eq 3.20
+      expect(carrots_variant.shipping_category).to eq shipping_category
+      expect(carrots_variant.unit_presentation).to eq "500g"
     end
   end
 
@@ -446,7 +454,7 @@ describe ProductImport::ProductImporter do
       CSV.generate do |csv|
         csv << ["name", "producer", "category", "on_hand", "price", "units", "unit_type",
                 "display_name", "shipping_category"]
-        csv << ["Hypothetical Cake", enterprise2.name, "Cake", "5", "5.50", "1", "g",
+        csv << ["Hypothetical Cake", enterprise2.name, "Cake", "5", "5.50", "500", "g",
                 "", shipping_category.name]
       end
     }
@@ -486,17 +494,17 @@ describe ProductImport::ProductImporter do
       importer.validate_entries
       entries = JSON.parse(importer.entries_json)
 
-      expect(filter('valid', entries)).to eq 3
-      expect(filter('invalid', entries)).to eq 2
-      expect(filter('create_product', entries)).to eq 3
+      expect(filter('valid', entries)).to eq 4
+      expect(filter('invalid', entries)).to eq 1
+      expect(filter('create_product', entries)).to eq 4
     end
 
     it "saves and updates" do
       importer.save_entries
 
-      expect(importer.products_created_count).to eq 3
+      expect(importer.products_created_count).to eq 4
       expect(importer.updated_ids).to be_a(Array)
-      expect(importer.updated_ids.count).to eq 3
+      expect(importer.updated_ids.count).to eq 4
 
       small_bag = Spree::Variant.find_by(display_name: 'Small Bag')
       expect(small_bag.product.name).to eq 'Potatoes'
@@ -504,7 +512,10 @@ describe ProductImport::ProductImporter do
       expect(small_bag.on_hand).to eq 5
 
       big_bag = Spree::Variant.find_by(display_name: "Big Bag")
-      expect(big_bag).to be_blank
+      expect(big_bag.product.name).to eq 'Potatoes'
+      expect(big_bag.price).to eq 5.50
+      expect(big_bag.on_hand).to eq 6
+      expect(big_bag.product.id).to eq small_bag.product.id
 
       small_sack = Spree::Variant.find_by(display_name: "Small Sack")
       expect(small_sack.product.name).to eq "Potatoes"
@@ -548,37 +559,36 @@ describe ProductImport::ProductImporter do
       expect(importer.updated_ids).to be_a(Array)
       expect(importer.updated_ids.count).to eq 2
 
-      beetroot = Spree::Product.find_by(name: 'Beetroot').variants.first
+      beetroot = find_variant("Beetroot")
       expect(beetroot.price).to eq 3.50
-      expect(beetroot.on_demand).to_not eq true
+      expect(beetroot.on_demand).not_to eq true
 
-      tomato = Spree::Product.find_by(name: 'Tomato').variants.first
+      tomato = find_variant("Tomato")
       expect(tomato.price).to eq 5.50
       expect(tomato.on_demand).to eq true
     end
   end
 
-  describe "updating non-updatable fields on existing products" do
+  describe "importing item-type variants for a product with existing weight variants" do
     let(:csv_data) {
       CSV.generate do |csv|
-        csv << ["name", "producer", "category", "on_hand", "price", "units", "unit_type"]
-        csv << ["Beetroot", enterprise3.name, "Meat", "5", "3.50", "500", "g"]
-        csv << ["Tomato", enterprise3.name, "Vegetables", "6", "5.50", "500", "Kg"]
+        csv << ["name", "producer", "category", "on_hand", "price", "units", "variant_unit_name",
+                "shipping_category"]
+        csv << ["Beetroot", enterprise3.name, "Vegetables", "5", "3.50", "500", "Half",
+                shipping_category.name]
+        csv << ["Tomato", enterprise3.name, "Vegetables", "6", "5.50", "500", "Half",
+                shipping_category.name]
       end
     }
     let(:importer) { import_data csv_data }
 
-    it "does not allow updating" do
+    it "creates new variants rather than updating the existing weight variants" do
       importer.validate_entries
       entries = JSON.parse(importer.entries_json)
 
-      expect(filter('valid', entries)).to eq 0
-      expect(filter('invalid', entries)).to eq 2
-
-      importer.entries.each do |entry|
-        expect(entry.errors.messages.values)
-          .to include ['cannot be updated on existing products via product import']
-      end
+      expect(filter('valid', entries)).to eq 2
+      expect(filter('invalid', entries)).to eq 0
+      expect(filter('create_product', entries)).to eq 2
     end
   end
 
@@ -940,12 +950,11 @@ describe ProductImport::ProductImporter do
 
       expect(importer.products_reset_count).to eq 7
 
-      expect(Spree::Product.find_by(name: 'Carrots').on_hand).to eq 5    # Present in file, added
-      expect(Spree::Product.find_by(name: 'Beans').on_hand).to eq 6      # Present in file, updated
-      expect(Spree::Product.find_by(name: 'Sprouts').on_hand).to eq 0    # In enterprise, not file
-      expect(Spree::Product.find_by(name: 'Cabbage').on_hand).to eq 0    # In enterprise, not file
-      expect(Spree::Product.find_by(name: 'Lettuce').on_hand)
-        .to eq 100 # In different enterprise; unchanged
+      expect(find_variant("Carrots").on_hand).to eq 5    # Present in file, added
+      expect(find_variant("Beans").on_hand).to eq 6      # Present in file, updated
+      expect(find_variant("Sprouts").on_hand).to eq 0    # In enterprise, not file
+      expect(find_variant("Cabbage").on_hand).to eq 0    # In enterprise, not file
+      expect(find_variant("Lettuce").on_hand).to eq 100 # In different enterprise; unchanged
     end
 
     it "can reset all inventory items for an enterprise that are not present " \
@@ -992,9 +1001,35 @@ describe ProductImport::ProductImporter do
       expect(lettuce.count_on_hand).to eq 96   # In different enterprise; unchanged
     end
   end
-end
 
-private
+  # Fix https://github.com/openfoodfoundation/openfoodnetwork/issues/12973
+  describe 'update existing product with units and on_hand/on_demand is empty' do
+    let(:csv_data) do
+      CSV.generate do |csv|
+        csv << ["name", "producer", "category", "on_hand", "price", "units", "unit_type",
+                "shipping_category", "on_demand"]
+        csv << ["Beetroot", enterprise3.name, "Vegetables", "", "6.50", "", "g",
+                shipping_category.name, "1"]
+      end
+    end
+    let(:importer) { import_data csv_data }
+
+    it "returns the units error due to invalid data" do
+      importer.validate_entries
+      entries = JSON.parse(importer.entries_json)
+
+      expect(entries.dig('2', 'errors')).to eq(
+        {
+          "units" => "Units can't be blank",
+        }
+      )
+    end
+  end
+
+  def find_variant(name)
+    Spree::Product.find_by(name:).variants.first
+  end
+end
 
 def import_data(csv_data, args = {})
   import_user = args[:import_user] || admin
@@ -1020,7 +1055,7 @@ end
 
 def filter(type, entries)
   valid_count = 0
-  entries.each do |_line_number, entry|
+  entries.each_value do |entry|
     validates_as = entry['validates_as']
 
     valid_count += 1 if type == 'valid' && (validates_as != '')

@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe TermsOfServiceFile do
+RSpec.describe TermsOfServiceFile do
   include FileHelper
 
   let(:upload) { terms_pdf_file }
@@ -40,7 +38,7 @@ describe TermsOfServiceFile do
     let(:subject) { TermsOfServiceFile.updated_at }
 
     it "gives the most conservative time if not known" do
-      Timecop.freeze do
+      freeze_time do
         expect(subject).to eq Time.zone.now
       end
     end

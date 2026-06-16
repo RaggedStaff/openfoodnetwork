@@ -14,7 +14,7 @@ module OrderManagement
         when ActiveRecord::Relation
           @subscriptions = subscriptions.not_ended.not_canceled
         else
-          raise "ProxyOrderSyncer must be initialized with " \
+          raise "ProxyOrders::SyncService must be initialized with " \
                 "an instance of Subscription or ActiveRecord::Relation"
         end
       end
@@ -90,9 +90,7 @@ module OrderManagement
       end
 
       def in_range_order_cycles
-        order_cycles.where("orders_close_at >= ? AND orders_close_at <= ?",
-                           begins_at,
-                           ends_at || 100.years.from_now)
+        order_cycles.where(orders_close_at: begins_at..ends_at)
       end
     end
   end

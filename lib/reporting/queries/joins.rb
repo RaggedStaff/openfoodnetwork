@@ -19,8 +19,8 @@ module Reporting
         reflect query.join(association(Spree::Variant, :product))
       end
 
-      def joins_product_supplier
-        reflect query.join(association(Spree::Product, :supplier, supplier_alias))
+      def joins_variant_supplier
+        reflect query.join(association(Spree::Variant, :supplier, supplier_alias))
       end
 
       def joins_variant_shipping_category
@@ -39,6 +39,16 @@ module Reporting
 
       def joins_order_bill_address
         reflect query.join(association(Spree::Order, :bill_address, bill_address_alias))
+      end
+
+      def joins_selected_shipping_methods
+        reflect query.
+          join(association(Spree::Order, :shipments)).
+          join(association(Spree::Shipment, :shipping_rates)).
+          join(shipping_method_table).on(
+            shipping_method_table[:id].eq(shipping_rate_table[:shipping_method_id]).
+            and(shipping_rate_table[:selected].eq(true))
+          )
       end
     end
   end

@@ -7,6 +7,7 @@ module Api
   module V0
     class ExchangeProductsController < Api::V0::BaseController
       include PaginationData
+
       DEFAULT_PER_PAGE = 100
 
       skip_authorization_check only: [:index]
@@ -47,8 +48,8 @@ module Api
       end
 
       def renderer
-        @renderer ||= ExchangeProductsRenderer.
-          new(@order_cycle, spree_current_user)
+        @renderer ||= ExchangeProductsRenderer
+          .new(@order_cycle, spree_current_user, inventory_enabled: inventory_enabled?)
       end
 
       def load_data_from_exchange
@@ -77,13 +78,14 @@ module Api
 
         if pagination_required?
           @pagy, results = pagy(results,
-                                items: params[:per_page] || DEFAULT_PER_PAGE)
+                                limit: params[:per_page] || DEFAULT_PER_PAGE)
         end
 
         serialized_products = ActiveModel::ArraySerializer.new(
           results,
           each_serializer: Api::Admin::ForOrderCycle::SuppliedProductSerializer,
-          order_cycle: @order_cycle
+          order_cycle: @order_cycle,
+          inventory_enabled: inventory_enabled?
         )
 
         render json: {
@@ -95,6 +97,17 @@ module Api
       def exchange_params
         params.permit(:enterprise_id, :exchange_id, :order_cycle_id, :incoming).
           to_h.with_indifferent_access
+      end
+
+      def inventory_enabled?
+        # We don't have an order cycle when laoding product to create a new one, at this stage
+        # there is no way to select product_selection_from_coordinator_inventory_only?  options
+        # so the state of the inventory doesn't matter as no filtering will be applied in the
+        # renderer.
+        return false if @order_cycle.nil?
+
+        OpenFoodNetwork::FeatureToggle.enabled?(:inventory, @order_cycle.coordinator) &&
+          !OpenFoodNetwork::FeatureToggle.enabled?(:variant_tag, @order_cycle.coordinator)
       end
     end
   end

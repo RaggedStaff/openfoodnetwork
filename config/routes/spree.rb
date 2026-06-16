@@ -34,6 +34,7 @@ Spree::Core::Engine.routes.draw do
 
   resource :account, :controller => 'users' do
     resources :webhook_endpoints, only: [:create, :destroy], controller: '/webhook_endpoints'
+    post '/webhook_endpoints/:id/test', to: "/webhook_endpoints#test", as: "webhook_endpoint_test"
   end
 
   match '/admin/orders/bulk_management' => 'admin/orders#bulk_management', :as => "admin_bulk_order_management", via: :get
@@ -50,16 +51,8 @@ Spree::Core::Engine.routes.draw do
 
     resources :users
 
-    constraints FeatureToggleConstraint.new(:admin_style_v3, negate: true) do
-      # Show old bulk products screen
-      resources :products, :index do
-        post :bulk_update, :on => :collection, :as => :bulk_update
-      end
-    end
-
-    resources :products, except: :index do
+    resources :products, except: [:index, :destroy] do
       member do
-        get :clone
         get :group_buy_options
         get :seo
       end
@@ -76,19 +69,15 @@ Spree::Core::Engine.routes.draw do
         end
       end
 
-      resources :variants do
-        collection do
-          post :update_positions
-        end
-      end
+      resources :variants
     end
-
-    # duplicate old path for reference when admin_style_v3 enabled
-    resources :products_old, to: 'products#index', only: :index
 
     get '/variants/search', :to => "variants#search", :as => :search_variants
 
     resources :properties
+
+
+    post "orders/bulk_credit", to: "orders#bulk_credit"
 
     resources :orders do
       member do
@@ -110,8 +99,10 @@ Spree::Core::Engine.routes.draw do
       resources :adjustments
       resources :invoices, only: [:index]
       resource :invoices, only: [] do
-        post :generate, to: :generate
+        post :generate
       end
+
+      post "payments/credit_customer", to: "payments#credit_customer"
 
       resources :payments do
         member do
@@ -142,15 +133,7 @@ Spree::Core::Engine.routes.draw do
     end
     resources :states
 
-    resources :taxonomies do
-      collection do
-        post :update_positions
-      end
-      member do
-        get :get_children
-      end
-      resources :taxons
-    end
+    resources :taxons, except: :show
 
     resources :tax_rates
     resource  :tax_settings

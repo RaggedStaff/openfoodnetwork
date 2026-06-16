@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Calculator::FlatPercentPerItem do
+RSpec.describe Calculator::FlatPercentPerItem do
   let(:calculator) { Calculator::FlatPercentPerItem.new preferred_flat_percent: 20 }
 
   it { is_expected.to validate_numericality_of(:preferred_flat_percent) }

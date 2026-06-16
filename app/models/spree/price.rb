@@ -6,7 +6,7 @@ module Spree
 
     acts_as_paranoid without_default_scope: true
 
-    belongs_to :variant, -> { with_deleted }, class_name: 'Spree::Variant'
+    belongs_to :variant, -> { with_deleted }, class_name: 'Spree::Variant', inverse_of: :prices
 
     validate :check_price
     validates :amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
@@ -24,10 +24,6 @@ module Spree
       amount
     end
 
-    def price_changed?
-      amount_changed?
-    end
-
     def price=(price)
       self[:amount] = parse_price(price)
     end
@@ -37,11 +33,12 @@ module Spree
     def check_price
       return unless currency.nil?
 
-      self.currency = Spree::Config[:currency]
+      self.currency = CurrentConfig.get(:currency)
     end
 
     # strips all non-price-like characters from the price, taking into account locale settings
     def parse_price(price)
+      return nil if price.blank?
       return price unless price.is_a?(String)
 
       separator, _delimiter = I18n.t([:'number.currency.format.separator',

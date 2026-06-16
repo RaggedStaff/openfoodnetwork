@@ -61,9 +61,11 @@ FactoryBot.define do
   end
 
   factory :enterprise_relationship do
+    nil
   end
 
   factory :enterprise_role do
+    nil
   end
 
   factory :enterprise_group, class: EnterpriseGroup do
@@ -93,6 +95,11 @@ FactoryBot.define do
     trait :per_item do
       transient { amount { 1 } }
       calculator { build(:calculator_per_item, preferred_amount: amount) }
+    end
+
+    trait :flat_percent_per_item do
+      transient { amount { 1 } }
+      calculator { build(:calculator_flat_percent_per_item, preferred_flat_percent: amount) }
     end
   end
 

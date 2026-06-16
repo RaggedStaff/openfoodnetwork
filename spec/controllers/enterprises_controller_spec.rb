@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe EnterprisesController, type: :controller do
+RSpec.describe EnterprisesController do
   describe "shopping for a distributor" do
     let(:user) { create(:user) }
     let(:order) { controller.current_order(true) }
@@ -19,7 +17,7 @@ describe EnterprisesController, type: :controller do
     }
 
     before do
-      order.set_distributor! current_distributor
+      order.assign_distributor! current_distributor
       order.line_items << line_item
     end
 
@@ -31,6 +29,19 @@ describe EnterprisesController, type: :controller do
       expect(controller.current_order.order_cycle).to be_nil
     end
 
+    context "when the order is linked to a customer" do
+      it "removes the customer" do
+        # Make sure the order is linked to a customer
+        customer = create(:customer)
+        order.customer = customer
+        order.save!
+
+        expect do
+          get :shop, params: { id: distributor }
+        end.to change { controller.current_order.customer }.to(nil)
+      end
+    end
+
     context "when user is logged in" do
       before { allow(controller).to receive(:spree_current_user) { user } }
 
@@ -40,6 +51,21 @@ describe EnterprisesController, type: :controller do
         expect(controller.current_distributor).to eq(distributor)
         expect(controller.current_order.distributor).to eq(distributor)
         expect(controller.current_order.order_cycle).to be_nil
+      end
+
+      context "when customer doesn't belong to the order's distributor" do
+        it "sets the order's customer to distributor's customer" do
+          expected_customer = create(:customer, user:, enterprise: distributor)
+
+          # Make sure the order is linked to a customer
+          customer = create(:customer)
+          order.customer = customer
+          order.save!
+
+          expect do
+            get :shop, params: { id: distributor }
+          end.to change { controller.current_order.customer }.to(expected_customer)
+        end
       end
     end
 
@@ -162,16 +188,16 @@ describe EnterprisesController, type: :controller do
 
     it "responds with status of 200 when the route does not exist" do
       get :check_permalink, xhr: true, params: { permalink: 'some_nonexistent_route' }, as: :js
-      expect(response.status).to be 200
+      expect(response).to have_http_status :ok
     end
 
     it "responds with status of 409 when the permalink matches an existing route" do
       # get :check_permalink, { permalink: 'enterprise_permalink', format: :js }
       # expect(response.status).to be 409
       get :check_permalink, xhr: true, params: { permalink: 'map' }, as: :js
-      expect(response.status).to be 409
+      expect(response).to have_http_status :conflict
       get :check_permalink, xhr: true, params: { permalink: '' }, as: :js
-      expect(response.status).to be 409
+      expect(response).to have_http_status :conflict
     end
   end
 

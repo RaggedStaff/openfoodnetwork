@@ -13,11 +13,11 @@ module Reporting
         # rubocop:disable Metrics/AbcSize
         def columns
           {
-            supplier: proc { |variant| variant.product.supplier.name },
-            producer_suburb: proc { |variant| variant.product.supplier.address.city },
+            supplier: proc { |variant| variant.supplier.name },
+            producer_suburb: proc { |variant| variant.supplier.address.city },
             product: proc { |variant| variant.product.name },
             product_properties: proc { |v| v.product.properties.map(&:name).join(", ") },
-            taxons: proc { |variant| variant.product.primary_taxon.name },
+            taxons: proc { |variant| variant.primary_taxon.name },
             variant_value: proc { |variant| variant.full_name },
             price: proc { |variant| variant.price },
             group_buy_unit_quantity: proc { |variant| variant.product.group_buy_unit_size },
@@ -33,9 +33,10 @@ module Reporting
 
         def child_variants
           Spree::Variant.
+            select("spree_variants.*, spree_products.name").
             joins(:product).
             merge(visible_products).
-            order('spree_products.name')
+            order('spree_products.name').distinct
         end
 
         private
@@ -59,7 +60,7 @@ module Reporting
 
         def filter_to_supplier(variants)
           if params[:supplier_id].to_i > 0
-            variants.where("spree_products.supplier_id = ?", params[:supplier_id])
+            variants.where(supplier: params[:supplier_id])
           else
             variants
           end

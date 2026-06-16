@@ -1,9 +1,31 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+RSpec.describe Admin::VariantOverridesController do
+  describe "index" do
+    context "not logged in" do
+      it "redirects to login" do
+        get :index
+        expect(response).to redirect_to(
+          root_path(anchor: "/login", after_login: admin_inventory_path)
+        )
+      end
+    end
 
-describe Admin::VariantOverridesController, type: :controller do
-  describe "bulk_update" do
+    context "where I manage the variant override hub", feature: :inventory do
+      let(:hub) { create(:distributor_enterprise) }
+
+      before do
+        allow(controller).to receive(:spree_current_user) { hub.owner }
+      end
+
+      it "succeeds" do
+        get :index
+        expect(response).to have_http_status :ok
+      end
+    end
+  end
+
+  describe "bulk_update", feature: :inventory do
     context "json" do
       let(:format) { :json }
 
@@ -52,15 +74,15 @@ describe Admin::VariantOverridesController, type: :controller do
 
         context "and the producer has granted VO permission" do
           before do
-            create(:enterprise_relationship, parent: variant.product.supplier, child: hub,
+            create(:enterprise_relationship, parent: variant.supplier, child: hub,
                                              permissions_list: [:create_variant_overrides])
           end
 
           it "loads data" do
             put :bulk_update, as: format, params: { variant_overrides: variant_override_params }
             expect(assigns[:hubs]).to eq [hub]
-            expect(assigns[:producers]).to eq [variant.product.supplier]
-            expect(assigns[:hub_permissions]).to eq Hash[hub.id, [variant.product.supplier.id]]
+            expect(assigns[:producers]).to eq [variant.supplier]
+            expect(assigns[:hub_permissions]).to eq({ hub.id => [variant.supplier.id] })
             expect(assigns[:inventory_items]).to eq [inventory_item]
           end
 
@@ -97,7 +119,7 @@ describe Admin::VariantOverridesController, type: :controller do
             it "allows to update other variant overrides" do
               put :bulk_update, as: format, params: { variant_overrides: variant_override_params }
 
-              expect(response).to_not redirect_to unauthorized_path
+              expect(response).not_to redirect_to unauthorized_path
               variant_override.reload
               expect(variant_override.price).to eq 123.45
             end
@@ -107,15 +129,15 @@ describe Admin::VariantOverridesController, type: :controller do
     end
   end
 
-  describe "bulk_reset" do
+  describe "bulk_reset", feature: :inventory do
     context "json" do
       let(:format) { :json }
 
       let(:hub) { create(:distributor_enterprise) }
       let(:producer) { create(:supplier_enterprise) }
-      let(:product) { create(:product, supplier: producer) }
-      let(:variant1) { create(:variant, product:) }
-      let(:variant2) { create(:variant, product:) }
+      let(:product) { create(:product) }
+      let(:variant1) { create(:variant, product:, supplier: producer) }
+      let(:variant2) { create(:variant, product:, supplier: producer) }
       let!(:variant_override1) {
         create(:variant_override, hub:, variant: variant1, count_on_hand: 5, default_stock: 7,
                                   resettable: true)
@@ -163,7 +185,7 @@ describe Admin::VariantOverridesController, type: :controller do
             put(:bulk_reset, params:)
             expect(assigns[:hubs]).to eq [hub]
             expect(assigns[:producers]).to eq [producer]
-            expect(assigns[:hub_permissions]).to eq Hash[hub.id, [producer.id]]
+            expect(assigns[:hub_permissions]).to eq({ hub.id => [producer.id] })
             expect(assigns[:inventory_items]).to eq []
           end
 
@@ -179,8 +201,8 @@ describe Admin::VariantOverridesController, type: :controller do
                   "to another hub I manage" do
             before { hub.owner.update_attribute(:enterprise_limit, 2) }
             let(:hub2) { create(:distributor_enterprise, owner: hub.owner) }
-            let(:product) { create(:product, supplier: producer) }
-            let(:variant3) { create(:variant, product:) }
+            let(:product) { create(:product) }
+            let(:variant3) { create(:variant, product:, supplier: producer) }
             let!(:variant_override3) {
               create(:variant_override, hub: hub2, variant: variant3, count_on_hand: 1,
                                         default_stock: 13, resettable: true)
@@ -193,7 +215,7 @@ describe Admin::VariantOverridesController, type: :controller do
             it "does not reset count_on_hand for variant_overrides not in params" do
               expect {
                 put :bulk_reset, params:
-              }.to_not change{ variant_override3.reload.count_on_hand }
+              }.not_to change{ variant_override3.reload.count_on_hand }
             end
           end
         end

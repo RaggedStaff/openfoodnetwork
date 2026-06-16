@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe 'White label setting' do
+RSpec.describe 'White label setting' do
   include AuthenticationHelper
   include ShopWorkflow
   include FileHelper
@@ -11,7 +11,7 @@ describe 'White label setting' do
   let!(:distributor) { create(:distributor_enterprise, with_payment_and_shipping: true) }
   let!(:shipping_method) { create(:shipping_method, distributors: [distributor]) }
   let(:product) {
-    create(:taxed_product, supplier: create(:supplier_enterprise), price: 10,
+    create(:taxed_product, supplier_id: create(:supplier_enterprise).id, price: 10,
                            zone: create(:zone_with_member), tax_rate_amount: 0.1)
   }
   let!(:order_cycle) {
@@ -115,7 +115,7 @@ describe 'White label setting' do
           end
 
           it "hides the OFN navigation" do
-            expect(page).to have_no_selector ofn_navigation
+            expect(page).not_to have_selector ofn_navigation
           end
 
           it_behaves_like "hides the OFN navigation for mobile view as well"
@@ -142,7 +142,7 @@ describe 'White label setting' do
         before do
           order.update_attribute(:state, 'cart')
           order.line_items << create(:line_item, variant: product.variants.first)
-          set_order(order)
+          pick_order(order)
         end
 
         it_behaves_like "hides the OFN navigation when needed only"
@@ -153,7 +153,7 @@ describe 'White label setting' do
           end
 
           it "hides the OFN navigation" do
-            expect(page).to have_no_selector ofn_navigation
+            expect(page).not_to have_selector ofn_navigation
           end
 
           it_behaves_like "hides the OFN navigation for mobile view as well"
@@ -167,7 +167,7 @@ describe 'White label setting' do
           it "hides the OFN navigation" do
             expect(page).to have_content "Checkout now"
             expect(page).to have_content "Order ready for "
-            expect(page).to have_no_selector ofn_navigation
+            expect(page).not_to have_selector ofn_navigation
           end
 
           it_behaves_like "hides the OFN navigation for mobile view as well"
@@ -176,7 +176,7 @@ describe 'White label setting' do
 
       context "when the user has a complete order" do
         before do
-          set_order(complete_order)
+          pick_order(complete_order)
         end
 
         shared_examples "hides the OFN navigation when needed only for the order confirmation" do
@@ -186,7 +186,7 @@ describe 'White label setting' do
             end
 
             it "hides the OFN navigation" do
-              expect(page).to have_no_selector ofn_navigation
+              expect(page).not_to have_selector ofn_navigation
             end
           end
         end
@@ -225,7 +225,7 @@ describe 'White label setting' do
     context "when the preference is set to false" do
       before do
         distributor.update_attribute(:hide_ofn_navigation, false)
-        set_order(order)
+        pick_order(order)
         allow_any_instance_of(EnterprisesHelper).to receive(:current_distributor).
           and_return(distributor)
       end
@@ -247,7 +247,7 @@ describe 'White label setting' do
 
         it "hides the groups tab" do
           visit main_app.enterprise_shop_path(distributor)
-          expect(page).to have_no_selector "a[href='#groups']"
+          expect(page).not_to have_selector "a[href='#groups']"
         end
       end
 
@@ -288,7 +288,7 @@ describe 'White label setting' do
         before do
           order.update_attribute(:state, 'cart')
           order.line_items << create(:line_item, variant: product.variants.first)
-          set_order(order)
+          pick_order(order)
           visit main_app.cart_path
         end
 
@@ -299,7 +299,7 @@ describe 'White label setting' do
         before do
           order.update_attribute(:state, 'cart')
           order.line_items << create(:line_item, variant: product.variants.first)
-          set_order(order)
+          pick_order(order)
           visit checkout_path
         end
 
@@ -347,7 +347,7 @@ describe 'White label setting' do
         before do
           order.update_attribute(:state, 'cart')
           order.line_items << create(:line_item, variant: product.variants.first)
-          set_order(order)
+          pick_order(order)
           visit main_app.cart_path
         end
 
@@ -358,7 +358,7 @@ describe 'White label setting' do
         before do
           order.update_attribute(:state, 'cart')
           order.line_items << create(:line_item, variant: product.variants.first)
-          set_order(order)
+          pick_order(order)
           visit checkout_path
         end
 
@@ -381,7 +381,7 @@ describe 'White label setting' do
         shared_examples "shows the right link on the logo" do
           it "shows the white label logo link" do
             within ".nav-logo .ofn-logo" do
-              expect(page).to_not have_selector "a[href='/']"
+              expect(page).not_to have_selector "a[href='/']"
               expect(page).to have_selector "a[href*='https://www.example.com']"
             end
           end
@@ -399,7 +399,7 @@ describe 'White label setting' do
           before do
             order.update_attribute(:state, 'cart')
             order.line_items << create(:line_item, variant: product.variants.first)
-            set_order(order)
+            pick_order(order)
             visit main_app.cart_path
           end
 
@@ -410,7 +410,7 @@ describe 'White label setting' do
           before do
             order.update_attribute(:state, 'cart')
             order.line_items << create(:line_item, variant: product.variants.first)
-            set_order(order)
+            pick_order(order)
             visit checkout_path
           end
 

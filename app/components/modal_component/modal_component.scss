@@ -9,6 +9,11 @@
     padding: 1.2rem;
   }
 
+  &.big {
+    max-height: 50em;
+    overflow: auto;
+  }
+
   h1,
   h2,
   h3,
@@ -23,6 +28,19 @@
     // Ensure image fits in container
     max-width: 100%;
     height: auto;
+  }
+
+  .flex-column {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .gap-1 {
+    gap: 1rem;
+  }
+
+  .gap-2 {
+    gap: 2rem;
   }
 }
 

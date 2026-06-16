@@ -23,7 +23,7 @@ module ApplicationHelper
     end
   end
 
-  # Checks weather a feature is enabled for any of the given actors.
+  # Checks whether a feature is enabled for any of the given actors.
   def feature?(feature, *actors)
     OpenFoodNetwork::FeatureToggle.enabled?(feature, *actors)
   end
@@ -45,11 +45,16 @@ module ApplicationHelper
     form_for(name, *(args << options.merge(builder: AngularFormBuilder)), &)
   end
 
+  def respond_to_missing?(method_name, include_private = false)
+    (method_name.to_s.end_with?('_path',
+                                '_url') && spree.respond_to?(method_name, include_private)) || super
+  end
+
   # Pass URL helper calls on to spree where applicable so that we don't need to use
   # spree.foo_path in any view rendered from non-spree-namespaced controllers.
-  def method_missing(method, *args, &)
+  def method_missing(method, *, &)
     if method.to_s.end_with?('_path', '_url') && spree.respond_to?(method)
-      spree.public_send(method, *args)
+      spree.public_send(method, *)
     else
       super
     end
@@ -61,22 +66,19 @@ module ApplicationHelper
     classes << shopfront_layout
   end
 
-  def pdf_stylesheet_pack_tag(source)
-    if running_in_development?
-      options = { media: "all", host: "#{Webpacker.dev_server.host}:#{Webpacker.dev_server.port}" }
-      stylesheet_pack_tag(source, **options)
-    else
-      wicked_pdf_stylesheet_pack_tag(source)
-    end
-  end
-
   def cache_with_locale(key = nil, options = {}, &block)
     cache(cache_key_with_locale(key, I18n.locale), options) do
       yield(block)
     end
   end
 
+  # Update "v1" to invalidate existing cache key
   def cache_key_with_locale(key, locale)
-    Array.wrap(key) + [locale.to_s, I18nDigests.for_locale(locale)]
+    Array.wrap(key) + ["v3", locale.to_s, I18nDigests.for_locale(locale)]
+  end
+
+  def pdf_stylesheet_pack_tag(source)
+    # FerrumPdf uses the current page URL to resolve relative asset paths.
+    stylesheet_pack_tag(source, media: "all")
   end
 end

@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 module Spree
   module Stock
-    describe AvailabilityValidator do
+    RSpec.describe AvailabilityValidator do
       let(:validator) { AvailabilityValidator.new({}) }
 
       context "line item without existing inventory units" do
@@ -53,7 +51,7 @@ module Spree
           end
         end
 
-        context "when the line item's variant has an override" do
+        context "when the line item's variant has an override", feature: :inventory do
           let(:hub) { order.distributor }
           let(:variant) { line_item.variant }
           let(:vo_stock) { 999 }
@@ -75,7 +73,7 @@ module Spree
             it "is not valid" do
               line_item.quantity = 999
               validator.validate(line_item)
-              expect(line_item).to_not be_valid
+              expect(line_item).not_to be_valid
             end
           end
         end

@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe "checking out an order with a paypal express payment method", type: :request do
+RSpec.describe "checking out an order with a paypal express payment method" do
   include ShopWorkflow
   include PaypalHelper
 
@@ -34,7 +32,7 @@ describe "checking out an order with a paypal express payment method", type: :re
     expect(order.next).to be true # => address
     expect(order.next).to be true # => delivery
     expect(order.next).to be true # => payment
-    set_order order
+    pick_order order
 
     stub_paypal_confirm
   end

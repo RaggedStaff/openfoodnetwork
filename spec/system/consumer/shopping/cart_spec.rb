@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe "full-page cart" do
+RSpec.describe "full-page cart" do
   include AuthenticationHelper
   include WebHelper
   include ShopWorkflow
@@ -24,16 +24,16 @@ describe "full-page cart" do
       create(:enterprise_fee, amount: 11.00, tax_category: product_with_tax.tax_category)
     }
     let(:product_with_tax) {
-      create(:taxed_product, supplier:, zone:, price: 110.00, tax_rate_amount: 0.1,
+      create(:taxed_product, supplier_id: supplier.id, zone:, price: 110.00, tax_rate_amount: 0.1,
                              included_in_price: true)
     }
     let(:product_with_fee) {
-      create(:simple_product, supplier:, price: 0.86, on_hand: 100)
+      create(:simple_product, supplier_id: supplier.id, price: 0.86, on_hand: 100)
     }
     let(:order) { create(:order, order_cycle:, distributor:) }
 
     before do
-      set_order order
+      pick_order order
     end
 
     describe "continue shopping" do
@@ -49,9 +49,9 @@ describe "full-page cart" do
 
         click_link "Continue shopping"
 
-        expect(page).to have_no_link "Continue shopping"
+        expect(page).not_to have_link "Continue shopping"
         expect(page).to have_link "Shop"
-        expect(page).to have_no_content distributor.preferred_shopfront_message
+        expect(page).not_to have_content distributor.preferred_shopfront_message
       end
     end
 
@@ -59,7 +59,7 @@ describe "full-page cart" do
       it "does not link to the product page" do
         add_product_to_cart order, product_with_fee, quantity: 2
         visit main_app.cart_path
-        expect(page).to have_no_selector '.item-thumb-image a'
+        expect(page).not_to have_selector '.item-thumb-image a'
       end
     end
 
@@ -132,7 +132,7 @@ describe "full-page cart" do
 
         it "hides admin and handlings row" do
           expect(page).to have_selector('#cart-detail')
-          expect(page).to have_no_content('Admin & Handling')
+          expect(page).not_to have_content('Admin & Handling')
           expect(page).to have_selector '.cart-item-price', text: with_currency(0.86)
           expect(page).to have_selector '.order-total.grand-total',
                                         text: with_currency(1.72) # price * 3
@@ -241,18 +241,18 @@ describe "full-page cart" do
                                                 'Please update the selected quantities.'
 
             # "Continue Shopping" and "Checkout" buttons are disabled
-            expect(page).to have_selector "a.continue-shopping[disabled=disabled]"
-            expect(page).to have_selector "a#checkout-link[disabled=disabled]"
+            expect(page).to have_selector "a.continue-shopping[aria-disabled=true]"
+            expect(page).to have_selector "a#checkout-link[aria-disabled=true]"
 
             # Quantity field clearly marked as invalid and "Update" button is not highlighted
             expect(page).to have_selector "#order_line_items_attributes_0_quantity.ng-invalid-stock"
-            expect(page).to_not have_selector "#update-button.alert"
+            expect(page).not_to have_selector "#update-button.alert"
 
             fill_in "order_line_items_attributes_0_quantity", with: 4
 
             # Quantity field not marked as invalid and "Update" button is
             # highlighted after correction
-            expect(page).to_not have_selector(
+            expect(page).not_to have_selector(
               "#order_line_items_attributes_0_quantity.ng-invalid-stock"
             )
             expect(page).to have_selector "#update-button.alert"
@@ -260,8 +260,8 @@ describe "full-page cart" do
             click_button 'Update'
 
             # "Continue Shopping" and "Checkout" buttons are not disabled after cart is updated
-            expect(page).to_not have_selector "a.continue-shopping[disabled=disabled]"
-            expect(page).to_not have_selector "a#checkout-link[disabled=disabled]"
+            expect(page).not_to have_selector "a.continue-shopping[aria-disabled=true]"
+            expect(page).not_to have_selector "a#checkout-link[aria-disabled=true]"
           end
         end
       end
@@ -293,8 +293,8 @@ describe "full-page cart" do
         item1 = prev_order1.line_items.first
         item2 = prev_order2.line_items.first
 
-        expect(page).to have_no_content item1.variant.name
-        expect(page).to have_no_content item2.variant.name
+        expect(page).not_to have_content item1.variant.name
+        expect(page).not_to have_content item2.variant.name
 
         expect(page).to have_link 'Edit confirmed items', href: spree.account_path
         find("td.toggle-bought").click
@@ -302,13 +302,13 @@ describe "full-page cart" do
         expect(page).to have_content item1.variant.name
         expect(page).to have_content item2.variant.name
         page.find(".line-item-#{item1.id} td.bought-item-delete a").click
-        expect(page).to have_no_content item1.variant.name
+        expect(page).not_to have_content item1.variant.name
         expect(page).to have_content item2.variant.name
 
         visit main_app.cart_path
 
         find("td.toggle-bought").click
-        expect(page).to have_no_content item1.variant.name
+        expect(page).not_to have_content item1.variant.name
         expect(page).to have_content item2.variant.name
       end
 
@@ -318,7 +318,7 @@ describe "full-page cart" do
         end
 
         it "doesn't throw an error" do
-          expect{ visit main_app.cart_path }.to_not raise_error
+          expect{ visit main_app.cart_path }.not_to raise_error
         end
       end
     end

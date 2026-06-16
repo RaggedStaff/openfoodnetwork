@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe RegistrationController, type: :controller do
+RSpec.describe RegistrationController do
   describe "redirecting when user not logged in" do
     it "index" do
       get :index

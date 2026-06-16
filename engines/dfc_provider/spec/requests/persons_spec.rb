@@ -2,7 +2,7 @@
 
 require_relative "../swagger_helper"
 
-describe "Persons", type: :request, swagger_doc: "dfc.yaml", rswag_autodoc: true do
+RSpec.describe "Persons", swagger_doc: "dfc.yaml" do
   let(:user) { create(:oidc_user, id: 10_000) }
   let(:other_user) { create(:oidc_user) }
 
@@ -26,7 +26,52 @@ describe "Persons", type: :request, swagger_doc: "dfc.yaml", rswag_autodoc: true
         let(:id) { other_user.id }
 
         run_test! do
-          expect(response.body).to_not include "dfc-b:Person"
+          expect(response.body).not_to include "dfc-b:Person"
+        end
+      end
+    end
+  end
+
+  path("/api/dfc/persons/{person_id}/prefs") do
+    let(:user) { create(:oidc_user, id: 9_000) }
+
+    get("Show private preferences") do
+      parameter(name: :person_id, in: :path, type: :string)
+
+      produces("application/ld+json")
+
+      response("200", "successful") do
+        let(:Authorization) { auth_header_token_for(user) }
+        let(:person_id) { user.id }
+
+        run_test! do
+          expect(graph[0]["@id"]).to(eq("http://test.host/api/dfc/persons/9000/prefs"))
+          expect(graph[0]["@type"]).to(eq("pim:ConfigurationFile"))
+
+          expect(graph[1]["@id"]).to(eq("http://test.host/api/dfc/persons/9000/webid#me"))
+          expect(graph[1]["solid:privateTypeIndex"]).to(eq("http://test.host/api/dfc/persons/9000/private_type_index"))
+        end
+      end
+    end
+  end
+
+  path("/api/dfc/persons/{person_id}/private_type_index") do
+    let(:user) { create(:oidc_user, id: 9_000) }
+
+    get("Show private preferences") do
+      parameter(name: :person_id, in: :path, type: :string)
+
+      produces("application/ld+json")
+
+      response("200", "successful") do
+        let(:Authorization) { auth_header_token_for(user) }
+        let(:person_id) { user.id }
+
+        run_test! do
+          expect(graph[0]["@id"]).to(eq("http://test.host/api/dfc/persons/9000/private_type_index"))
+          expect(graph[0]["@type"]).to(eq(["solid:TypeIndex", "solid:ListedDocument"]))
+
+          expect(graph[1]["solid:instanceContainer"]).to(eq("http://test.host/api/dfc/organizations"))
         end
       end
     end

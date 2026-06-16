@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
 require 'open_food_network/i18n_inflections'
 
-describe OpenFoodNetwork::I18nInflections do
+RSpec.describe OpenFoodNetwork::I18nInflections do
   let(:subject) { described_class }
 
   it "returns the same word if no plural is known" do

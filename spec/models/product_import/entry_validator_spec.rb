@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe ProductImport::EntryValidator do
+RSpec.describe ProductImport::EntryValidator do
   let(:current_user) { double(:current_user) }
   let(:import_time) { double(:import_time) }
   let(:spreadsheet_data) { double(:spreadsheet_data) }
@@ -63,12 +61,12 @@ describe ProductImport::EntryValidator do
     let(:potatoes) {
       create(
         :simple_product,
-        supplier: enterprise,
         on_hand: '100',
         name: 'Potatoes',
         unit_value: 1000,
         variant_unit_scale: 1000,
-        variant_unit: 'weight'
+        variant_unit: 'weight',
+        variants: [create(:variant, supplier: enterprise)]
       )
     }
 
@@ -110,33 +108,33 @@ describe ProductImport::EntryValidator do
   describe "inventory validation" do
     before do
       allow(entry_validator).to receive(:import_into_inventory?) { true }
-      allow(entry_validator).to receive(:enterprise_validation) {}
-      allow(entry_validator).to receive(:producer_validation) {}
-      allow(entry_validator).to receive(:variant_of_product_validation) {}
+      allow(entry_validator).to receive(:enterprise_validation)
+      allow(entry_validator).to receive(:producer_validation)
+      allow(entry_validator).to receive(:variant_of_product_validation)
     end
 
     context "products exist" do
       let!(:product_g) {
         create(
           :simple_product,
-          supplier: enterprise,
           on_hand: '100',
           name: 'Tomato',
           unit_value: 500,
           variant_unit_scale: 1,
-          variant_unit: 'weight'
+          variant_unit: 'weight',
+          supplier_id: enterprise.id
         )
       }
 
       let!(:product_kg) {
         create(
           :simple_product,
-          supplier: enterprise,
           on_hand: '100',
           name: 'Potatoes',
           unit_value: 1000,
           variant_unit_scale: 1000,
-          variant_unit: 'weight'
+          variant_unit: 'weight',
+          supplier_id: enterprise.id
         )
       }
 

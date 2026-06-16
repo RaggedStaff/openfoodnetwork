@@ -5,7 +5,7 @@ module Reporting
     module BulkCoop
       class Allocation < Base
         def query_result
-          table_items.group_by(&:order).values
+          table_items.group_by { |li| [li.order, li.variant] }.values
         end
 
         def columns
@@ -32,7 +32,7 @@ module Reporting
               summary_row: proc do |_key, items, rows|
                 line_items = items.flatten
                 {
-                  sum_total: rows.sum(&:sum_total),
+                  sum_total: rows.map(&:sum_total).compact.sum,
                   total_available: total_available(line_items),
                   unallocated: remainder(line_items),
                   max_quantity_excess: max_quantity_excess(line_items)

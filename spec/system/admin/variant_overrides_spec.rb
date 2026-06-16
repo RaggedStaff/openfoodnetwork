@@ -2,11 +2,11 @@
 
 require 'system_helper'
 
-describe "
+RSpec.describe "
   Managing a hub's inventory
   I want to override the stock level and price of products
   Without affecting other hubs that share the same products
-" do
+", feature: :inventory do
   include AdminHelper
   include AuthenticationHelper
   include WebHelper
@@ -48,31 +48,34 @@ describe "
 
     context "when inventory_items exist for variants" do
       let!(:product) {
-        create(:simple_product, supplier: producer, variant_unit: 'weight', variant_unit_scale: 1)
+        create(:simple_product, supplier_id: producer.id, variant_unit: 'weight',
+                                variant_unit_scale: 1)
       }
       let!(:variant) { create(:variant, product:, unit_value: 1, price: 1.23, on_hand: 12) }
       let!(:inventory_item) { create(:inventory_item, enterprise: hub, variant: ) }
 
       let!(:product_managed) {
-        create(:simple_product, supplier: producer_managed, variant_unit: 'weight',
+        create(:simple_product, supplier_id: producer_managed.id, variant_unit: 'weight',
                                 variant_unit_scale: 1)
       }
       let!(:variant_managed) {
-        create(:variant, product: product_managed, unit_value: 3, price: 3.65, on_hand: 2)
+        create(:variant, product: product_managed, supplier: producer_managed, unit_value: 3,
+                         price: 3.65, on_hand: 2)
       }
       let!(:inventory_item_managed) {
         create(:inventory_item, enterprise: hub, variant: variant_managed )
       }
 
-      let!(:product_related) { create(:simple_product, supplier: producer_related) }
+      let!(:product_related) { create(:simple_product, supplier_id: producer_related.id) }
       let!(:variant_related) {
-        create(:variant, product: product_related, unit_value: 2, price: 2.34, on_hand: 23)
+        create(:variant, product: product_related, supplier: producer_related, unit_value: 2,
+                         price: 2.34, on_hand: 23)
       }
       let!(:inventory_item_related) {
         create(:inventory_item, enterprise: hub, variant: variant_related )
       }
 
-      let!(:product_unrelated) { create(:simple_product, supplier: producer_unrelated) }
+      let!(:product_unrelated) { create(:simple_product, supplier_id: producer_unrelated.id) }
 
       context "when a hub is selected" do
         before do
@@ -82,13 +85,19 @@ describe "
 
         context "with no overrides" do
           it "displays the list of products with variants" do
-            expect(page).to have_table_row ['PRODUCER', 'PRODUCT', 'PRICE', 'ON HAND', 'ON DEMAND?']
-            expect(page).to have_table_row [producer.name, product.name, '', '', '']
+            expect(page).to have_table_row ['Producer', 'Product', 'Price', 'On Hand', 'On Demand?']
+            expect(page).to have_table_row ['', product.name, '', '', '']
+            within "tr#v_#{variant.id}" do |tr|
+              expect(tr).to have_content(producer.name)
+            end
             expect(page).to have_input "variant-overrides-#{variant.id}-price", placeholder: '1.23'
             expect(page).to have_input "variant-overrides-#{variant.id}-count_on_hand",
                                        placeholder: '12'
 
-            expect(page).to have_table_row [producer_related.name, product_related.name, '', '', '']
+            expect(page).to have_table_row ['', product_related.name, '', '', '']
+            within "tr#v_#{variant_related.id}" do |tr|
+              expect(tr).to have_content(producer_related.name)
+            end
             expect(page).to have_input "variant-overrides-#{variant_related.id}-price",
                                        placeholder: '2.34'
             expect(page).to have_input "variant-overrides-#{variant_related.id}-count_on_hand",
@@ -105,7 +114,7 @@ describe "
             expect(page).to have_selector "#v_#{variant_related.id}"
             select2_select producer.name, from: 'producer_filter'
             expect(page).to have_selector "#v_#{variant.id}"
-            expect(page).to have_no_selector "#v_#{variant_related.id}"
+            expect(page).not_to have_selector "#v_#{variant_related.id}"
             select2_select 'All', from: 'producer_filter'
 
             # Filters based on the quick search box
@@ -113,7 +122,7 @@ describe "
             expect(page).to have_selector "#v_#{variant_related.id}"
             fill_in 'query', with: product.name
             expect(page).to have_selector "#v_#{variant.id}"
-            expect(page).to have_no_selector "#v_#{variant_related.id}"
+            expect(page).not_to have_selector "#v_#{variant_related.id}"
             fill_in 'query', with: ''
 
             # Clears the filters
@@ -121,8 +130,8 @@ describe "
             expect(page).to have_selector "tr#v_#{variant_related.id}"
             select2_select producer.name, from: 'producer_filter'
             fill_in 'query', with: product_related.name
-            expect(page).to have_no_selector "tr#v_#{variant.id}"
-            expect(page).to have_no_selector "tr#v_#{variant_related.id}"
+            expect(page).not_to have_selector "tr#v_#{variant.id}"
+            expect(page).not_to have_selector "tr#v_#{variant_related.id}"
             click_button 'Clear All'
             expect(page).to have_selector "tr#v_#{variant.id}"
             expect(page).to have_selector "tr#v_#{variant_related.id}"
@@ -134,17 +143,17 @@ describe "
             within "tr#v_#{variant.id}" do
               click_button 'Hide'
             end
-            expect(page).to have_no_selector "tr#v_#{variant.id}"
+            expect(page).not_to have_selector "tr#v_#{variant.id}"
             expect(page).to have_selector "tr#v_#{variant_related.id}"
             first("div#views-dropdown").click
             first("div#views-dropdown div.menu div.menu_item", text: "Hidden Products").click
             expect(page).to have_selector "tr#v_#{variant.id}"
-            expect(page).to have_no_selector "tr#v_#{variant_related.id}"
+            expect(page).not_to have_selector "tr#v_#{variant_related.id}"
             within "tr#v_#{variant.id}" do
               click_button 'Add'
             end
-            expect(page).to have_no_selector "tr#v_#{variant.id}"
-            expect(page).to have_no_selector "tr#v_#{variant_related.id}"
+            expect(page).not_to have_selector "tr#v_#{variant.id}"
+            expect(page).not_to have_selector "tr#v_#{variant_related.id}"
             first("div#views-dropdown").click
             first("div#views-dropdown div.menu div.menu_item", text: "Inventory Products").click
             expect(page).to have_selector "tr#v_#{variant.id}"
@@ -245,15 +254,18 @@ describe "
 
         context "with overrides" do
           let!(:vo) {
-            create(:variant_override, :on_demand, variant:, hub:, price: 77.77,
-                                                  default_stock: 1000, resettable: true,
-                                                  tag_list: ["tag1", "tag2", "tag3"])
+            create(
+              :variant_override,
+              on_demand: true, count_on_hand: -5,
+              variant:, hub:, price: 77.77, default_stock: 1000, resettable: true,
+              tag_list: ["tag1", "tag2", "tag3"]
+            )
           }
           let!(:vo_no_auth) {
             create(:variant_override, variant:, hub: hub2, price: 1, count_on_hand: 2)
           }
           let!(:product2) {
-            create(:simple_product, supplier: producer, variant_unit: 'weight',
+            create(:simple_product, supplier_id: producer.id, variant_unit: 'weight',
                                     variant_unit_scale: 1)
           }
           let!(:variant2) {
@@ -434,7 +446,7 @@ describe "
               # It does not save the changes.
               click_button 'Save Changes'
               expect(page).to have_content 'must be specified because forcing limited stock'
-              expect(page).to have_no_content 'Changes saved.'
+              expect(page).not_to have_content 'Changes saved.'
 
               vo.reload
               expect(vo.count_on_hand).to eq(1111)
@@ -470,7 +482,8 @@ describe "
 
     describe "when inventory_items do not exist for variants" do
       let!(:product) {
-        create(:simple_product, supplier: producer, variant_unit: 'weight', variant_unit_scale: 1)
+        create(:simple_product, supplier_id: producer.id, variant_unit: 'weight',
+                                variant_unit_scale: 1)
       }
       let!(:variant1) {
         create(:variant, product:, unit_value: 1, price: 1.23, on_hand: 12)
@@ -485,15 +498,15 @@ describe "
 
         it "alerts the user to the presence of new products, and allows them to be added " \
            "or hidden" do
-          expect(page).to have_no_selector "table#variant-overrides tr#v_#{variant1.id}"
-          expect(page).to have_no_selector "table#variant-overrides tr#v_#{variant2.id}"
+          expect(page).not_to have_selector "table#variant-overrides tr#v_#{variant1.id}"
+          expect(page).not_to have_selector "table#variant-overrides tr#v_#{variant2.id}"
 
           expect(page).to have_selector '.alert-row span.message',
                                         text: "There are 1 new products available to add to your " \
                                               "inventory."
           click_button "Review Now"
 
-          expect(page).to have_table_row ['PRODUCER', 'PRODUCT', 'VARIANT', 'ADD', 'HIDE']
+          expect(page).to have_table_row ['Producer', 'Product', 'Variant', 'Add', 'Hide']
           expect(page).to have_selector "table#new-products tr#v_#{variant1.id}"
           expect(page).to have_selector "table#new-products tr#v_#{variant2.id}"
           within "table#new-products tr#v_#{variant1.id}" do
@@ -502,17 +515,17 @@ describe "
           within "table#new-products tr#v_#{variant2.id}" do
             click_button 'Hide'
           end
-          expect(page).to have_no_selector "table#new-products tr#v_#{variant1.id}"
-          expect(page).to have_no_selector "table#new-products tr#v_#{variant2.id}"
+          expect(page).not_to have_selector "table#new-products tr#v_#{variant1.id}"
+          expect(page).not_to have_selector "table#new-products tr#v_#{variant2.id}"
           click_button "Back to my inventory"
 
           expect(page).to have_selector "table#variant-overrides tr#v_#{variant1.id}"
-          expect(page).to have_no_selector "table#variant-overrides tr#v_#{variant2.id}"
+          expect(page).not_to have_selector "table#variant-overrides tr#v_#{variant2.id}"
 
           first("div#views-dropdown").click
           first("div#views-dropdown div.menu div.menu_item", text: "Hidden Products").click
 
-          expect(page).to have_no_selector "table#hidden-products tr#v_#{variant1.id}"
+          expect(page).not_to have_selector "table#hidden-products tr#v_#{variant1.id}"
           expect(page).to have_selector "table#hidden-products tr#v_#{variant2.id}"
         end
       end
@@ -523,7 +536,7 @@ describe "
     it "shows more than 100 products in my inventory" do
       supplier = create(:supplier_enterprise, sells: "own")
       inventory_items = (1..101).map do
-        product = create(:simple_product, supplier:)
+        product = create(:simple_product, supplier_id: supplier.id)
         InventoryItem.create!(
           enterprise: supplier,
           variant: product.variants.first
@@ -537,6 +550,7 @@ describe "
       visit admin_inventory_path
 
       expect(page).to have_text first_variant.name
+      expect(page).to have_text first_variant.supplier.name
       expect(page).to have_selector "tr.product", count: 10
       expect(page).to have_button "Show more"
       expect(page).to have_button "Show all (91  More)"

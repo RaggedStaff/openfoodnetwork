@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
-
-describe Reporting::Reports::EnterpriseFeeSummary::ReportData::EnterpriseFeeTypeTotal do
+RSpec.describe Reporting::Reports::EnterpriseFeeSummary::ReportData::EnterpriseFeeTypeTotal do
   it "sorts instances according to their attributes" do
     instance_a = described_class.new(
       fee_type: "sales",

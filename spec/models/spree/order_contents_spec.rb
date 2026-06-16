@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Spree::OrderContents do
+RSpec.describe Spree::OrderContents do
   let!(:order) { create(:order) }
   let!(:variant) { create(:variant) }
   subject { described_class.new(order) }
@@ -37,6 +35,27 @@ describe Spree::OrderContents do
 
       expect(order.item_total.to_f).to eq 19.99
       expect(order.total.to_f).to eq 19.99
+    end
+
+    context "with a completed order" do
+      let!(:order) { create(:completed_order_with_totals) }
+
+      it "updates shipping fees" do
+        expect(order).to receive(:update_shipping_fees!)
+
+        subject.add(variant, 1)
+      end
+    end
+
+    context "when passing a shipment" do
+      let!(:order) { create(:order_with_line_items) }
+
+      it "updates shipping fees" do
+        shipment = order.shipments.first
+        expect(order).to receive(:update_shipping_fees!)
+
+        subject.add(variant, 1, shipment)
+      end
     end
   end
 
@@ -86,6 +105,27 @@ describe Spree::OrderContents do
       expect(order.item_total.to_f).to eq 19.99
       expect(order.total.to_f).to eq 19.99
     end
+
+    context "with a completed order" do
+      let!(:order) { create(:completed_order_with_totals) }
+
+      it "updates shipping fees" do
+        expect(order).to receive(:update_shipping_fees!)
+
+        subject.remove(order.line_items.first.variant, 1)
+      end
+    end
+
+    context "when passing a shipment" do
+      let!(:order) { create(:order_with_line_items) }
+
+      it "updates shipping fees" do
+        shipment = order.reload.shipments.first
+        expect(order).to receive(:update_shipping_fees!)
+
+        subject.remove(order.line_items.first.variant, 1, shipment)
+      end
+    end
   end
 
   context "#update_cart" do
@@ -126,6 +166,16 @@ describe Spree::OrderContents do
       expect(subject.order).to receive(:ensure_updated_shipments)
       subject.update_cart params
     end
+
+    context "with a completed order" do
+      let!(:order) { create(:completed_order_with_totals) }
+
+      it "updates shipping fees" do
+        expect(order).to receive(:update_shipping_fees!)
+
+        subject.update_cart params
+      end
+    end
   end
 
   describe "#update_item" do
@@ -137,8 +187,8 @@ describe Spree::OrderContents do
 
         subject.update_item(line_item, { quantity: 3 })
       end
-
       it "updates the order's enterprise fees if completed" do
+        order.shipments << create(:shipment)
         allow(order).to receive(:completed?) { true }
         expect(order).to receive(:update_order_fees!)
 
@@ -146,7 +196,7 @@ describe Spree::OrderContents do
       end
 
       it "does not update the order's enterprise fees if not complete" do
-        expect(order).to_not receive(:update_order_fees!)
+        expect(order).not_to receive(:update_order_fees!)
 
         subject.update_item(line_item, { quantity: 3 })
       end
@@ -163,6 +213,16 @@ describe Spree::OrderContents do
 
       subject.update_item(line_item, { quantity: 3 })
     end
+
+    context "with a completed order" do
+      let!(:order) { create(:completed_order_with_totals) }
+
+      it "updates shipping fees" do
+        expect(order).to receive(:update_shipping_fees!)
+
+        subject.update_item(order.line_items.first, { quantity: 3 })
+      end
+    end
   end
 
   describe "#update_or_create" do
@@ -175,6 +235,22 @@ describe Spree::OrderContents do
         expect(line_item.max_quantity).to eq 3
         expect(line_item.price).to eq variant.price
       end
+
+      it "ensures shipments are updated" do
+        expect(order).to receive(:ensure_updated_shipments)
+
+        subject.update_or_create(variant, { quantity: 2, max_quantity: 3 })
+      end
+
+      context "with completed order" do
+        let!(:order) { create(:completed_order_with_totals) }
+
+        it "updates shipping fees" do
+          expect(order).to receive(:update_shipping_fees!)
+
+          subject.update_or_create(variant, { quantity: 2, max_quantity: 3 })
+        end
+      end
     end
 
     describe "updating" do
@@ -185,6 +261,22 @@ describe Spree::OrderContents do
 
         expect(line_item.reload.quantity).to eq 3
         expect(line_item.max_quantity).to eq 4
+      end
+
+      it "ensures shipments are updated" do
+        expect(order).to receive(:ensure_updated_shipments)
+
+        subject.update_or_create(variant, { quantity: 3, max_quantity: 4 })
+      end
+
+      context "with completed order" do
+        let!(:order) { create(:completed_order_with_totals) }
+
+        it "updates shipping fees" do
+          expect(order).to receive(:update_shipping_fees!)
+
+          subject.update_or_create(variant, { quantity: 3, max_quantity: 4 })
+        end
       end
     end
   end

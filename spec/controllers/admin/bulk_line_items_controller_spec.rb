@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Admin::BulkLineItemsController, type: :controller do
+RSpec.describe Admin::BulkLineItemsController do
   describe '#index' do
     render_views
 
@@ -59,15 +57,11 @@ describe Admin::BulkLineItemsController, type: :controller do
         end
 
         it "formats final_weight_volume as a float" do
-          expect(json_response['line_items'].map{ |line_item|
-                   line_item['final_weight_volume']
-                 }.all?{ |fwv| fwv.is_a?(Float) }).to eq(true)
+          expect(json_response[:line_items]).to all(include(final_weight_volume: a_kind_of(Float)))
         end
 
         it "returns distributor object with id key" do
-          expect(json_response['line_items'].map{ |line_item|
-                   line_item['supplier']
-                 }.all?{ |d| d.key?('id') }).to eq(true)
+          expect(json_response[:line_items].pluck(:supplier)).to all(include(:id))
         end
       end
 
@@ -99,39 +93,51 @@ describe Admin::BulkLineItemsController, type: :controller do
       let(:coordinator) { create(:distributor_enterprise) }
       let(:order_cycle) { create(:simple_order_cycle, coordinator:) }
       let!(:order1) {
-        FactoryBot.create(:order, order_cycle:, state: 'complete',
-                                  completed_at: Time.zone.now, distributor: distributor1,
-                                  billing_address: FactoryBot.create(:address) )
+        create(:order, order_cycle:, state: 'complete',
+                       completed_at: Time.zone.now, distributor: distributor1,
+                       billing_address: create(:address) )
       }
       let!(:line_item1) {
-        FactoryBot.create(:line_item_with_shipment, order: order1,
-                                                    product: FactoryBot.create(:product,
-                                                                               supplier:))
+        create(:line_item_with_shipment, order: order1,
+                                         variant: create(:variant, supplier:))
       }
       let!(:line_item2) {
-        FactoryBot.create(:line_item_with_shipment, order: order1,
-                                                    product: FactoryBot.create(:product,
-                                                                               supplier:))
+        create(:line_item_with_shipment, order: order1,
+                                         variant: create(:variant, supplier:))
       }
       let!(:order2) {
-        FactoryBot.create(:order, order_cycle:, state: 'complete',
-                                  completed_at: Time.zone.now, distributor: distributor2,
-                                  billing_address: FactoryBot.create(:address) )
+        create(:order, order_cycle:, state: 'complete',
+                       completed_at: Time.zone.now, distributor: distributor2,
+                       billing_address: create(:address) )
       }
       let!(:line_item3) {
-        FactoryBot.create(:line_item_with_shipment, order: order2,
-                                                    product: FactoryBot.create(:product,
-                                                                               supplier:))
+        create(:line_item_with_shipment, order: order2,
+                                         variant: create(:variant, supplier:))
       }
 
       context "producer enterprise" do
         before do
           allow(controller).to receive_messages spree_current_user: supplier.owner
-          get :index, as: :json
         end
 
-        it "does not display line items for which my enterprise is a supplier" do
-          expect(response).to redirect_to unauthorized_path
+        context "with no distributor allows to edit orders" do
+          before { get :index, as: :json }
+
+          it "does not display line items for which my enterprise is a supplier" do
+            expect(response).to redirect_to unauthorized_path
+          end
+        end
+
+        context "with distributor allows to edit orders" do
+          before do
+            distributor1.update_columns(enable_producers_to_edit_orders: true)
+            get :index, as: :json
+          end
+
+          it "retrieves a list of line_items from the supplier" do
+            keys = json_response['line_items'].first.keys.map(&:to_sym)
+            expect(line_item_attributes.all?{ |attr| keys.include? attr }).to eq(true)
+          end
         end
       end
 
@@ -193,15 +199,15 @@ describe Admin::BulkLineItemsController, type: :controller do
     let(:coordinator) { create(:distributor_enterprise) }
     let(:order_cycle) { create(:simple_order_cycle, coordinator:) }
     let!(:order1) {
-      FactoryBot.create(:order, order_cycle:, state: 'complete',
-                                completed_at: Time.zone.now,
-                                distributor: distributor1,
-                                billing_address: FactoryBot.create(:address) )
+      create(:order, order_cycle:, state: 'complete',
+                     completed_at: Time.zone.now,
+                     distributor: distributor1,
+                     billing_address: create(:address) )
     }
     let!(:line_item1) {
-      line_item1 = FactoryBot.create(:line_item_with_shipment,
-                                     order: order1,
-                                     product: FactoryBot.create(:product, supplier:))
+      line_item1 = create(:line_item_with_shipment,
+                          order: order1,
+                          variant: create(:variant, supplier:))
       # make sure shipment is available through db reloads of this line_item
       line_item1.tap(&:save!)
     }
@@ -246,7 +252,7 @@ describe Admin::BulkLineItemsController, type: :controller do
 
           it 'returns a 204 response' do
             spree_put :update, params
-            expect(response.status).to eq 204
+            expect(response).to have_http_status :no_content
           end
 
           it 'applies enterprise fees locking the order with an exclusive row lock' do
@@ -267,12 +273,12 @@ describe Admin::BulkLineItemsController, type: :controller do
 
             it 'returns a JSON with the errors' do
               spree_put :update, params
-              expect(JSON.parse(response.body)['errors']).to eq(errors)
+              expect(response.parsed_body['errors']).to eq(errors)
             end
 
             it 'returns a 412 response' do
               spree_put :update, params
-              expect(response.status).to eq 412
+              expect(response).to have_http_status :precondition_failed
             end
           end
         end
@@ -302,14 +308,13 @@ describe Admin::BulkLineItemsController, type: :controller do
     let(:coordinator) { create(:distributor_enterprise) }
     let(:order_cycle) { create(:simple_order_cycle, coordinator:) }
     let!(:order1) {
-      FactoryBot.create(:order, order_cycle:, state: 'complete',
-                                completed_at: Time.zone.now, distributor: distributor1,
-                                billing_address: FactoryBot.create(:address) )
+      create(:order, order_cycle:, state: 'complete',
+                     completed_at: Time.zone.now, distributor: distributor1,
+                     billing_address: create(:address) )
     }
     let!(:line_item1) {
-      FactoryBot.create(:line_item_with_shipment, order: order1,
-                                                  product: FactoryBot.create(:product,
-                                                                             supplier:))
+      create(:line_item_with_shipment, order: order1,
+                                       variant: create(:variant, supplier:))
     }
     let(:params) { { id: line_item1.id, order_id: order1.number } }
 
@@ -334,7 +339,7 @@ describe Admin::BulkLineItemsController, type: :controller do
 
       it 'returns a 204 response' do
         spree_delete :destroy, params
-        expect(response.status).to eq 204
+        expect(response).to have_http_status :no_content
       end
     end
   end
@@ -390,7 +395,7 @@ describe Admin::BulkLineItemsController, type: :controller do
 
       order.shipments.map(&:refresh_rates)
       order.select_shipping_method(shipping_method.id)
-      OrderWorkflow.new(order).advance_to_payment
+      Orders::WorkflowService.new(order).advance_to_payment
       order.finalize!
       order.recreate_all_fees!
       order.create_tax_charge!
@@ -460,6 +465,6 @@ describe Admin::BulkLineItemsController, type: :controller do
   private
 
   def line_item_ids
-    json_response['line_items'].map{ |line_item| line_item['id'] }
+    json_response['line_items'].pluck(:id)
   end
 end

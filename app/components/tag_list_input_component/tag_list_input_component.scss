@@ -1,0 +1,110 @@
+// Tags input
+.tags-input {
+  display: block;
+  position: relative;
+
+  .tags {
+    -moz-appearance: textfield;
+    -webkit-appearance: textfield;
+    overflow: hidden;
+    word-wrap: break-word;
+    cursor: text;
+    background-color: #fff;
+    border: $border-input;
+    border-color: transparent;
+    border-radius: $border-radius;
+    height: 100%;
+    box-shadow: none;
+    padding: 2px 0;
+
+    &:has(.changed) {
+      border: 1px solid $color-txt-changed-brd;
+      border-radius: 4px;
+    }
+
+    .tag-error {
+      color: $color-error;
+    }
+
+    .tag-list {
+      margin: 0;
+      padding: 0 3px 0 0;
+      border-top: none;
+      list-style-type: none;
+    }
+
+    li.tag-item {
+      border-radius: 3px;
+      margin: 1px 0 1px 3px;
+      padding: 2px 3px 2px 5px;
+      display: inline-block;
+      float: left;
+      font-size: 14px;
+      line-height: 22px;
+      border: none;
+      box-shadow: none;
+      color: white !important;
+      background-image: none;
+      background-color: $teal;
+
+      .remove-button {
+        border: none;
+        margin-left: 2px;
+        padding: 0 6px;
+        background: 0 0;
+        border-radius: $border-radius;
+        cursor: pointer;
+        vertical-align: middle;
+        font-size: 14px;
+        color: white;
+        float: right;
+
+        &:hover {
+          background: rgba(0, 0, 0, 0.25);
+        }
+      }
+    }
+
+    .input {
+      border: 0;
+      outline: 0;
+      line-height: 22px;
+      padding: 4px 7px;
+      float: left;
+      height: 26px;
+      font-size: 14px;
+    }
+  }
+
+  ul.suggestion-list {
+    margin-top: 4px;
+    padding: 0;
+    z-index: $tag-drop-down-z-index;
+    width: fit-content;
+    color: $near-black;
+    background-color: $color-body-bg;
+    @include border-radius($border-radius);
+    box-shadow: $shadow-dropdown;
+    list-style-type: none;
+    max-height: 21em;
+    overflow-y: auto;
+    position: absolute;
+
+    li.suggestion-item {
+      padding: 8px;
+      border-left: 3px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 20px;
+
+      &.active,
+      &:hover {
+        border-left-color: $orient;
+        background-color: $lighter-grey;
+        color: $near-black;
+      }
+    }
+  }
+}

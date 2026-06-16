@@ -52,9 +52,9 @@ module Api
       end
 
       def error_during_processing(exception)
-        Bugsnag.notify(exception)
+        Alert.raise(exception)
 
-        if Rails.env.development? || Rails.env.test?
+        if Rails.env.local?
           render status: :unprocessable_entity,
                  json: json_api_error(exception.message, meta: exception.backtrace)
         else

@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Api::Admin::CustomerWithBalanceSerializer do
+RSpec.describe Api::Admin::CustomerWithBalanceSerializer do
   let(:serialized_customer) { described_class.new(customer) }
 
   describe '#balance' do
@@ -15,6 +13,19 @@ describe Api::Admin::CustomerWithBalanceSerializer do
 
     it 'returns the balance_value as a money amount' do
       expect(serialized_customer.balance).to eq("$1.20")
+    end
+  end
+
+  describe '#available_credit' do
+    let(:customer) { double(Customer, credit_value: 5.3) }
+    let(:money) { instance_double(Spree::Money, to_s: "$5.30") }
+
+    before do
+      allow(Spree::Money).to receive(:new).with(5.3) { money }
+    end
+
+    it 'returns the available_credit as a money amount' do
+      expect(serialized_customer.available_credit).to eq("$5.30")
     end
   end
 

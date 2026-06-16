@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe 'Customers' do
+RSpec.describe 'Customers' do
   include AdminHelper
   include AuthenticationHelper
   include WebHelper
@@ -45,9 +45,9 @@ describe 'Customers' do
 
         # Loads the right customers; positive assertion first, so DOM content is loaded
         expect(page).to have_selector "tr#c_#{customer4.id}"
-        expect(page).to have_no_selector "tr#c_#{customer1.id}"
-        expect(page).to have_no_selector "tr#c_#{customer2.id}"
-        expect(page).to have_no_selector "tr#c_#{customer3.id}"
+        expect(page).not_to have_selector "tr#c_#{customer1.id}"
+        expect(page).not_to have_selector "tr#c_#{customer2.id}"
+        expect(page).not_to have_selector "tr#c_#{customer3.id}"
 
         # Changing Shops
         select2_select managed_distributor1.name, from: "shop_id"
@@ -55,12 +55,12 @@ describe 'Customers' do
         # Loads the right customers
         expect(page).to have_selector "tr#c_#{customer1.id}"
         expect(page).to have_selector "tr#c_#{customer2.id}"
-        expect(page).to have_no_selector "tr#c_#{customer3.id}"
-        expect(page).to have_no_selector "tr#c_#{customer4.id}"
+        expect(page).not_to have_selector "tr#c_#{customer3.id}"
+        expect(page).not_to have_selector "tr#c_#{customer4.id}"
 
         # Searching
         fill_in "quick_search", with: customer2.email
-        expect(page).to have_no_selector "tr#c_#{customer1.id}"
+        expect(page).not_to have_selector "tr#c_#{customer1.id}"
         expect(page).to have_selector "tr#c_#{customer2.id}"
         fill_in "quick_search", with: ""
 
@@ -87,8 +87,8 @@ describe 'Customers' do
         expect(page).to have_selector "th.email"
         expect(page).to have_content customer1.email
         toggle_columns "Email"
-        expect(page).to have_no_selector "th.email"
-        expect(page).to have_no_content customer1.email
+        expect(page).not_to have_selector "th.email"
+        expect(page).not_to have_content customer1.email
 
         # Deleting
         create(:subscription, customer: customer1)
@@ -102,7 +102,7 @@ describe 'Customers' do
                                         text: 'Delete failed: This customer has ' \
                                               'active subscriptions. Cancel them first.'
           click_button "OK"
-        }.to_not change{ Customer.count }
+        }.not_to change{ Customer.count }
 
         expect{
           within "tr#c_#{customer2.id}" do
@@ -110,7 +110,8 @@ describe 'Customers' do
               find("a.delete-customer").click
             end
           end
-          expect(page).to have_no_selector "tr#c_#{customer2.id}"
+          expect(page).not_to have_selector "tr#c_#{customer2.id}"
+          expect(page).not_to have_content 'You have unsaved changes'
         }.to change{ Customer.count }.by(-1)
       end
 
@@ -153,8 +154,8 @@ describe 'Customers' do
               expect(page).to have_content "$-99.00"
             end
             within "tr#c_#{customer4.id}" do
-              expect(page).to_not have_content "CREDIT OWED"
-              expect(page).to_not have_content "BALANCE DUE"
+              expect(page).not_to have_content "CREDIT OWED"
+              expect(page).not_to have_content "BALANCE DUE"
               expect(page).to have_content "$0.00"
             end
           end
@@ -214,6 +215,7 @@ describe 'Customers' do
               expect(page).to have_content 'You have unsaved changes'
 
               click_button "Save Changes"
+              expect(page).to have_content 'All changes saved successfully'
 
               # changes are saved in the database
               expect(customer4.reload.code).to eq(nil)
@@ -250,15 +252,80 @@ describe 'Customers' do
               expect(page).to have_content 'You have unsaved changes'
 
               click_button "Save Changes"
+              expect(page).to have_content 'All changes saved successfully'
 
               expect(customer4.reload.tag_list).to be_empty
             end
+          end
+        end
+
+        context "when using the tag filter input" do
+          before do
+            customer2.update!(tag_list: "vip")
+
+            select2_select managed_distributor1.name, from: "shop_id"
+            expect(page).to have_selector "tr#c_#{customer1.id}"
+            fill_in "tag_filter", with: "vip"
+          end
+
+          it "displays only customers matching the tag" do
+            expect(page).to have_content(customer2.email)
+            expect(page).not_to have_content(customer1.email)
+          end
+
+          it "shows all customers when the filter is cleared" do
+            fill_in "tag_filter", with: ""
+            expect(page).to have_content(customer1.email)
+            expect(page).to have_content(customer2.email)
+          end
+        end
+
+        context "when sorting by tags" do
+          before do
+            customer1.update!(tag_list: "apple")
+            customer2.update!(tag_list: "zebra")
+
+            select2_select managed_distributor1.name, from: "shop_id"
+            expect(page).to have_selector "tr#c_#{customer1.id}"
+          end
+
+          it "sorts ascending then descending when the Tags header is clicked" do
+            within "#customers thead" do
+              click_on "Tags"
+            end
+
+            # After ascending sort, apple (customer1) appears before zebra (customer2)
+            rows = all("#customers .customer")
+            apple_pos = rows.index { |r| r["id"] == "c_#{customer1.id}" }
+            zebra_pos = rows.index { |r| r["id"] == "c_#{customer2.id}" }
+            expect(apple_pos).to be < zebra_pos
+
+            within "#customers thead" do
+              click_on "Tags"
+            end
+
+            # After descending sort, zebra appears before apple
+            rows = all("#customers .customer")
+            apple_pos = rows.index { |r| r["id"] == "c_#{customer1.id}" }
+            zebra_pos = rows.index { |r| r["id"] == "c_#{customer2.id}" }
+            expect(zebra_pos).to be < apple_pos
           end
         end
       end
 
       it "allows updating of attributes" do
         select2_select managed_distributor1.name, from: "shop_id"
+        expect(page).to have_button "Save Changes", disabled: true
+
+        # Editing attributes but undoing changes
+        within("tr#c_#{customer1.id}") { fill_in "first_name", with: "customer abc" }
+        expect(page).to have_content 'You have unsaved changes'
+        within("tr#c_#{customer1.id}") { fill_in "first_name", with: "John" }
+        expect(page).not_to have_content 'You have unsaved changes'
+        within("tr#c_#{customer1.id}") { fill_in "code", with: "new-customer-code" }
+        expect(page).to have_content 'You have unsaved changes'
+        within("tr#c_#{customer1.id}") { fill_in "code", with: "" }
+        expect(page).not_to have_content 'You have unsaved changes'
 
         within "tr#c_#{customer1.id}" do
           expect(find_field('first_name').value).to eq 'John'
@@ -347,7 +414,7 @@ describe 'Customers' do
         end
 
         it 'updates the existing billing address' do
-          expect(page).to have_content 'BILLING ADDRESS'
+          expect(page).to have_content 'Billing Address'
           first('#bill-address-link').click
           wait_for_modal_fade_in
 
@@ -370,11 +437,11 @@ describe 'Customers' do
           first('#bill-address-link').click
 
           expect(page).to have_content 'Edit Billing Address'
-          expect(page).to_not have_content 'Please input all of the required fields'
+          expect(page).not_to have_content 'Please input all of the required fields'
         end
 
         it 'creates a new shipping address' do
-          expect(page).to have_content 'SHIPPING ADDRESS'
+          expect(page).to have_content 'Shipping Address'
 
           first('#ship-address-link').click
           wait_for_modal_fade_in
@@ -436,7 +503,7 @@ describe 'Customers' do
               click_button 'Add Customer'
               expect(page).to have_selector "#new-customer-dialog .error",
                                             text: "Please enter a valid email address"
-            }.to_not change{ Customer.of(managed_distributor1).count }
+            }.not_to change{ Customer.of(managed_distributor1).count }
 
             # When an invalid email with domain is used it's checked by "valid_email2" gem #7886
             expect{
@@ -444,7 +511,7 @@ describe 'Customers' do
               click_button 'Add Customer'
               expect(page).to have_selector "#new-customer-dialog .error",
                                             text: "Email is invalid"
-            }.to_not change{ Customer.of(managed_distributor1).count }
+            }.not_to change{ Customer.of(managed_distributor1).count }
 
             # When a new valid email is used
             expect{

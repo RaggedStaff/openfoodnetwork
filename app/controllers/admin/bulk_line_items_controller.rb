@@ -3,6 +3,7 @@
 module Admin
   class BulkLineItemsController < Spree::Admin::BaseController
     include PaginationData
+
     # GET /admin/bulk_line_items.json
     #
     def index
@@ -12,7 +13,7 @@ module Admin
       @line_items = order_permissions.
         editable_line_items.where(order_id: orders).
         includes(:variant).
-        ransack(params[:q]).result.order(:id)
+        ransack(line_items_search_query).result.order(:id)
 
       @pagy, @line_items = pagy(@line_items) if pagination_required?
 
@@ -35,7 +36,7 @@ module Admin
       order.with_lock do
         if order.contents.update_item(@line_item, line_item_params)
           # No Content, does not trigger ng resource auto-update
-          render body: nil, status: :no_content
+          head :no_content
         else
           render json: { errors: @line_item.errors }, status: :precondition_failed
         end
@@ -49,7 +50,7 @@ module Admin
       authorize! :update, order
 
       order.contents.remove(@line_item.variant)
-      render body: nil, status: :no_content # No Content, does not trigger ng resource auto-update
+      head :no_content # No Content, does not trigger ng resource auto-update
     end
 
     private
@@ -87,6 +88,28 @@ module Admin
 
     def page
       params[:page] || 1
+    end
+
+    def line_items_search_query
+      query = params.permit(q: {}).to_h[:q] || {}
+
+      search_fields_string = [
+        spree_current_user.admin? ? "order_distributor_name" : "order_distributor_name_alias",
+        "order_bill_address_phone",
+        "order_bill_address_firstname",
+        "order_bill_address_lastname",
+        "order_bill_address_full_name",
+        "order_bill_address_full_name_reversed",
+        "order_bill_address_full_name_with_comma",
+        "order_bill_address_full_name_with_comma_reversed",
+        "variant_supplier_name",
+        "order_email",
+        "order_number",
+        "product_name"
+      ].join("_or_")
+      search_query = "#{search_fields_string}_cont"
+
+      query.merge({ search_query => params[:search_query] })
     end
   end
 end

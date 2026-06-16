@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
 require_relative '../../db/migrate/20210617203927_migrate_admin_tax_amounts'
 
-describe MigrateAdminTaxAmounts do
+RSpec.describe MigrateAdminTaxAmounts do
   subject { MigrateAdminTaxAmounts.new }
 
   let(:tax_category10) { create(:tax_category) }
@@ -18,7 +17,7 @@ describe MigrateAdminTaxAmounts do
       let!(:adjustment_without_tax) { create(:adjustment, included_tax: 0) }
 
       it "doesn't move the tax to an adjustment" do
-        expect { subject.migrate_admin_taxes! }.to_not change {
+        expect { subject.migrate_admin_taxes! }.not_to change {
           Spree::Adjustment.count
         }
       end
@@ -85,7 +84,7 @@ describe MigrateAdminTaxAmounts do
       let(:order) { nil }
 
       it "returns an empty array" do
-        expect(Spree::TaxRate).to_not receive(:match)
+        expect(Spree::TaxRate).not_to receive(:match)
 
         expect(subject.applicable_rates(adjustment)).to eq []
       end
@@ -95,7 +94,7 @@ describe MigrateAdminTaxAmounts do
       let(:distributor) { nil }
 
       it "returns an empty array" do
-        expect(Spree::TaxRate).to_not receive(:match)
+        expect(Spree::TaxRate).not_to receive(:match)
 
         expect(subject.applicable_rates(adjustment)).to eq []
       end

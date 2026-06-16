@@ -5,7 +5,7 @@ module Reporting
     module Packing
       class Base < ReportQueryTemplate
         def message
-          I18n.t("spree.admin.reports.customer_names_message.customer_names_tip")
+          I18n.t("spree.admin.reports.hidden_customer_details_tip")
         end
 
         def report_query
@@ -18,8 +18,9 @@ module Reporting
             joins_order_bill_address.
             joins_variant.
             joins_variant_product.
-            joins_product_supplier.
+            joins_variant_supplier.
             joins_variant_shipping_category.
+            joins_selected_shipping_methods.
             selecting(select_fields).
             ordered_by(ordering_fields)
         end
@@ -30,7 +31,7 @@ module Reporting
 
         def default_params
           # Prevent breaking change in this report by hidding new columns by default
-          { fields_to_hide: ["phone", "price"],
+          { fields_to_hide: ["phone", "price", "shipment_state", "shipping_method"],
             q: {  order_completed_at_gt: 1.month.ago.beginning_of_day,
                   order_completed_at_lt: 1.day.from_now.beginning_of_day } }
         end
@@ -41,10 +42,10 @@ module Reporting
           lambda do
             {
               hub: distributor_alias[:name],
-              customer_code: masked(customer_table[:code]),
-              last_name: masked(bill_address_alias[:lastname]),
-              first_name: masked(bill_address_alias[:firstname]),
-              phone: masked(bill_address_alias[:phone]),
+              customer_code: mask_customer_name(customer_table[:code]),
+              last_name: mask_customer_name(bill_address_alias[:lastname]),
+              first_name: mask_customer_name(bill_address_alias[:firstname]),
+              phone: mask_contact_data(bill_address_alias[:phone]),
               supplier: supplier_alias[:name],
               product: product_table[:name],
               variant: variant_full_name,
@@ -54,6 +55,8 @@ module Reporting
               depth: line_item_table[:depth],
               quantity: line_item_table[:quantity],
               price: (line_item_table[:quantity] * line_item_table[:price]),
+              shipment_state: order_table[:shipment_state],
+              shipping_method: shipping_method_table[:name],
               temp_controlled: shipping_category_table[:temperature_controlled],
             }
           end
@@ -69,8 +72,8 @@ module Reporting
         def summary_row
           proc do |_key, _items, rows|
             {
-              quantity: rows.sum(&:quantity),
-              price: rows.sum(&:price)
+              quantity: rows.map(&:quantity).sum(&:to_i),
+              price: rows.map(&:price).compact.sum
             }
           end
         end

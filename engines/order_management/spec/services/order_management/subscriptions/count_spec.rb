@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 module OrderManagement
   module Subscriptions
-    describe Count do
+    RSpec.describe Count do
       let(:oc1) { create(:simple_order_cycle) }
       let(:oc2) { create(:simple_order_cycle) }
       let(:subscriptions_count) { Count.new(order_cycles) }

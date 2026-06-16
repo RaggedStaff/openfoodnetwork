@@ -10,7 +10,7 @@ module Reporting
 
         def columns
           {
-            supplier: :variant_product_supplier_name,
+            supplier: :variant_supplier_name,
             product: :variant_product_name,
             bulk_unit_size: :variant_product_group_buy_unit_size_f,
             variant: :full_name,
@@ -32,7 +32,7 @@ module Reporting
               summary_row: proc do |_key, items, rows|
                 line_items = items.flatten
                 {
-                  sum_total: rows.sum(&:sum_total),
+                  sum_total: rows.map(&:sum_total).compact.sum,
                   units_required: units_required(line_items),
                   unallocated: remainder(line_items),
                   max_quantity_excess: max_quantity_excess(line_items)
@@ -44,8 +44,8 @@ module Reporting
 
         private
 
-        def variant_product_supplier_name(line_items)
-          line_items.first.variant.product.supplier.name
+        def variant_supplier_name(line_items)
+          line_items.first.variant.supplier.name
         end
       end
     end

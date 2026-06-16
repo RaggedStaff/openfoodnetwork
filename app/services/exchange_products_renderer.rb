@@ -3,9 +3,10 @@
 require 'open_food_network/order_cycle_permissions'
 
 class ExchangeProductsRenderer
-  def initialize(order_cycle, user)
+  def initialize(order_cycle, user, **options)
     @order_cycle = order_cycle
     @user = user
+    @options = options
   end
 
   def exchange_products(incoming, enterprise)
@@ -25,18 +26,21 @@ class ExchangeProductsRenderer
 
   private
 
+  attr_reader :options
+
   def products_for_incoming_exchange(enterprise)
     supplied_products(enterprise.id)
   end
 
   def supplied_products(enterprises_query_matcher)
-    products_relation = Spree::Product.where(supplier_id: enterprises_query_matcher).order(:name)
+    products_relation = Spree::Product.in_supplier(enterprises_query_matcher).order(:name)
 
     filter_visible(products_relation)
   end
 
   def filter_visible(relation)
     if @order_cycle.present? &&
+       options[:inventory_enabled] &&
        @order_cycle.prefers_product_selection_from_coordinator_inventory_only?
       relation = relation.visible_for(@order_cycle.coordinator)
     end
@@ -75,7 +79,8 @@ class ExchangeProductsRenderer
   def visible_incoming_variants(incoming_exchange_sender)
     variants_relation = permitted_incoming_variants(incoming_exchange_sender)
 
-    if @order_cycle.prefers_product_selection_from_coordinator_inventory_only?
+    if options[:inventory_enabled] &&
+       @order_cycle.prefers_product_selection_from_coordinator_inventory_only?
       variants_relation = variants_relation.visible_for(@order_cycle.coordinator)
     end
 
@@ -95,7 +100,7 @@ class ExchangeProductsRenderer
     return enterprises if enterprises.empty?
 
     enterprises.includes(
-      supplied_products: [:supplier, :variants, :image]
+      supplied_products: [{ variants: :supplier }, :image]
     )
   end
 end

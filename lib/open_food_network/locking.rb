@@ -10,6 +10,4 @@ module OpenFoodNetwork::Locking
   end
 end
 
-class ActiveRecord::Base
-  extend OpenFoodNetwork::Locking
-end
+ActiveSupport.on_load(:active_record) { extend OpenFoodNetwork::Locking }

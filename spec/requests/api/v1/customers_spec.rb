@@ -2,7 +2,7 @@
 
 require "swagger_helper"
 
-describe "Customers", type: :request, swagger_doc: "v1.yaml", feature: :api_v1 do
+RSpec.describe "Customers", swagger_doc: "v1.yaml", feature: :api_v1 do
   let!(:enterprise1) { create(:enterprise, name: "The Farm") }
   let!(:enterprise2) { create(:enterprise) }
   let!(:enterprise3) { create(:enterprise) }
@@ -19,6 +19,8 @@ describe "Customers", type: :request, swagger_doc: "v1.yaml", feature: :api_v1 d
   }
   let!(:customer2) { create(:customer, enterprise: enterprise1, created_manually: true,) }
   let!(:customer3) { create(:customer, enterprise: enterprise2, created_manually: true,) }
+  let(:json_response_ids) { json_response[:data]&.pluck(:id) }
+  let(:json_error_detail) { json_response[:errors][0][:detail] }
 
   before do
     login_as enterprise1.owner
@@ -33,8 +35,8 @@ describe "Customers", type: :request, swagger_doc: "v1.yaml", feature: :api_v1 d
       produces "application/json"
 
       response "200", "Customers list" do
-        param(:enterprise_id) { enterprise1.id }
-        param("extra_fields[customer]") { :balance }
+        let(:enterprise_id) { enterprise1.id }
+        let("extra_fields[customer]") { :balance }
         schema '$ref': "#/components/schemas/customers_collection"
 
         run_test!
@@ -133,7 +135,7 @@ describe "Customers", type: :request, swagger_doc: "v1.yaml", feature: :api_v1 d
       it "informs about invalid pages" do
         get "/api/v1/customers", params: { page: "0" }
         expect(json_response_ids).to eq nil
-        expect(json_error_detail).to eq 'expected :page >= 1; got "0"'
+        expect(json_error_detail).to eq "expected :page >= 1; got 0"
       end
     end
 
@@ -143,7 +145,7 @@ describe "Customers", type: :request, swagger_doc: "v1.yaml", feature: :api_v1 d
           it "adds balance to each customer" do
             get "/api/v1/customers", params: { extra_fields: { customer: :balance } }
             balances = json_response[:data].map{ |c| c[:attributes][:balance] }
-            expect(balances.all?{ |b| b.is_a? Numeric }).to eq(true)
+            expect(balances.all?(Numeric)).to eq(true)
           end
         end
 
@@ -176,7 +178,7 @@ describe "Customers", type: :request, swagger_doc: "v1.yaml", feature: :api_v1 d
       }
 
       response "201", "Minimal customer created" do
-        param(:customer) do
+        let(:customer) do
           {
             email: "test@example.com",
             enterprise_id: enterprise1.id.to_s
@@ -196,7 +198,7 @@ describe "Customers", type: :request, swagger_doc: "v1.yaml", feature: :api_v1 d
       end
 
       response "201", "Example customer created" do
-        param(:customer) do
+        let(:customer) do
           CustomerSchema.writable_attributes.transform_values do |attribute|
             attribute[:example]
           end.merge(
@@ -219,7 +221,7 @@ describe "Customers", type: :request, swagger_doc: "v1.yaml", feature: :api_v1 d
       end
 
       response "422", "Unpermitted parameter" do
-        param(:customer) do
+        let(:customer) do
           {
             email: "test@example.com",
             enterprise_id: enterprise1.id.to_s,
@@ -234,7 +236,7 @@ describe "Customers", type: :request, swagger_doc: "v1.yaml", feature: :api_v1 d
       end
 
       response "422", "Unprocessable entity" do
-        param(:customer) { {} }
+        let(:customer) { {} }
         schema '$ref': "#/components/schemas/error_response"
 
         run_test! do
@@ -252,7 +254,7 @@ describe "Customers", type: :request, swagger_doc: "v1.yaml", feature: :api_v1 d
       produces "application/json"
 
       response "200", "Customer" do
-        param(:id) { customer1.id }
+        let(:id) { customer1.id }
         schema CustomerSchema.schema(
           require_all: true,
           extra_fields: { name: :balance, required: true }
@@ -269,7 +271,7 @@ describe "Customers", type: :request, swagger_doc: "v1.yaml", feature: :api_v1 d
       end
 
       response "404", "Not found" do
-        param(:id) { 0 }
+        let(:id) { 0 }
         schema '$ref': "#/components/schemas/error_response"
 
         run_test! do
@@ -281,7 +283,7 @@ describe "Customers", type: :request, swagger_doc: "v1.yaml", feature: :api_v1 d
         before { logout }
 
         response "401", "Unauthorized" do
-          param(:id) { customer1.id }
+          let(:id) { customer1.id }
           schema '$ref': "#/components/schemas/error_response"
 
           run_test! do
@@ -350,8 +352,8 @@ describe "Customers", type: :request, swagger_doc: "v1.yaml", feature: :api_v1 d
       }
 
       response "200", "Customer updated" do
-        param(:id) { customer1.id }
-        param(:customer) do
+        let(:id) { customer1.id }
+        let(:customer) do
           {
             email: "test@example.com",
             enterprise_id: enterprise1.id.to_s
@@ -421,8 +423,8 @@ describe "Customers", type: :request, swagger_doc: "v1.yaml", feature: :api_v1 d
       end
 
       response "422", "Unprocessable entity" do
-        param(:id) { customer1.id }
-        param(:customer) { {} }
+        let(:id) { customer1.id }
+        let(:customer) { {} }
         schema '$ref': "#/components/schemas/error_response"
 
         run_test!
@@ -435,7 +437,7 @@ describe "Customers", type: :request, swagger_doc: "v1.yaml", feature: :api_v1 d
       produces "application/json"
 
       response "200", "Customer deleted" do
-        param(:id) { customer1.id }
+        let(:id) { customer1.id }
         schema '$ref': "#/components/schemas/customer"
 
         run_test!
@@ -450,7 +452,7 @@ describe "Customers", type: :request, swagger_doc: "v1.yaml", feature: :api_v1 d
       produces "application/json"
 
       response "200", "Customers list" do
-        param(:enterprise_id) { enterprise1.id }
+        let(:enterprise_id) { enterprise1.id }
         schema '$ref': "#/components/schemas/customers_collection"
 
         run_test!

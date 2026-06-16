@@ -1,10 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe PlaceProxyOrder do
-  include ActiveSupport::Testing::TimeHelpers
-
+RSpec.describe PlaceProxyOrder do
   subject { described_class.new(proxy_order, summarizer, logger, stock_changes_loader) }
 
   let(:proxy_order) { create(:proxy_order, order:) }
@@ -52,12 +48,12 @@ describe PlaceProxyOrder do
 
       before do
         proxy_order.initialise_order!
-        break unless order.next! while !order.completed?
+        Orders::WorkflowService.new(order).complete!
       end
 
       it "records an issue and ignores it" do
         expect(summarizer).to receive(:record_issue).with(:complete, order).once
-        expect { subject.call }.to_not change { order.reload.state }
+        expect { subject.call }.not_to change { order.reload.state }
         expect(order.payments.first.state).to eq "checkout"
         expect(ActionMailer::Base.deliveries.count).to be 0
       end
@@ -114,8 +110,8 @@ describe PlaceProxyOrder do
 
       order.line_items << build(:line_item)
 
-      order_workflow = instance_double(OrderWorkflow, complete!: true)
-      allow(OrderWorkflow).to receive(:new).with(order).and_return(order_workflow)
+      order_workflow = instance_double(Orders::WorkflowService, complete!: true)
+      allow(Orders::WorkflowService).to receive(:new).with(order).and_return(order_workflow)
     end
 
     context "when no changes are present" do

@@ -1,16 +1,12 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 module Web
-  describe CookiesPolicyHelper, type: :helper do
+  RSpec.describe CookiesPolicyHelper do
     # keeps global state unchanged
     around do |example|
-      original_locale = I18n.locale
       original_matomo_url = Spree::Config.matomo_url
       example.run
       Spree::Config.matomo_url = original_matomo_url
-      I18n.locale = original_locale
     end
 
     describe "matomo optout iframe src" do
@@ -24,13 +20,13 @@ module Web
         end
 
         scenario "is not equal to the matomo URL" do
-          expect(helper.matomo_iframe_src).to_not eq Spree::Config.matomo_url
+          expect(helper.matomo_iframe_src).not_to eq Spree::Config.matomo_url
         end
       end
 
       scenario "is not nil, when matomo url is nil" do
         Spree::Config.matomo_url = nil
-        expect(helper.matomo_iframe_src).to_not eq nil
+        expect(helper.matomo_iframe_src).not_to eq nil
       end
     end
 
@@ -44,18 +40,21 @@ module Web
       end
 
       scenario "when locale is the language" do
-        I18n.locale = "en"
-        expect(helper.locale_language).to eq "en"
+        I18n.with_locale "en" do
+          expect(helper.locale_language).to eq "en"
+        end
       end
 
       scenario "is empty when locale is empty" do
-        I18n.locale = ""
-        expect(helper.locale_language).to be_empty
+        I18n.with_locale "" do
+          expect(helper.locale_language).to be_empty
+        end
       end
 
       scenario "is only the language, when locale includes country" do
-        I18n.locale = "en_GB"
-        expect(helper.locale_language).to eq "en"
+        I18n.with_locale "en_GB" do
+          expect(helper.locale_language).to eq "en"
+        end
       end
     end
   end

@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 module OrderManagement
   module Stock
-    describe Coordinator do
+    RSpec.describe Coordinator do
       let!(:order) do
         build_stubbed(
           :order_with_line_items,

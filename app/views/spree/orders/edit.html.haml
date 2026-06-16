@@ -13,8 +13,6 @@
       %strong
         - if @order.order_cycle
           = pickup_time @order.order_cycle
-        - else
-          = @order.distributor.next_collection_at
 
   - content_for :ordercycle_sidebar do
     .show-for-large-up.large-4.columns
@@ -27,9 +25,9 @@
 
   #cart-container
     - if @order.line_items.empty?
-      %div.row
-        %p= t(:your_cart_is_empty)
-        %p= link_to t(:continue_shopping), current_shop_products_path, :class => 'button continue'
+      .row
+        %p= t(:cart_empty)
+        %p= link_to t(:orders_edit_continue), current_shop_products_path, :class => 'button continue'
 
     - else
       %div

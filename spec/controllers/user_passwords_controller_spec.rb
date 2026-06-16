@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe UserPasswordsController, type: :controller do
+RSpec.describe UserPasswordsController do
   render_views
 
   let(:user) { create(:user) }
@@ -14,21 +12,21 @@ describe UserPasswordsController, type: :controller do
 
   describe "create" do
     it "returns 404 if user is not found" do
-      spree_post :create, spree_user: { email: "xxxxxxxxxx@example.com" }
-      expect(response.status).to eq 404
+      spree_post :create, spree_user: { email: "xxxxxxxxxx@example.com" }, format: :turbo_stream
+      expect(response).to have_http_status :not_found
       expect(response.body).to match 'Email address not found'
     end
 
     it "returns 422 if user is registered but not confirmed" do
-      spree_post :create, spree_user: { email: unconfirmed_user.email }
-      expect(response.status).to eq 422
+      spree_post :create, spree_user: { email: unconfirmed_user.email }, format: :turbo_stream
+      expect(response).to have_http_status :unprocessable_entity
       expect(response.body).to match "You must confirm your email \
 address before you can reset your password."
     end
 
     it "returns 200 when password reset was successful" do
-      spree_post :create, spree_user: { email: user.email }
-      expect(response.status).to eq 200
+      spree_post :create, spree_user: { email: user.email }, format: :turbo_stream
+      expect(response).to have_http_status :ok
       expect(response.body).to match "An email with instructions on resetting \
 your password has been sent!"
     end

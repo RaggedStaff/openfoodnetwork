@@ -36,7 +36,7 @@ class EmbeddedPageService
 
   def embedding_without_https?
     @request.referer && URI(@request.referer).scheme != 'https' &&
-      !Rails.env.test? && !Rails.env.development?
+      !Rails.env.local?
   end
 
   def process_embedded_request
@@ -59,7 +59,7 @@ class EmbeddedPageService
   def set_logout_redirect
     return unless enterprise_slug
 
-    @session[:shopfront_redirect] = '/' + enterprise_slug + '/shop?embedded_shopfront=true'
+    @session[:shopfront_redirect] = "/#{enterprise_slug}/shop?embedded_shopfront=true"
   end
 
   def enterprise_slug
@@ -81,7 +81,7 @@ class EmbeddedPageService
   def current_referer_without_www
     return unless current_referer
 
-    current_referer.start_with?('www.') ? current_referer[4..-1] : current_referer
+    current_referer.start_with?('www.') ? current_referer[4..] : current_referer
   end
 
   def set_embedded_layout

@@ -2,6 +2,8 @@
 
 module Admin
   class OrderCyclesController < Admin::ResourceController
+    class DateTimeChangeError < StandardError; end
+
     include ::OrderCyclesHelper
     include PaperTrailLogging
 
@@ -30,7 +32,8 @@ module Admin
           redirect_to edit_admin_order_cycle_path(@order_cycle)
         end
         format.json do
-          render_as_json @order_cycle, current_user: spree_current_user
+          render_as_json @order_cycle, current_user: spree_current_user,
+                                       inventory_enabled: inventory_enabled?(@order_cycle)
         end
       end
     end
@@ -39,13 +42,15 @@ module Admin
       respond_to do |format|
         format.html
         format.json do
-          render_as_json @order_cycle, current_user: spree_current_user
+          render_as_json @order_cycle, current_user: spree_current_user,
+                                       inventory_enabled: inventory_enabled?(@order_cycle)
         end
       end
     end
 
     def create
-      @order_cycle_form = OrderCycleForm.new(@order_cycle, order_cycle_params, spree_current_user)
+      @order_cycle_form = OrderCycles::FormService.new(@order_cycle, order_cycle_params,
+                                                       spree_current_user)
 
       if @order_cycle_form.save
         flash[:success] = t('.success')
@@ -61,8 +66,7 @@ module Admin
     end
 
     def update
-      @order_cycle_form = OrderCycleForm.new(@order_cycle, order_cycle_params, spree_current_user)
-
+      @order_cycle_form = set_order_cycle_form
       if @order_cycle_form.save
         update_nil_subscription_line_items_price_estimate(@order_cycle)
         respond_to do |format|
@@ -75,6 +79,9 @@ module Admin
       elsif request.format.json?
         render json: { errors: @order_cycle.errors.full_messages }, status: :unprocessable_entity
       end
+    rescue DateTimeChangeError
+      render json: { trigger_action: params[:trigger_action] },
+             status: :unprocessable_entity
     end
 
     def bulk_update
@@ -88,6 +95,9 @@ module Admin
         order_cycle = order_cycle_set.collection.find{ |oc| oc.errors.present? }
         render json: { errors: order_cycle.errors.full_messages }, status: :unprocessable_entity
       end
+    rescue DateTimeChangeError
+      render json: { trigger_action: params[:trigger_action] },
+             status: :unprocessable_entity
     end
 
     def bulk_update_nil_subscription_line_items_price_estimate
@@ -98,7 +108,7 @@ module Admin
 
     def update_nil_subscription_line_items_price_estimate(order_cycle)
       order_cycle.schedules.each do |schedule|
-        Subscription.where(schedule_id: schedule.id).each do |subscription|
+        Subscription.where(schedule_id: schedule.id).find_each do |subscription|
           shop = Enterprise.managed_by(spree_current_user).find_by(id: subscription.shop_id)
           fee_calculator = OpenFoodNetwork::EnterpriseFeeCalculator.new(shop, order_cycle)
           subscription.subscription_line_items.nil_price_estimate.each do |line_item|
@@ -233,7 +243,7 @@ module Admin
       else
         begin
           yield
-        rescue ActiveRecord::InvalidForeignKey
+        rescue ActiveRecord::InvalidForeignKey, ActiveRecord::DeleteRestrictionError
           redirect_to main_app.admin_order_cycles_url
           flash[:error] = I18n.t('admin.order_cycles.destroy_errors.orders_present')
         end
@@ -268,7 +278,10 @@ module Admin
     end
 
     def order_cycle_set
-      @order_cycle_set ||= Sets::OrderCycleSet.new(@order_cycles, order_cycle_bulk_params)
+      @order_cycle_set ||= Sets::OrderCycleSet.new(
+        @order_cycles, { **order_cycle_bulk_params,
+          confirm_datetime_change: params[:confirm], error_class: DateTimeChangeError }
+      )
     end
 
     def require_order_cycle_set_params
@@ -291,6 +304,20 @@ module Admin
       params.require(:order_cycle_set).permit(
         collection_attributes: [:id] + PermittedAttributes::OrderCycle.basic_attributes
       ).to_h.with_indifferent_access
+    end
+
+    def set_order_cycle_form
+      OrderCycles::FormService.new(
+        @order_cycle, order_cycle_params.merge(
+                        { confirm_datetime_change: params[:order_cycle][:confirm],
+                          error_class: DateTimeChangeError }
+                      ), spree_current_user
+      )
+    end
+
+    def inventory_enabled?(order_cycle)
+      OpenFoodNetwork::FeatureToggle.enabled?(:inventory, order_cycle.coordinator) &&
+        !OpenFoodNetwork::FeatureToggle.enabled?(:variant_tag, order_cycle.coordinator)
     end
   end
 end

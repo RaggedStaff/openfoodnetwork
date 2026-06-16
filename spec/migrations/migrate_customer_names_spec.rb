@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
 require_relative '../../db/migrate/20211027140313_migrate_customer_names'
 
-describe MigrateCustomerNames do
+RSpec.describe MigrateCustomerNames do
   subject { MigrateCustomerNames.new }
 
   let!(:enterprise1) { create(:enterprise) }

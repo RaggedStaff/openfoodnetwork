@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Sets::ProductSet do
+RSpec.describe Sets::ProductSet do
   describe '#save' do
     let(:product_set) do
       described_class.new(collection_attributes: collection_hash)
@@ -10,7 +8,6 @@ describe Sets::ProductSet do
     subject{ product_set.save }
 
     context 'when the product does not exist yet' do
-      let!(:stock_location) { create(:stock_location, backorderable_default: false) }
       let(:collection_hash) do
         {
           0 => {
@@ -69,22 +66,27 @@ describe Sets::ProductSet do
             unit_description: 'some description'
           )
         end
+        let(:variant) { product.variants.first }
 
         let(:collection_hash) do
           {
             0 => {
               id: product.id,
-              variant_unit: 'weight',
-              variant_unit_scale: 1
+              variants_attributes: [{
+                id: variant.id.to_s,
+                variant_unit: 'weight',
+                variant_unit_scale: 1
+              }]
             }
           }
         end
 
         it 'updates the product without error' do
           expect(product_set.save).to eq true
-          expect(product_set.saved_count).to eq 1
+          # updating variant doesn't increment saved_count
+          # expect(product_set.saved_count).to eq 1
 
-          expect(product.reload.attributes).to include(
+          expect(variant.reload.attributes).to include(
             'variant_unit' => 'weight'
           )
 
@@ -93,8 +95,6 @@ describe Sets::ProductSet do
       end
 
       context "when the product is in an order cycle" do
-        let(:producer) { create(:enterprise) }
-
         let(:distributor) { create(:distributor_enterprise) }
         let!(:order_cycle) {
           create(:simple_order_cycle, variants: [product.variants.first],
@@ -117,27 +117,32 @@ describe Sets::ProductSet do
             expect(order_cycle.distributed_variants).to include product.variants.first
           end
         end
+      end
 
-        context 'and a different supplier is passed' do
-          let(:collection_hash) do
-            { 0 => { id: product.id, supplier_id: producer.id } }
-          end
+      context "when product attributes are not changed" do
+        let(:collection_hash) {
+          { 0 => { id: product.id, name: product.name } }
+        }
 
-          it 'updates the product and removes the product from order cycles' do
-            expect {
-              product_set.save
-              product.reload
-            }.to change { product.supplier }.to(producer).
-              and change { order_cycle.distributed_variants.count }.by(-1)
+        it 'returns true' do
+          is_expected.to eq true
+        end
 
-            expect(order_cycle.distributed_variants).to_not include product.variants.first
-          end
+        it 'does not increase saved_count' do
+          subject
+          expect(product_set.saved_count).to eq 0
+        end
+
+        it 'does not update any product by calling save' do
+          expect_any_instance_of(Spree::Product).not_to receive(:save)
+
+          subject
         end
       end
     end
 
     describe "updating a product's variants" do
-      let(:product) { create(:simple_product) }
+      let(:product) { create(:simple_product, supplier_id: create(:supplier_enterprise).id) }
       let(:variant) { product.variants.first }
       let(:product_attributes) { {} }
       let(:variant_attributes) { { sku: "var_sku" } }
@@ -163,7 +168,7 @@ describe Sets::ProductSet do
           expect {
             product_set.save
             product.reload
-          }.to_not change { product.sku }
+          }.not_to change { product.sku }
 
           expect(product_set.saved_count).to be_zero
           expect(product_set.invalid.count).to be_positive
@@ -173,7 +178,7 @@ describe Sets::ProductSet do
           expect {
             product_set.save
             variant.reload
-          }.to_not change { variant.sku }
+          }.not_to change { variant.sku }
         end
 
         it 'assigns the in-memory attributes of the variant' do
@@ -188,6 +193,58 @@ describe Sets::ProductSet do
         let(:variant_attributes) { { sku: "var_sku", display_name: "A" * 256 } } # maximum length
 
         include_examples "nothing saved"
+      end
+
+      context "when attributes are not changed" do
+        let(:variant_attributes) { { sku: variant.sku } }
+
+        before { variant }
+
+        it 'updates product by calling save' do
+          expect_any_instance_of(Spree::Variant).not_to receive(:save)
+
+          subject
+        end
+
+        it 'does not increase saved_count' do
+          subject
+          expect(product_set.saved_count).to eq 0
+        end
+      end
+
+      context "when the variant is in an order cycle" do
+        let(:distributor) { create(:distributor_enterprise) }
+        let!(:order_cycle) {
+          create(:simple_order_cycle, variants: [variant],
+                                      coordinator: distributor,
+                                      distributors: [distributor])
+        }
+        let(:variant_attributes) { { display_name: "New season variant" } }
+
+        it 'updates the variant and keeps it in order cycles' do
+          expect {
+            product_set.save
+            variant.reload
+          }.to change { variant.display_name }.to("New season variant").
+            and change { order_cycle.distributed_variants.count }.by(0)
+
+          expect(order_cycle.distributed_variants).to include variant
+        end
+
+        context 'when supplier is updated' do
+          let(:producer) { create(:supplier_enterprise) }
+          let(:variant_attributes) { { supplier_id: producer.id } }
+
+          it 'updates the variant and removes the variant from order cycles' do
+            expect {
+              product_set.save
+              variant.reload
+            }.to change { variant.supplier }.to(producer).
+              and change { order_cycle.distributed_variants.count }.by(-1)
+
+            expect(order_cycle.distributed_variants).not_to include variant
+          end
+        end
       end
 
       context "when products attributes are also updated" do
@@ -239,7 +296,7 @@ describe Sets::ProductSet do
           let(:variant_attributes) { { sku: "var_sku", display_name: "A" * 256 } } # maximum length
 
           include_examples "nothing saved" do
-            after { expect(variant2.reload.sku).to_not eq "var_sku2" }
+            after { expect(variant2.reload.sku).not_to eq "var_sku2" }
           end
         end
       end
@@ -248,9 +305,14 @@ describe Sets::ProductSet do
         let(:variants_attributes) {
           [
             { id: product.variants.first.id.to_s }, # default variant unchanged
-            { sku: "new sku", price: "5.00", unit_value: "5" }, # omit ID for new variant
+            # omit ID for new variant
+            {
+              sku: "new sku", price: "5.00", unit_value: "5", variant_unit: "weight",
+              variant_unit_scale: 1, supplier_id: supplier.id, primary_taxon_id: create(:taxon).id
+            },
           ]
         }
+        let(:supplier) { create(:supplier_enterprise) }
 
         it "creates new variant" do
           expect {
@@ -258,16 +320,20 @@ describe Sets::ProductSet do
             expect(product_set.errors).to be_empty
           }.to change { product.variants.count }.by(1)
 
-          expect(product.variants.last.sku).to eq "new sku"
-          expect(product.variants.last.price).to eq 5.00
-          expect(product.variants.last.unit_value).to eq 5
+          variant = product.variants.last
+          expect(variant.sku).to eq "new sku"
+          expect(variant.price).to eq 5.00
+          expect(variant.unit_value).to eq 5
+          expect(variant.variant_unit).to eq "weight"
+          expect(variant.variant_unit_scale).to eq 1
         end
 
         context "variant has error" do
           let(:variants_attributes) {
             [
               { id: product.variants.first.id.to_s }, # default variant unchanged
-              { sku: "new sku", unit_value: "blah" }, # price missing, unit_value should be number
+              # price missing, unit_value should be number
+              { sku: "new sku", unit_value: "blah", supplier_id: supplier.id },
             ]
           }
 

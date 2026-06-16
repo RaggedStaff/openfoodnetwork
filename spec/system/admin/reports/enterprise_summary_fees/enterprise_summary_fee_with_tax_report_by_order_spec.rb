@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe "Enterprise Summary Fee with Tax Report By Order" do
+RSpec.describe "Enterprise Summary Fee with Tax Report By Order" do
   #   1 order cycle the has:
   #     - coordinator fees price 20
   #     - incoming exchange fees 15
@@ -15,7 +15,7 @@ describe "Enterprise Summary Fee with Tax Report By Order" do
     [
       "Distributor",
       "Order Cycle",
-      "Order Number",
+      "Order number",
       "Name",
       "Type",
       "Owner",
@@ -29,7 +29,7 @@ describe "Enterprise Summary Fee with Tax Report By Order" do
       "Last Name",
       "Customer Code",
       "Customer Email"
-    ].join(" ").upcase
+    ].join(" ")
   }
 
   let!(:state_zone){ create(:zone_with_state_member) }
@@ -110,7 +110,7 @@ describe "Enterprise Summary Fee with Tax Report By Order" do
       # independently of the order_cycle.
       # order.reload
       order.recreate_all_fees!
-      OrderWorkflow.new(order).complete!
+      Orders::WorkflowService.new(order).complete!
 
       order.customer.update!({
                                first_name: customer_first_name,
@@ -188,7 +188,7 @@ describe "Enterprise Summary Fee with Tax Report By Order" do
                       ship_address_id: ship_address.id
                     })
       order.recreate_all_fees!
-      OrderWorkflow.new(order).complete!
+      Orders::WorkflowService.new(order).complete!
 
       order.customer.update!({
                                first_name: customer_first_name,

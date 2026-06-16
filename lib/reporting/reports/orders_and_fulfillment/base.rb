@@ -5,7 +5,7 @@ module Reporting
     module OrdersAndFulfillment
       class Base < ReportTemplate
         def message
-          I18n.t("spree.admin.reports.customer_names_message.customer_names_tip")
+          I18n.t("spree.admin.reports.hidden_customer_details_tip")
         end
 
         def default_params
@@ -41,7 +41,7 @@ module Reporting
         end
 
         def variant_name
-          proc { |line_items| line_items.first.variant.full_name }
+          proc { |line_items| line_items.first.full_variant_name }
         end
 
         def variant_sku
@@ -49,15 +49,15 @@ module Reporting
         end
 
         def supplier_name
-          proc { |line_items| line_items.first.variant.product.supplier.name }
+          proc { |line_items| line_items.first.variant.supplier.name }
         end
 
         def supplier_charges_sales_tax?
-          proc { |line_items| line_items.first.variant.product.supplier.charges_sales_tax }
+          proc { |line_items| line_items.first.variant.supplier.charges_sales_tax }
         end
 
         def product_name
-          proc { |line_items| line_items.first.variant.product.name }
+          proc { |line_items| line_items.first.full_product_name }
         end
 
         def product_tax_category
@@ -71,29 +71,32 @@ module Reporting
         def total_units(line_items)
           return " " if not_all_have_unit?(line_items)
 
-          total_units = line_items.sum do |li|
-            product = li.variant.product
-            li.quantity * li.unit_value / scale_factor(product)
-          end
+          total_units = line_items.map do |li|
+            li.quantity * li.unit_value / scale_factor(li.variant)
+          end.sum(&:to_f)
 
           total_units.round(3)
         end
 
         def variant_scoper_for(distributor_id)
           @variant_scopers_by_distributor_id ||= {}
+          variant_overrides = {}
+          distributor = Enterprise.find_by(id: distributor_id)
+
+          if OpenFoodNetwork::FeatureToggle.enabled?(:inventory, distributor)
+            variant_overrides = report_variant_overrides[distributor_id]
+          end
+
           @variant_scopers_by_distributor_id[distributor_id] ||=
-            OpenFoodNetwork::ScopeVariantToHub.new(
-              distributor_id,
-              report_variant_overrides[distributor_id] || {},
-            )
+            OpenFoodNetwork::ScopeVariantToHub.new(distributor, variant_overrides)
         end
 
         def not_all_have_unit?(line_items)
           line_items.map { |li| li.unit_value.nil? }.any?
         end
 
-        def scale_factor(product)
-          product.variant_unit == 'weight' ? 1000 : 1
+        def scale_factor(variant)
+          variant.variant_unit == 'weight' ? 1000 : 1
         end
 
         def report_variant_overrides

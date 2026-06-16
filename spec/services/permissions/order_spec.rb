@@ -1,32 +1,33 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+RSpec.describe Permissions::Order do
+  let(:permissions) { described_class.new(user) }
+  let!(:basic_permissions) { OpenFoodNetwork::Permissions.new(user) }
+  let(:distributor) { create(:distributor_enterprise) }
+  let(:coordinator) { create(:distributor_enterprise) }
+  let(:order_cycle) {
+    create(:simple_order_cycle, coordinator:, distributors: [distributor])
+  }
+  let(:order_completed) {
+    create(:completed_order_with_totals, order_cycle:, distributor: )
+  }
+  let(:order_cancelled) {
+    create(:order, order_cycle:, distributor:, state: 'canceled' )
+  }
+  let(:order_cart) {
+    create(:order, order_cycle:, distributor:, state: 'cart' )
+  }
+  let(:order_from_last_year) {
+    create(:completed_order_with_totals, order_cycle:, distributor:,
+                                         completed_at: 1.year.ago)
+  }
 
-module Permissions
-  describe Order do
-    let(:user) { double(:user) }
-    let(:permissions) { Permissions::Order.new(user) }
-    let!(:basic_permissions) { OpenFoodNetwork::Permissions.new(user) }
-    let(:distributor) { create(:distributor_enterprise) }
-    let(:coordinator) { create(:distributor_enterprise) }
-    let(:order_cycle) {
-      create(:simple_order_cycle, coordinator:, distributors: [distributor])
-    }
-    let(:order_completed) {
-      create(:completed_order_with_totals, order_cycle:, distributor: )
-    }
-    let(:order_cancelled) {
-      create(:order, order_cycle:, distributor:, state: 'canceled' )
-    }
-    let(:order_cart) {
-      create(:order, order_cycle:, distributor:, state: 'cart' )
-    }
-    let(:order_from_last_year) {
-      create(:completed_order_with_totals, order_cycle:, distributor:,
-                                           completed_at: 1.year.ago)
-    }
+  before { allow(OpenFoodNetwork::Permissions).to receive(:new) { basic_permissions } }
 
-    before { allow(OpenFoodNetwork::Permissions).to receive(:new) { basic_permissions } }
+  context "with user cannot only manage line_items in orders" do
+    let(:user) do
+      instance_double('Spree::User', can_manage_line_items_in_orders_only?: false, admin?: false)
+    end
 
     describe "finding orders that are visible in reports" do
       let(:random_enterprise) { create(:distributor_enterprise) }
@@ -65,14 +66,16 @@ module Permissions
         end
 
         context "with search params" do
-          let(:search_params) { { completed_at_gt: Time.zone.now.yesterday.strftime('%Y-%m-%d') } }
+          let(:search_params) {
+            { completed_at_gt: Time.zone.now.yesterday.strftime('%Y-%m-%d') }
+          }
           let(:permissions) { Permissions::Order.new(user, search_params) }
 
           it "only returns completed, non-cancelled orders within search filter range" do
             expect(permissions.visible_orders).to include order_completed
-            expect(permissions.visible_orders).to_not include order_cancelled
-            expect(permissions.visible_orders).to_not include order_cart
-            expect(permissions.visible_orders).to_not include order_from_last_year
+            expect(permissions.visible_orders).not_to include order_cancelled
+            expect(permissions.visible_orders).not_to include order_cart
+            expect(permissions.visible_orders).not_to include order_from_last_year
           end
         end
       end
@@ -88,8 +91,8 @@ module Permissions
 
         context "which contains my products" do
           before do
-            line_item.product.supplier = producer
-            line_item.product.save
+            line_item.variant.supplier = producer
+            line_item.variant.save
           end
 
           it "should let me see the order" do
@@ -99,7 +102,7 @@ module Permissions
 
         context "which does not contain my products" do
           it "should not let me see the order" do
-            expect(permissions.visible_orders).to_not include order
+            expect(permissions.visible_orders).not_to include order
           end
         end
       end
@@ -113,7 +116,7 @@ module Permissions
         end
 
         it "should not let me see the order" do
-          expect(permissions.visible_orders).to_not include order
+          expect(permissions.visible_orders).not_to include order
         end
       end
     end
@@ -165,14 +168,14 @@ module Permissions
           create(:enterprise_relationship, parent: producer, child: distributor,
                                            permissions_list: [:add_to_order_cycle])
 
-          line_item1.product.supplier = producer
-          line_item1.product.save
+          line_item1.variant.supplier = producer
+          line_item1.variant.save
         end
 
         it "should let me see the line_items pertaining to variants I produce" do
           ps = permissions.visible_line_items
           expect(ps).to include line_item1
-          expect(ps).to_not include line_item2
+          expect(ps).not_to include line_item2
         end
       end
 
@@ -185,7 +188,7 @@ module Permissions
         end
 
         it "should not let me see the line_items" do
-          expect(permissions.visible_line_items).to_not include line_item1, line_item2
+          expect(permissions.visible_line_items).not_to include line_item1, line_item2
         end
       end
 
@@ -199,17 +202,57 @@ module Permissions
         let(:permissions) { Permissions::Order.new(user, search_params) }
 
         before do
-          allow(user).to receive(:has_spree_role?) { "admin" }
+          allow(user).to receive(:admin?) { "admin" }
         end
 
         it "only returns line items from completed, " \
            "non-cancelled orders within search filter range" do
           expect(permissions.visible_line_items).to include order_completed.line_items.first
-          expect(permissions.visible_line_items).to_not include order_cancelled.line_items.first
-          expect(permissions.visible_line_items).to_not include order_cart.line_items.first
+          expect(permissions.visible_line_items).not_to include order_cancelled.line_items.first
+          expect(permissions.visible_line_items).not_to include order_cart.line_items.first
           expect(permissions.visible_line_items)
-            .to_not include order_from_last_year.line_items.first
+            .not_to include order_from_last_year.line_items.first
         end
+      end
+    end
+  end
+
+  context "with user can only manage line_items in orders" do
+    let(:producer) { create(:supplier_enterprise) }
+    let(:user) do
+      create(:user, enterprises: [producer])
+    end
+    let!(:order_by_distributor_allow_edits) do
+      order = create(
+        :order_with_line_items,
+        distributor: create(
+          :distributor_enterprise,
+          enable_producers_to_edit_orders: true
+        ),
+        line_items_count: 1
+      )
+      order.line_items.first.variant.update_attribute(:supplier_id, producer.id)
+
+      order
+    end
+    let!(:order_by_distributor_disallow_edits) do
+      create(
+        :order_with_line_items,
+        distributor: create(:distributor_enterprise),
+        line_items_count: 1
+      )
+    end
+    describe "#editable_orders" do
+      it "returns orders where the distributor allows producers to edit" do
+        expect(permissions.editable_orders.count).to eq 1
+        expect(permissions.editable_orders).to include order_by_distributor_allow_edits
+      end
+    end
+
+    describe "#editable_line_items" do
+      it "returns line items from orders where the distributor allows producers to edit" do
+        expect(permissions.editable_line_items.count).to eq 1
+        expect(permissions.editable_line_items.first.order).to eq order_by_distributor_allow_edits
       end
     end
   end

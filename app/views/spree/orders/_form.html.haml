@@ -11,7 +11,7 @@
       %thead
         %tr
           %th.cart-item-description-header= t(:item)
-          %th.cart-item-price-header.text-right= t(:price)
+          %th.cart-item-price-header= t(:price)
           %th.text-center.cart-item-quantity-header= t(:qty)
           %th.cart-item-total-header.text-right= t(:total)
           %th.cart-item-delete-header
@@ -34,7 +34,11 @@
         - checkout_adjustments_for(@order, exclude: [:line_item]).reverse_each do |adjustment|
           %tr.order-adjustment
             %td.text-right{:colspan => "3"}
-              = adjustment.label
+              - if adjustment.originator_type == "Voucher"
+                = "#{t(:voucher)}:"
+                = adjustment.label
+              - else
+                = adjustment.label
             %td.text-right.total
               %span= adjustment.display_amount.to_html
             %td
@@ -44,8 +48,16 @@
             %h5
               = t :orders_form_total
           %td.text-right
-            %h5.order-total.grand-total= @order.display_total
+            %h5.order-total.grand-total= @order.display_total.to_html
           %td
+
+        - if @paid_with_credit.present?
+          %tr
+            %td.text-right{colspan: "3"}
+              %strong
+                = t :customer_credit
+            %td.text-right#customer-credit
+              %span.order-total= Spree::Money.new(-1 * @paid_with_credit).to_html
 
         - if @order.total_tax > 0
           %tr

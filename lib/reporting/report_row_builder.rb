@@ -7,14 +7,13 @@ module Reporting
 
     attr_reader :report
 
-    def initialize(report, current_user)
+    def initialize(report)
       @report = report
-      @current_user = current_user
     end
 
     # Compute the query result item into a result row
     # We use OpenStruct to it's easier to access the properties
-    # i.e. row.my_field, rows.sum(&:quantity)
+    # i.e. row.my_field, rows.map(&:quantity).sum(&:to_i)
     def build_row(item)
       OpenStruct.new(
         report.columns.transform_values do |column_constructor|
@@ -31,7 +30,7 @@ module Reporting
       result = row.to_h.select { |k, _v| k.in?(report.fields_to_show) }
 
       unless report.unformatted_render?
-        result = result.map { |k, v| [k, format_cell(v, k)] }.to_h
+        result = result.to_h { |k, v| [k, format_cell(v, k)] }
       end
       OpenStruct.new(result)
     end
@@ -79,7 +78,7 @@ module Reporting
 
     # rubocop:disable Metrics/CyclomaticComplexity
     def format_cell(value, column = nil)
-      return "none" if value.nil?
+      return I18n.t("admin.reports.none") if value.nil?
 
       # Currency
       if report.columns_format[column] == :currency

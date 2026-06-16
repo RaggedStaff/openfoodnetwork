@@ -37,6 +37,7 @@ class TruncateData
     sql_delete_from "spree_payments #{where_order_id_in_orders_to_delete}"
     sql_delete_from "spree_shipments #{where_order_id_in_orders_to_delete}"
     sql_delete_from "spree_return_authorizations #{where_order_id_in_orders_to_delete}"
+    sql_delete_from "proxy_orders #{where_order_id_in_orders_to_delete}"
   end
 
   def truncate_subscriptions

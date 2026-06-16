@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe "Revenues By Hub Reports" do
+RSpec.describe "Revenues By Hub Reports" do
   include AuthenticationHelper
 
   let(:order) do
@@ -37,13 +37,12 @@ describe "Revenues By Hub Reports" do
       tax_rate_name: "Tax 1"
     )
   end
-  let(:distributor1) { create(:enterprise, name: "Hub 1", owner:) }
+  let(:distributor1) { create(:enterprise, name: "Hub 1", owner:, external_billing_id: 'INV1234') }
   let(:distributor2) { create(:enterprise, name: "Hub 2", owner:) }
-  let(:distributor3) { create(:enterprise, name: "Hub 3", owner:) }
+  let(:distributor3) { create(:enterprise, name: "Hub 3", owner:, external_billing_id: 'INV4321') }
   let(:owner) { create(:user, email: 'email@email.com') }
   let(:order_cycle) { create(:simple_order_cycle) }
-  let(:product) { create(:product, supplier:) }
-  let(:supplier) { create(:supplier_enterprise) }
+  let(:product) { create(:product) }
   let(:voucher2) { create(:voucher_flat_rate, code: 'code', enterprise: distributor2, amount: 10) }
   let(:voucher3) { create(:voucher_flat_rate, code: 'code', enterprise: distributor3, amount: 10) }
 
@@ -62,23 +61,24 @@ describe "Revenues By Hub Reports" do
       run_report
 
       expect(page.find("table.report__table thead tr").text).to have_content([
-        "HUB",
-        "HUB ID",
-        "HUB BUSINESS NUMBER",
-        "HUB LEGAL NAME",
-        "HUB CONTACT NAME",
-        "HUB PUBLIC EMAIL",
-        "HUB OWNER EMAIL",
-        "HUB PHONE NUMBER",
-        "HUB ADDRESS LINE 1",
-        "HUB ADDRESS LINE 2",
-        "HUB SUBURB",
-        "HUB POSTCODE",
-        "HUB STATE",
-        "TOTAL NUMBER OF ORDERS",
-        "TOTAL EXCL. TAX ($)",
-        "TOTAL TAX ($)",
-        "TOTAL INCL. TAX ($)"
+        "Hub",
+        "Hub ID",
+        "Hub Business Number",
+        "Hub External Billing Id",
+        "Hub Legal Name",
+        "Hub Contact Name",
+        "Hub Public Email",
+        "Hub Owner Email",
+        "Hub Phone Number",
+        "Hub Address Line 1",
+        "Hub Address Line 2",
+        "Hub Suburb",
+        "Hub Postcode",
+        "Hub State",
+        "Total Number of Orders",
+        "Total excl. tax ($)",
+        "Total Tax ($)",
+        "Total incl. tax ($)"
       ].join(" "))
 
       lines = page.all('table.report__table tbody tr').map(&:text)
@@ -87,6 +87,7 @@ describe "Revenues By Hub Reports" do
         "Hub 1",
         order.distributor.id,
         "none",
+        "INV1234",
         "none",
         "none",
         "none",
@@ -111,6 +112,7 @@ describe "Revenues By Hub Reports" do
         "none",
         "none",
         "none",
+        "none",
         "email@email.com",
         "none",
         "10 Lovely Street",
@@ -129,6 +131,7 @@ describe "Revenues By Hub Reports" do
         "Hub 3",
         order_with_voucher_tax_excluded.distributor.id,
         "none",
+        "INV4321",
         "none",
         "none",
         "none",
@@ -155,8 +158,6 @@ describe "Revenues By Hub Reports" do
     order.update_shipping_fees!
     order.update_order!
 
-    VoucherAdjustmentsService.new(order).update
-
-    order.update_totals_and_states
+    OrderManagement::Order::Updater.new(order).update_voucher
   end
 end

@@ -9,6 +9,7 @@ class EnterpriseRelationship < ApplicationRecord
     scope: :parent_id,
     message: I18n.t('validation_msg_relationship_already_established')
   }
+  validate :validate_permissions_list
 
   before_destroy :revoke_all_child_variant_overrides
   before_destroy :destroy_related_exchanges
@@ -27,12 +28,12 @@ class EnterpriseRelationship < ApplicationRecord
     where('parent_id IN (?) OR child_id IN (?)', enterprises.select(&:id), enterprises.select(&:id))
   }
 
-  scope :permitting, ->(enterprise_ids) { where('child_id IN (?)', enterprise_ids) }
-  scope :permitted_by, ->(enterprise_ids) { where('parent_id IN (?)', enterprise_ids) }
+  scope :permitting, ->(enterprise_ids) { where(child_id: enterprise_ids) }
+  scope :permitted_by, ->(enterprise_ids) { where(parent_id: enterprise_ids) }
 
   scope :with_permission, ->(permission) {
     joins(:permissions).
-      where('enterprise_relationship_permissions.name = ?', permission)
+      where(enterprise_relationship_permissions: { name: permission })
   }
 
   scope :by_name, -> { with_enterprises.order('child_enterprises.name, parent_enterprises.name') }
@@ -71,6 +72,10 @@ class EnterpriseRelationship < ApplicationRecord
     relatives
   end
 
+  def permissions_list
+    permissions.map(&:name)
+  end
+
   def permissions_list=(perms)
     if perms.nil?
       permissions.destroy_all
@@ -85,6 +90,13 @@ class EnterpriseRelationship < ApplicationRecord
   end
 
   private
+
+  def validate_permissions_list
+    if permissions_list.include?('create_variant_overrides') &&
+       permissions_list.include?('create_linked_variants')
+      errors.add(:base, :inventory_vs_linked_variants)
+    end
+  end
 
   def update_permissions_of_child_variant_overrides
     if has_permission?(:create_variant_overrides)
@@ -108,6 +120,6 @@ class EnterpriseRelationship < ApplicationRecord
 
   def child_variant_overrides
     VariantOverride.unscoped.for_hubs(child)
-      .joins(variant: :product).where("spree_products.supplier_id IN (?)", parent)
+      .joins(:variant).where(spree_variants: { supplier_id: parent } )
   end
 end

@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe "checking out an order with a Stripe SCA payment method", type: :request do
+RSpec.describe "checking out an order with a Stripe SCA payment method" do
   include ShopWorkflow
   include AuthenticationHelper
   include OpenFoodNetwork::ApiHelper
@@ -84,14 +82,16 @@ describe "checking out an order with a Stripe SCA payment method", type: :reques
 
   before do
     order_cycle_distributed_variants = double(:order_cycle_distributed_variants)
-    allow(OrderCycleDistributedVariants).to receive(:new) { order_cycle_distributed_variants }
+    allow(OrderCycles::DistributedVariantsService).to receive(:new) {
+                                                        order_cycle_distributed_variants
+                                                      }
     allow(order_cycle_distributed_variants).to receive(:distributes_order_variants?) { true }
     allow(Stripe).to receive(:publishable_key).and_return("some_token")
     allow(Spree::Config).to receive(:stripe_connect_enabled).and_return(true)
     Stripe.api_key = "sk_test_12345"
     order.update(distributor_id: enterprise.id, order_cycle_id: order_cycle.id)
     order.reload.update_totals
-    set_order order
+    pick_order order
 
     # Authorizes the payment
     stub_request(:post, "https://api.stripe.com/v1/payment_intents")
@@ -153,7 +153,7 @@ describe "checking out an order with a Stripe SCA payment method", type: :reques
       it "should not process the payment" do
         put(update_checkout_path, params:)
 
-        expect(response.status).to be 400
+        expect(response).to have_http_status :bad_request
 
         expect(json_response["flash"]["error"]).to eq "payment-intent-failure"
         expect(order.payments.completed.count).to be 0
@@ -241,7 +241,7 @@ describe "checking out an order with a Stripe SCA payment method", type: :reques
         it "should not process the payment" do
           put(update_checkout_path, params:)
 
-          expect(response.status).to be 400
+          expect(response).to have_http_status :bad_request
 
           expect(json_response["flash"]["error"])
             .to eq(format("There was a problem with your payment information: %s",
@@ -258,7 +258,7 @@ describe "checking out an order with a Stripe SCA payment method", type: :reques
         it "should not process the payment" do
           put(update_checkout_path, params:)
 
-          expect(response.status).to be 400
+          expect(response).to have_http_status :bad_request
 
           expect(json_response["flash"]["error"]).to eq "payment-intent-failure"
           expect(order.payments.completed.count).to be 0
@@ -273,7 +273,7 @@ describe "checking out an order with a Stripe SCA payment method", type: :reques
         it "should not process the payment" do
           put(update_checkout_path, params:)
 
-          expect(response.status).to be 400
+          expect(response).to have_http_status :bad_request
 
           expect(json_response["flash"]["error"]).to include "payment-method-failure"
           expect(order.payments.completed.count).to be 0
@@ -327,7 +327,7 @@ describe "checking out an order with a Stripe SCA payment method", type: :reques
         it "should not process the payment" do
           put(update_checkout_path, params:)
 
-          expect(response.status).to be 400
+          expect(response).to have_http_status :bad_request
 
           expect(json_response["flash"]["error"]).to eq "payment-intent-failure"
           expect(order.payments.completed.count).to be 0
@@ -348,7 +348,7 @@ describe "checking out an order with a Stripe SCA payment method", type: :reques
         it "redirects the user to the authorization stripe url" do
           put(update_checkout_path, params:)
 
-          expect(response.status).to be 200
+          expect(response).to have_http_status :ok
           expect(response.body).to include stripe_redirect_url
         end
       end

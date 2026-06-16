@@ -12,6 +12,7 @@ class CheckoutController < BaseController
   include OrderCompletion
   include CablecarResponses
   include WhiteLabel
+  include CustomerCredit
 
   helper 'terms_and_conditions'
   helper 'checkout'
@@ -26,8 +27,13 @@ class CheckoutController < BaseController
     if params[:step].blank?
       redirect_to_step_based_on_order
     else
+      handle_insufficient_stock if details_step?
       update_order_state
       check_step
+    end
+
+    if payment_step? || summary_step?
+      @paid_with_credit = calculate_credit(@order)
     end
 
     return if available_shipping_methods.any?
@@ -36,6 +42,9 @@ class CheckoutController < BaseController
   end
 
   def update
+    return render cable_ready: cable_car.redirect_to(url: checkout_step_path(:details)) \
+      unless sufficient_stock?
+
     if confirm_order || update_order
       return if performed?
 
@@ -55,6 +64,8 @@ class CheckoutController < BaseController
   private
 
   def render_error
+    @paid_with_credit = calculate_credit(@order) if payment_step? || summary_step?
+
     flash.now[:error] ||= I18n.t('checkout.errors.saving_failed')
 
     render status: :unprocessable_entity, cable_ready: cable_car.
@@ -76,10 +87,24 @@ class CheckoutController < BaseController
 
     @order.customer.touch :terms_and_conditions_accepted_at
 
+    # Redeem VINE voucher
+    vine_voucher_redeemer = Vine::VoucherRedeemerService.new(order: @order)
+    unless vine_voucher_redeemer.redeem
+      # rubocop:disable Rails/DeprecatedActiveModelErrorsMethods
+      flash[:error] = if vine_voucher_redeemer.errors.keys.include?(:redeeming_failed)
+                        vine_voucher_redeemer.errors[:redeeming_failed]
+                      else
+                        I18n.t('checkout.errors.voucher_redeeming_error')
+                      end
+      return false
+      # rubocop:enable Rails/DeprecatedActiveModelErrorsMethods
+    end
+
     return true if redirect_to_payment_gateway
 
     @order.process_payments!
     @order.confirm!
+    BackorderJob.check_stock(@order)
     order_completion_reset @order
   end
 
@@ -103,7 +128,9 @@ class CheckoutController < BaseController
     shipping_method_updated = @order.shipping_method&.id != params[:shipping_method_id].to_i
 
     @order.select_shipping_method(params[:shipping_method_id])
+
     @order.update(order_params)
+
     # We need to update voucher to take into account:
     #  * when moving away from "details" step : potential change in shipping method fees
     #  * when moving away from "payment" step : payment fees
@@ -128,7 +155,7 @@ class CheckoutController < BaseController
   def advance_order_state
     return if @order.complete?
 
-    OrderWorkflow.new(@order).advance_checkout(raw_params.slice(:shipping_method_id))
+    Orders::WorkflowService.new(@order).advance_checkout(raw_params.slice(:shipping_method_id))
   end
 
   def order_params

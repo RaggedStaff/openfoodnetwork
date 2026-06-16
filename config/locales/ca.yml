@@ -5,6 +5,8 @@ ca:
       spree/product: Producte
       spree/shipping_method: Mètode d'enviament
     attributes:
+      spree/image:
+        attachment: Adjunt
       spree/order/ship_address:
         address1: "Adreça d'enviament (Carrer i número)"
         address2: "2a línia adreça d'enviament "
@@ -42,10 +44,12 @@ ca:
       spree/product:
         name: "Nom del producte"
         price: "Preu"
-        primary_taxon: "Categoria del producte"
-        supplier: "Proveïdora"
+        primary_taxon_id: "Categoria del producte"
         shipping_category_id: "Categoria d'enviament"
-        variant_unit: "Unitat de la variant"
+      spree/variant:
+        primary_taxon: "Categoria del producte"
+        shipping_category_id: "Categoria d'enviament"
+        supplier: "Proveïdora"
         variant_unit_name: "Nom de la unitat de la variant"
         unit_value: "Valor de la unitat"
       spree/credit_card:
@@ -81,22 +85,10 @@ ca:
         variant_override:
           count_on_hand:
             using_producer_stock_settings_but_count_on_hand_set: "ha d'estar en blanc perquè s'utilitza la configuració d'estoc de la productora"
-            on_demand_but_count_on_hand_set: "ha d'estar en blanc si és sota demanda"
             limited_stock_but_no_count_on_hand: "cal especificar-se perquè força existències limitades"
       messages:
         blank: "no es pot deixar en blanc"
   errors:
-    messages:
-      content_type_invalid: "té un tipus de contingut no vàlid"
-      file_size_out_of_range: "la mida %{file_size} no és entre el rang necessari"
-      limit_out_of_range: "el total està fora del marge"
-      image_metadata_missing: "no és una imatge vàlida"
-      aspect_ratio_not_square: "ha de ser una imatge quadrada"
-      aspect_ratio_not_portrait: "ha de ser una imatge vertical"
-      aspect_ratio_not_landscape: "ha de ser una imatge horitzontal"
-      aspect_ratio_is_not: "ha de tenir una relació d'aspecte de %{aspect_ratio} "
-      aspect_ratio_unknown: "té una relació d'aspecte desconeguda"
-      image_not_processable: "no és una imatge vàlida"
     not_found:
       title: "La pàgina que esteu cridant no existeix (404)"
       message_html: "<b>Si us plau torna-ho a provar</b> Això podria ser un problema temporal. Feu clic al botó Enrere per tornar a la pantalla anterior o torneu a <a href='/'>Inici</a> i torneu-ho a provar. <b>Contacteu amb suport</b><p> Si el problema persisteix o és urgent, si us plau, digueu-nos-ho. Esn pots enviar un correua a <a href='https://openfoodnetwork.org/ofn-local/' target='blank'>suport<p>katuma.org </a>.</p><p> Ens ajuda molt si pots donar tants detalls com sigui possible sobre de què estaves fent quan va aparèixer l'error.</p>"
@@ -105,7 +97,10 @@ ca:
       message_html: "<b>Si us plau, torna a provar</b> <p>Pot ser un problema temporal. Si us plau, clica al botó de tornar enrere per a tornar a la pantalla anterior o torna a l'<a href='/''>Inici</a> i prova una altra vegada.</p> <b>Ho estem intentant</b> <p>Si has vist aquest problema abans, probablement ja estem assabentats i estem treballant per a solucionar-lo. Registrem tots els errors que apareixen.</p> <b>Contacte de suport</b> <p>Si el problema persisteix o és urgent, si us plau informa'ns. Busca com fer-ho a la <a href='https://openfoodnetwork.org/ofn-local/' target='blank'>pàgina Open Food Network Local</a>.</p> <p>Ens ajuda molt que ens proporcionis tants detalls com sigui possible de què estaves fent quan es va aparèixer aquest error.</p>"
     unprocessable_entity:
       message_html: "<p>El canvi que volies va ser rebutjat. Potser heu intentat canviar alguna cosa a la qual no teniu accés.<br><h3> <a href='/' >Tornar a l'inici</a></h3></p>"
-    stimulus_reflex_error: "Ens sap greu, però alguna cosa ha anat malament.\n\n Pot ser que sigui un problema temporal, així que si us plau, torna-ho a provar o torna a carregar la pàgina.\n Enregistrem tots els errors i és possible que estiguem treballant en una solució.\n Si el problema persisteix o és urgent, poseu-vos en contacte amb nosaltres."
+    general_error:
+      message: "Ens sap greu, però alguna cosa ha anat malament.\n\n Pot ser que sigui un problema temporal, així que si us plau, torna-ho a provar o torna a carregar la pàgina.\n Enregistrem tots els errors i és possible que estiguem treballant en una solució.\n Si el problema persisteix o és urgent, poseu-vos en contacte amb nosaltres."
+    unauthorized:
+      message: "No rens permisos per a realitzar aquesta acció"
   stripe:
     error_code:
       incorrect_number: "El número de la targeta és incorrecte."
@@ -269,6 +264,10 @@ ca:
     report_failed: |
         Aquest informe ha fallat. Pot ser massa gran per processar-lo.
         Ho analitzarem, però si el problema persisteix, si us plau, aviseu-nos.
+  backorder_mailer:
+    backorder_failed:
+      stock: "Estoc"
+      product: "Producte"
   enterprise_mailer:
     confirmation_instructions:
       subject: "Sisplau, confirma l'adreça electrònica d'%{enterprise}"
@@ -284,9 +283,18 @@ ca:
       join_community: "Uneix-te a la comunitat"
     invite_manager:
       subject: "%{enterprise} t'ha convidat a ser administrador"
+  payment_mailer:
+    authorize_payment:
+      subject: "Autoritzeu el vostre pagament a %{distributor} a OFN"
+      instructions: "El vostre pagament de %{amount} a %{distributor} requereix una autenticació addicional. Visiteu l’URL següent per autoritzar el vostre pagament:"
+    authorization_required:
+      subject: "Un pagament requereix l’autorització del client"
+      message: "El pagament de la comanda %{order_number} requereix una autorització addicional del client. El client ha rebut una notificació per correu electrònic i el pagament apareixerà pendent fins que no s’autoritzi."
   producer_mailer:
     order_cycle:
       subject: "Informe del cicle de comanda per %{producer}"
+    order_cycle_report:
+      order_number: "Número de comanda"
   provider_settings: "Configuració del proveïdor"
   report_mailer:
     report_ready:
@@ -388,7 +396,7 @@ ca:
   order_cycles: Cicles de comanda
   bulk_order_management: Gestió de comandes en bloc
   enterprises: Organitzacions
-  enterprise_groups: Grups
+  enterprise_groups: Xarxes
   reports: Informes
   listing_reports: Llistat d'informes
   variant_overrides: Inventari
@@ -450,6 +458,7 @@ ca:
     create_and_add_another: "Crea i afegeix-ne una altra"
     create: "Crear"
     cancel: "Cancel·lar"
+    cancel_order: "Cancel·lar"
     resume: "Continuar"
     save: "Desa"
     edit: "Editar"
@@ -473,8 +482,10 @@ ca:
         per_page: "%{count} elements per pàgina"
         colums: Columnes
       columns:
+        image: Imatge
         name: Nom
         unit: Unitat
+        unit_value: Valor de la unitat
         price: Preu
         producer: Productora
         category: Categoria
@@ -485,6 +496,7 @@ ca:
         inherits_properties: "Hereda propietats?"
         import_date: "Data d'importació"
         actions: Accions
+        tags: Etiquetes
       columns_selector:
         unit: Unitat
         price: Preu
@@ -500,8 +512,11 @@ ca:
         edit: Editar
         clone: Clonar
         delete: Suprimir
+        remove: Eliminar
       image:
         edit: Editar
+      product_preview:
+        shop_tab: Botiga
     adjustments:
       skipped_changing_canceled_order: "No podeu canviar una comanda cancel·lada."
     begins_at: Comença a
@@ -555,7 +570,6 @@ ca:
     show_n_more: Mostra %{num} més
     choose: "Tria ..."
     please_select: Seleccioneu ...
-    column_save_as_default: Per defecte
     columns: Columnes
     actions: Accions
     viewing: "Veient: %{current_view_name}"
@@ -643,6 +657,11 @@ ca:
         balance_due: "A pagar"
       destroy:
         has_associated_subscriptions: "No es pot esborrar: aquest client té subscripcions actives. Cancel·leu-les primer."
+    customer_account_transaction:
+      index:
+        description: Descripció
+        amount: Quantitat
+        running_balance: Balanç corrent
     contents:
       edit:
         title: Contingut
@@ -656,6 +675,16 @@ ca:
         your_content: El vostre contingut
         user_guide: Guia de l'usuari
         map: Mapa
+    dfc_product_imports:
+      index:
+        select_all: "Seleccionar/Desseleccionar Tot"
+        update: Actualitzar
+        new: Nou
+        selected:
+          zero: "Res seleccionat"
+          one: "1 seleccionat"
+          other: "%{count} seleccionat"
+        import: Importa
     enterprise_fees:
       index:
         title: "Comissions de l'organització"
@@ -709,7 +738,6 @@ ca:
       variants:
         infinity: "Infinit"
         to_order_tip: "Els articles preparats per encàrrec no tenen un nivell fixat d'existències, com ara pa fet sota comanda."
-      back_to_products_list: "Torna a la llista de productes"
       editing_product: "Editant el producte"
       tabs:
         product_details: "Detalls del producte"
@@ -721,6 +749,7 @@ ca:
       index:
         header:
           title: Edició de productes en bloc
+      content:
         loading: Carregant els vostres productes
       delete_modal:
         delete_product_modal:
@@ -733,13 +762,6 @@ ca:
           prompt: "Això l'eliminarà permanentment de la vostra llista."
           confirmation_text: "Suprimeix la variant"
           cancellation_text: "Mantenir la variant"
-      sort:
-        pagination:
-          total_html: "<strong>%{total} productes</strong> trobats pels vostres criteris de cerca. Mostrant de %{from} a %{to} ."
-          per_page:
-            show: Mostra
-            per_page: "%{num} per pàgina"
-          clear_search: Esborra la cerca
       filters:
         search_products: Cerca de productes
         search_for_producers: Cercar productors
@@ -750,7 +772,16 @@ ca:
           label: Productors
         categories:
           label: Categories
+        tags:
+          label: Etiquetes
+          none: Cap
         search: Cerca
+      sort:
+        pagination:
+          per_page:
+            show: Mostra
+            per_page: "%{num} per pàgina"
+          clear_search: Esborra la cerca
       no_products:
         no_products_found: No hem trobat productes
       table:
@@ -763,11 +794,16 @@ ca:
             other: "%{count} productes no s'han pogut desar. Reviseu els errors i torneu-ho a provar."
         reset: Descartar canvis
         save: Guardar canvis
+      product_variant_row:
         new_variant: Nova variant
       bulk_update:
         success: Canvis guardats
-      edit_image:
-        close: Enrere
+      variant_row:
+        none_tax_category: Cap
+        category_field_name: "Categoria"
+        tax_category_field_name: "Categoria d'impostos"
+        producer_field_name: "Productora"
+        add_a_tag: Afegeix una etiqueta
     product_import:
       title: Importació de productes
       file_not_found: No s'ha trobat el fitxer o no s'ha pogut obrir
@@ -828,7 +864,6 @@ ca:
         no_name: Sense nom
         blank_enterprise: alguns productes no tenen una organització definida
         reset_absent?: Restabliu els productes absents
-        reset_absent_tip: Establiu valors a zero per a tots els productes existents que no figurin al fitxer
         overwrite_all: Sobreescriu-ho tot
         overwrite_empty: Sobreescriu si està buit
         default_stock: Estableix el nivell d'existències
@@ -1008,12 +1043,6 @@ ca:
         images:
           legend: "Imatges"
           logo: Logotip
-          promo_image_placeholder: 'Aquesta imatge es mostra a "Sobre Nosaltres"'
-          promo_image_note1: 'ATENCIÓ:'
-          promo_image_note2: Qualsevol imatge promocional que es carregui aquí es tallarà a 1200 x 260.
-          promo_image_note3: 'La imatge promocional es mostra a la part superior de la pàgina de perfil i finestres emergents d''una organització '
-          remove_logo: "Elimina la imatge "
-          remove_promo_image: "Elimina la imatge "
         inventory_settings:
           legend: "Configuració de l'inventari"
           text1: 'Pots optar per gestionar els nivells d''existències i els preus a través del teu '
@@ -1094,14 +1123,16 @@ ca:
           customer_names_tip: "Habiliteu als proveïdors veure els noms dels vostres clients als informes"
           customer_names_false: "Deshabilitat"
           customer_names_true: "Habilitat"
+          customer_contacts_false: "Deshabilitat"
+          customer_contacts_true: "Habilitat"
+          producers_edit_orders_false: "Deshabilitat"
+          producers_edit_orders_true: "Habilitat"
           shopfront_message: "Missatge de la botiga"
           shopfront_message_placeholder: >
               Un missatge opcional per donar la benvinguda als clients i explicar
               com comprar amb vosaltres. Si s'introdueix text aquí, es mostrarà a
               la pestanya d'inici quan els clients arribin per primera vegada a la
               vostra botiga.
-          shopfront_message_link_tooltip: "Inserir / editar enllaç"
-          shopfront_message_link_prompt: "Introduïu un URL per inserir"
           shopfront_closed_message: "Missatge de tancament de la botiga"
           shopfront_closed_message_placeholder: >
               Un missatge que proporciona una explicació més detallada sobre per què
@@ -1147,27 +1178,24 @@ ca:
             no_rules_yet: Encara no s'aplica cap regla per defecte
             add_new_button: '+ Afegeix una nova regla per defecte'
           no_tags_yet: Encara no hi ha cap etiqueta aplicada a aquesta organització
-          no_rules_yet: Encara no hi ha cap regla aplicada a aquesta etiqueta
-          for_customers_tagged: 'Per als clients etiquetats:'
-          add_new_rule: '+ Afegeix una nova regla'
           add_new_tag: '+ Afegeix una nova etiqueta'
+          show_hide_variants: 'Mostra o amaga variants a la meva botiga'
+          show_hide_shipping: 'Mostra o amaga mètodes d''enviament en la validació de la comanda'
+          show_hide_payment: 'Mostra o amaga mètodes de pagament en la validació de la comanda'
+          show_hide_order_cycles: 'Mostra o amaga els cicles de comanda a la meva botiga'
         users:
           legend: "Usuàries"
           email_confirmation_notice_html: "La confirmació de correu electrònic està pendent. Hem enviat un correu electrònic de confirmació a %{email}."
           resend: Reenviar
-          owner: 'Propietària'
           contact: "Contacte"
+          owner: 'Propietària'
           contact_tip: "El gestor que rebrà els missatges de correu electrònic de l'organització per a comandes i notificacions. Ha de tenir una adreça electrònica confirmada."
           owner_tip: La usuària principal responsable d'aquesta organització.
           notifications: Notificacions
           notifications_tip: Les notificacions sobre les comandes s'enviaran a aquesta adreça de correu electrònic.
           notifications_placeholder: 'p. ex: contacte@hortajosepribes.com'
           notifications_note: 'Nota: és possible que hagi de confirmar una nova adreça de correu electrònic abans d''utilitzar-la'
-          managers: Gestors
-          managers_tip: Altres usuàries amb permisos per gestionar aquesta organització
           invite_manager: "Convida un gestor"
-          invite_manager_tip: "Convida un usuari no registrat a registrar-se i convertir-se en gestor d'aquesta organització."
-          add_unregistered_user: "Afegeix un usuari no registrat"
           email_confirmed: "S'ha confirmat el correu electrònic"
           email_not_confirmed: "Correu electrònic no confirmat"
         vouchers:
@@ -1176,12 +1204,14 @@ ca:
           active: Actiu?
         white_label:
           legend: "Marca blanca"
-          remove_logo: "Eliminar el logo"
-          remove_logo_confirm: "Esteu segur de voler eliminar el logo?"
-          remove_logo_success: "Logo eliminat"
           white_label_logo_link_label: "Enllaç del logotip utilitzat a botiga"
         connected_apps:
-          loading: "S'està carregant"
+          affiliate_sales_data:
+            loading: "S'està carregant"
+          discover_regen:
+            loading: "S'està carregant"
+          vine:
+            enable: "Connecta"
       actions:
         edit_profile: Configuració
         properties: Propietats
@@ -1234,10 +1264,8 @@ ca:
         contact_name: Nom de contacte
       edit:
         editing: 'Configuració:'
-        back_link: Tornar a la llista d'organitzacions
       new:
         title: Nova organització
-        back_link: 'Tornar a la llista d''organitzacions '
       welcome:
         welcome_title: Benvingut a Katuma - Open Food Network!
         welcome_text: Heu creat correctament un
@@ -1245,9 +1273,6 @@ ca:
         choose_starting_point: 'Escull el teu perfil:'
         profile: 'Perfil'
         producer_profile: 'Perfil de productora'
-      invite_manager:
-        user_already_exists: "L'usuari ja existeix"
-        error: "Alguna cosa ha anat malament"
     order_cycles:
       loading_flash:
         loading_order_cycles: CÀRREGUES CICLES DE COMANDA
@@ -1273,6 +1298,8 @@ ca:
         save_and_back_to_list: "Desa i torna a la llista"
         choose_products_from: "Trieu Productes des de:"
         notify_producers_tip: Això enviarà un correu electrònic a cada productor amb la llista dels seus productes demanats a les comandes.
+      date_time_warning_modal_content:
+        cancel: 'Cancel·lar'
       incoming:
         incoming: "Entrant"
         supplier: "Proveïdora"
@@ -1401,6 +1428,18 @@ ca:
       searching: Buscant…
       no_matches: No he trobat coincidències
     shared:
+      attachment_field:
+        logo_label: "Logotip"
+        logo_remove: "Elimina la imatge "
+        logo_remove_confirm: "El logotip s'eliminarà immediatament després de confirmar."
+        promo_image_note1: 'ATENCIÓ:'
+        promo_image_note2: Qualsevol imatge promocional que es carregui aquí es tallarà a 1200 x 260.
+        promo_image_note3: 'La imatge promocional es mostra a la part superior de la pàgina de perfil i finestres emergents d''una organització '
+        promo_image_placeholder: 'Aquesta imatge es mostra a "Sobre Nosaltres"'
+        promo_image_remove: "Elimina la imatge "
+        promo_image_remove_confirm: "La imatge promocional s'eliminarà immediatament després de confirmar."
+        white_label_logo_remove: "Elimina la imatge "
+        white_label_logo_remove_confirm: "Esteu segur de voler eliminar el logo?"
       user_guide_link:
         user_guide: Guia de l'usuari
       enterprises_hubs_tabs:
@@ -1442,7 +1481,6 @@ ca:
       not_visible: "%{enterprise} no és visible i, per tant, no es pot trobar al mapa ni a les cerques"
     reports:
       deprecated: "Aquest informe és obsolet i serà eliminat en properes actualitzacions."
-      hidden: OCULT
       unitsize: UNITAT DE MESURA
       total: TOTAL
       total_items: ARTICLES TOTALS
@@ -1616,6 +1654,11 @@ ca:
     schedules:
       destroy:
         associated_subscriptions_error: Aquesta programació no es pot suprimir perquè té subscripcions associades
+    user_invitations:
+      new:
+        back: Enrere
+        email: Correu electrònic
+        invite: Convida
     vouchers:
       new:
         back: Enrere
@@ -1627,6 +1670,9 @@ ca:
         stripe_connect_cancelled: "S'ha cancel·lat la connexió a Stripe"
         stripe_connect_success: "S'ha connectat correctament el compte de Stripe"
         stripe_connect_fail: Ho sentim, s'ha produït un error en la connexió del vostre compte de Stripe
+        remove_logo_success: "Logotip eliminat correctament"
+        remove_promo_image_success: "Imatge promocional eliminada correctament"
+        remove_white_label_logo_success: "Logotip eliminat correctament"
       stripe_connect_settings:
         resource: 'Configuració de la connexió amb Stripe '
   api:
@@ -1726,7 +1772,6 @@ ca:
       cancel: Tornar a mètodes de pagament
     errors:
       invalid_email: "siusplau, introduïu una adreça de correu electrònic vàlida"
-      voucher_not_found: No trobat
   shops:
     hubs:
       show_closed_shops: "Mostra les botigues tancades"
@@ -1890,7 +1935,6 @@ ca:
   label_account: "Compte"
   label_more: "Mostrar més"
   label_less: "Mostra menys"
-  label_notices: "Avisos"
   cart_items: "articles"
   cart_headline: "La teva cistella"
   total: "Total"
@@ -1926,7 +1970,6 @@ ca:
       essential_cookies_note: "La majoria de les cookies només contenen un identificador únic, però no hi ha altres dades, de manera que la teva adreça de correu electrònic i contrasenya, per exemple, mai no estan contingudes ni exposades."
       cookie_domain: "Establert per:"
       cookie_session_desc: "S'utilitza per permetre que el lloc web recordi usuaris entre visites a la pàgina, per exemple, recordar els articles de la vostra cistella."
-      cookie_consent_desc: "S'utilitza per mantenir l'estat del consentiment de l'usuari per emmagatzemar cookies"
       cookie_remember_me_desc: "S'utilitza si l'usuari ha demanat que el lloc web el recordi. Aquesta cookie s'elimina automàticament després de 12 dies. Si com a usuari voleu que se suprimeixi aquesta cookie, només heu de tancar la sessió. Si no voleu que aquesta cookie s'instal·li a l'ordinador, no haureu de marcar la casella \"Recorda'm\" quan inicieu la sessió."
       cookie_openstreemap_desc: "Utilitzat pel nostre proveïdor de confiança d'emmagatzematge de codi obert (OpenStreetMap) per garantir que no rebis massa sol·licituds durant un període de temps determinat, per evitar l'abús dels seus serveis."
       cookie_stripe_desc: "Dades recollides pel nostre processador de pagaments Stripe per a la detecció de frau https://stripe.com/cookies-policy/legal. No totes les botigues utilitzen Stripe com a mètode de pagament, però és una bona pràctica per evitar que el frau s'apliqui a totes les pàgines. Probablement Stripe construeixi una imatge de quines de les nostres pàgines solen interactuar amb la seva API i, a continuació, marca qualsevol cosa inusual. Així, configurar les cookies d'Stripe té una funció més àmplia que simplement proporcionar un mètode de pagament a un usuari. Eliminant-lo podria afectar la seguretat del propi servei. Pots obtenir més informació sobre Stripe i llegir la seva política de privadesa a https://stripe.com/privacy."
@@ -1944,13 +1987,6 @@ ca:
       disabling_cookies_ie_link: "https://support.microsoft.com/en-us/help/17442/windows-internet-explorer-delete-manage-cookies"
       disabling_cookies_safari_link: "https://www.apple.com/legal/privacy/en-ww/cookies/"
       disabling_cookies_note: "Però tingueu en compte que si suprimiu o modifiqueu les cookies essencials que utilitza Open Food Network el lloc web no funcionarà; no podreu afegir res a la vostra cistella ni per validar la compra, per exemple."
-    cookies_banner:
-      cookies_usage: "Aquest lloc utilitza cookies per fer que la teva navegació no sigui problemàtica i sigui segura i ens ajuda a comprendre com navegues per millorar les funcions que oferim."
-      cookies_definition: "Les cookies són fitxers de text molt petits que s'emmagatzemen a l'ordinador quan visites alguns llocs web."
-      cookies_desc: "Utilitzem només les cookies que són necessàries per oferir-te el servei de compra/venda d'aliments en línia. No venem cap de les teves dades. Utilitzem cookies principalment per recordar qui ets si inicies la sessió al servei o per recordar els elements que has introduït a la teva cistella encara que no hagis iniciat la sessió. Si continues navegant al lloc web sense fer clic \"Acceptar cookies\", suposem que ens estàs donant el consentiment per emmagatzemar les cookies que són essencials per al funcionament del lloc web."
-      cookies_policy_link_desc: "Si vols obtenir més informació consulta la nostra"
-      cookies_policy_link: "política de cookies"
-      cookies_accept_button: "Acceptar les cookies"
   home_shop: Compra ara
   brandstory_headline: "Aliments de proximitat."
   brandstory_intro: "De vegades la millor manera de solucionar el sistema és començar una nova ..."
@@ -1961,12 +1997,11 @@ ca:
   brandstory_part5_strong: "L'anomenem Open Food Network."
   brandstory_part6: "A totes ens agrada menjar. Ara també podem estimar el nostre sistema alimentari."
   system_headline: "Compres - aquí t'expliquem com funcionen."
-  system_step1: "1. Cerca"
-  system_step1_text: "Cerca a les nostres botigues diverses i independents per menjar producte local de temporada. Cerca per població i categoria d'aliments, o bé si prefereixes lliurament o recollida."
-  system_step2: "2. Compra"
-  system_step2_text: "Transforma les teves transaccions amb aliments locals assequibles de diverses productores i grups. Coneix les històries del teu menjar i de les persones que el fan!"
-  system_step3: "3. Recollida / lliurament"
-  system_step3_text: "Espereu per al vostre lliurament o visiteu la vostra productora o grup de consum per tenir una connexió més personal amb el vostre menjar. La compra d'aliments és tan diversa com ens proposem."
+  system_step1_html: "1. Cerca"
+  system_step2_html: "2. Compra"
+  system_step2_text_html: "Transforma les teves transaccions amb aliments locals assequibles de diverses productores i grups. Coneix les històries del teu menjar i de les persones que el fan!"
+  system_step3_html: "3. Recollida / lliurament"
+  system_step3_text_html: "Espereu per al vostre lliurament o visiteu la vostra productora o grup de consum per tenir una connexió més personal amb el vostre menjar. La compra d'aliments és tan diversa com ens proposem."
   cta_headline: "Compres que fan del món un lloc millor."
   cta_label: "Estic preparada"
   stats_headline: "Estem creant un nou sistema alimentari."
@@ -2002,6 +2037,7 @@ ca:
   order_not_paid: NO PAGAT
   order_total: Total de la comanda
   order_payment: "Pagament a través de:"
+  customer_credit: Crèdit
   order_billing_address: Adreça de facturació
   order_delivery_on: Lliurament a
   order_delivery_address: Adreça de lliurament
@@ -2029,10 +2065,8 @@ ca:
   email_confirmed: "Gràcies per confirmar la teva adreça de correu electrònic."
   email_confirmation_activate_account: "Abans de poder activar el compte nou hem de confirmar la teva adreça de correu electrònic."
   email_confirmation_greeting: "Hola, %{contact}!"
-  email_confirmation_profile_created: "S'ha creat exitosament un perfil per %{name}. Per activar el teu perfil hem de confirmar aquesta adreça de correu electrònic."
   email_confirmation_click_link: "Si us plau fes clic a l'enllaç següent per confirmar el teu correu electrònic i continuar configurant el teu perfil."
   email_confirmation_link_label: "Confirma aquesta adreça de correu electrònic »"
-  email_confirmation_help_html: "Després de confirmar el teu correu electrònic podràs accedir al teu compte d'administració per a aquesta organització. Consulta l'%{link} per obtenir més informació sobre les funcions d'%{sitename} i començar a utilitzar el teu perfil o botiga en línia."
   email_confirmation_notice_unexpected: "Has rebut aquest missatge perquè t'has inscrit a l'%{sitename} o perquè has estat convidada a registrar-te per algú que probablement coneixes. Si no entens per què estàs rebent aquest correu electrònic, escriu a %{contact}."
   email_social: "Connecta't amb nosaltres:"
   email_contact: "Envia'ns un correu electrònic:"
@@ -2243,12 +2277,12 @@ ca:
   sell_motivation: "Mostra el teu bonic menjar."
   sell_producers: "Productors"
   sell_hubs: "Grups"
-  sell_groups: "Grups"
+  sell_groups: "Xarxes"
   sell_producers_detail: "Configura un perfil per a la vostra empresa a Katuma en qüestió de minuts. En qualsevol moment pots convertir el teu perfil en una botiga en línia i vendre els teus productes directament a les consumidores."
   sell_hubs_detail: "Configura un perfil per a la teva organització alimentària a Katuma. En qualsevol moment, pots modificar i convertir el teu perfil en una botiga de diverses productores."
   sell_groups_detail: "Configura un directori personalitzat d'empreses (productores i altres empreses alimentàries) per a la teva regió o per a la teva xarxa, organització."
   sell_user_guide: "Troba més informació a la nostra Guia d'usuari."
-  sell_listing_price: "El llistat al OFN és gratuït. L’obertura i l’execució d’una botiga a OFN és gratuïta fins a 500 dòlars de vendes mensuals. Si veneu més, podeu escollir la vostra contribució comunitària entre l'1% i el 3% de les vendes. Per obtenir més informació sobre preus, consulteu la secció Plataforma de programari a través de l’enllaç Sobre al menú superior."
+  sell_listing_price: "La inscripció a Katuma-OFN és gratuïta. Consulteu les tarifes d'ús de la plataforma a https://www.katuma.org/quotes. "
   sell_embed: "També podem incrustar una botiga OFN al vostre web personalitzat o crear un lloc web personalitzat de la xarxa alimentària per a la teva regió."
   sell_ask_services: "Pregunta'ns sobre els serveis d'OFN."
   shops_title: Botigues
@@ -2619,26 +2653,14 @@ ca:
   spree_admin_enterprises_fees: "Comissions de l'organització"
   spree_admin_enterprises_none_create_a_new_enterprise: "CREA UNA NOVA ORGANITZACIÓ"
   spree_admin_enterprises_none_text: "Encara no tens cap organització"
-  spree_admin_enterprises_tabs_hubs: "GRUPS"
   spree_admin_enterprises_producers_manage_products: "GESTIONA ELS PRODUCTES"
   spree_admin_enterprises_create_new_product: "CREA UN NOU PRODUCTE"
-  spree_admin_single_enterprise_alert_mail_confirmation: "Si us plau confirma l'adreça de correu electrònic de"
-  spree_admin_single_enterprise_alert_mail_sent: "Hem enviat un correu electrònic a"
-  spree_admin_overview_action_required: "Acció requerida"
-  spree_admin_overview_check_your_inbox: "Si us plat comproveu la vostra safata d'entrada per obtenir més instruccions. Gràcies!"
-  spree_admin_unit_value: Valor de la unitat
-  spree_admin_unit_description: Descripció de la unitat
-  spree_admin_variant_unit: Unitat de variants
-  spree_admin_variant_unit_scale: Escala de unitat de variants
   spree_admin_supplier: Proveïdora
-  spree_admin_product_category: Categoria del producte
-  spree_admin_variant_unit_name: Nom de unitat de variants
   unit_name: "Nom de la unitat"
   change_package: "Canvia el perfil"
   spree_admin_single_enterprise_hint: "Suggeriment: per permetre que la gent us trobi, activeu la vostra visibilitat"
   spree_admin_eg_pickup_from_school: "p. ex: 'Recollida al local del grup de consum'"
   spree_admin_eg_collect_your_order: "p. ex: \"Recolliu la vostra comanda al c/Ample, n. 123'"
-  spree_classification_primary_taxon_error: "El taxó %{taxon} és el principal taxó d'%{product} i no es pot eliminar"
   spree_order_availability_error: "La distribuïdora o el cicle de comanda no pot subministrar els productes de la vostra cistella"
   spree_order_populator_error: "Aquesta distribuïdora o cicle de comanda no pot subministrar tots els productes de la vostra cistella. Si us plau trieu-ne d'altres."
   spree_order_cycle_error: "Seleccioneu un cicle per a aquesta comanda."
@@ -2728,7 +2750,6 @@ ca:
   report_header_paid: Pagat?
   report_header_delivery: Lliurament?
   report_header_shipping: Enviament
-  report_header_shipping_method: Mètode d'enviament
   report_header_shipping_instructions: Instruccions d'enviament
   report_header_ship_street: Carrer d'enviament
   report_header_ship_street_2: Carrer d'enviament 2
@@ -2773,6 +2794,7 @@ ca:
   report_header_quantity: Quantitat
   report_header_max_quantity: Quantitat màxima
   report_header_variant: Variant
+  report_header_variant_unit_name: Nom de la unitat de la variant
   report_header_variant_value: Valor de la variant
   report_header_variant_unit: Unitat de la variant
   report_header_total_available: Total disponible
@@ -2842,6 +2864,8 @@ ca:
   report_header_total_excl_vat: "Total excl. impostos (%{currency_symbol})"
   report_header_total_incl_vat: "Total incl. impostos (%{currency_symbol})"
   report_header_temp_controlled: Control de temperatura?
+  report_header_shipment_state: "Estat de la Tramesa"
+  report_header_shipping_method: "Mètode d'enviament"
   report_header_is_producer: Productor?
   report_header_not_confirmed: No confirmat
   report_header_gst_on_income: IVA sobre ingressos
@@ -2929,7 +2953,7 @@ ca:
   order_cycles_no_permission_to_coordinate_error: "Cap de les vostres organitzacions té permís per coordinar un cicle de comanda"
   order_cycles_no_permission_to_create_error: "No teniu permís per crear un cicle de comandes coordinat per aquesta organització"
   order_cycle_closed: "El cicle de comandes que has triat acaba de tancar. Sisplau prova en un altre moment."
-  back_to_orders_list: "Torna a la llista de comandes"
+  back_to_orders_list: "Tornar a la llista de comandes"
   no_orders_found: "No s'han trobat comandes"
   order_information: "Informació de la comanda"
   new_payment: "Nou pagament"
@@ -2941,6 +2965,7 @@ ca:
     ready: Llest
     pending: Pendents
     shipped: Enviat
+  business_name: Nom de l'empresa
   js:
     saving: 'Desant...'
     changes_saved: 'S''han desat els canvis.'
@@ -3104,18 +3129,6 @@ ca:
           select_all_variants: "Seleccioneu totes les %{total_number_of_variants} variants"
           variants_loaded: "%{num_of_variants_loaded} de %{total_number_of_variants} variants carregades"
           loading_variants: "Carregant variants"
-      tag_rules:
-        shipping_method_tagged_top: "Els mètodes d'enviament etiquetats"
-        shipping_method_tagged_bottom: "son:"
-        payment_method_tagged_top: "Mètodes de pagament etiquetats"
-        payment_method_tagged_bottom: "son:"
-        order_cycle_tagged_top: "Cicles de comandes etiquetats"
-        order_cycle_tagged_bottom: "son:"
-        inventory_tagged_top: "Variants d'inventari etiquetades"
-        inventory_tagged_bottom: "son:"
-      new_tag_rule_dialog:
-        select_rule_type: "Selecciona un tipus de regla:"
-        add_rule: "Afegeix una regla"
       enterprise_fees:
         inherit_from_product: "Heretar del producte"
       orders:
@@ -3195,10 +3208,6 @@ ca:
       enterprises:
         form:
           images:
-            removed_logo_successfully: "Logotip eliminat correctament"
-            immediate_logo_removal_warning: "El logotip s'eliminarà immediatament després de confirmar."
-            removed_promo_image_successfully: "Imatge promocional eliminada correctament"
-            immediate_promo_image_removal_warning: "La imatge promocional s'eliminarà immediatament després de confirmar."
             immediate_terms_and_conditions_removal_warning: "El fitxer de termes i condicions s’eliminarà immediatament després de confirmar-ho."
             removed_terms_and_conditions_successfully: "El fitxer de termes i condicions s’ha eliminat correctament"
     insufficient_stock: "No hi ha prou estoc disponible, només queda %{on_hand}"
@@ -3208,7 +3217,7 @@ ca:
           Mentre heu estat comprant, s'han reduït els nivells d'existències d'un o
           més dels productes de la cistella. Aquí podeu veure el que ha canviat:
       now_out_of_stock: ara està fora d'estoc.
-      only_n_remainging: "ara només n'hi ha %{num} restants."
+      only_n_remaining: "ara només n'hi ha %{num} restants."
     shopfront:
       variant:
         add_to_cart: "Afegeix"
@@ -3241,13 +3250,6 @@ ca:
       some_trouble: "He tingut problemes per desar: %{errors}"
       changing_on_hand_stock: Canviant els nivells de disponibilitat d'existències...
       stock_reset: Existències restablertes als valors predeterminats.
-    tag_rules:
-      show_hide_variants: 'Mostra o amaga variants a la meva botiga'
-      show_hide_shipping: 'Mostra o amaga mètodes d''enviament en la validació de la comanda'
-      show_hide_payment: 'Mostra o amaga mètodes de pagament en la validació de la comanda'
-      show_hide_order_cycles: 'Mostra o amaga els cicles de comanda a la meva botiga'
-      visible: VISIBLE
-      not_visible: NO VISIBLE
     services:
       unsaved_changes_message: Actualment hi ha canvis sense desar, vols desar-los o ignorar-los?
       save: DESA
@@ -3263,6 +3265,8 @@ ca:
           Això establirà el nivell d'estoc a zero en tots els productes per aquesta
           organització que no estan presents al fitxer carregat.
     order_cycles:
+      unsaved_changes: "Teniu canvis sense desar"
+      bulk_save_error: "Ah no! No he pogut desar els canvis."
       create_failure: "No s'ha pogut crear el cicle de comanda"
       update_success: 'S''ha actualitzat el cicle de comanda.'
       update_failure: "No s'ha pogut actualitzar el cicle de comanda"
@@ -3288,6 +3292,9 @@ ca:
     stripe_elements:
       unknown_error_from_stripe: |
           Hi ha hagut un problema al configurar la vostra targeta a la nostra passarel·la de pagaments. Actualitzeu la pàgina i torneu-ho a provar; si falla una segona vegada, poseu-vos en contacte amb nosaltres per obtenir assistència.
+    trix:
+      code: "Codi"
+      urlPlaceholder: "Introduïu un URL per inserir"
   inflections:
     each:
       one: "cadascun"
@@ -3349,9 +3356,6 @@ ca:
     pot:
       one: "pot"
       other: "pots"
-    bundle:
-      one: "paquet"
-      other: "paquets"
     flask:
       one: "matràs"
       other: "ampolleta"
@@ -3361,6 +3365,9 @@ ca:
     sack:
       one: "sac"
       other: "sacs"
+    bundle:
+      one: "paquet"
+      other: "paquets"
   producers:
     signup:
       start_free_profile: "Comença amb un perfil gratuït i amplia'l quan estiguis preparada."
@@ -3442,7 +3449,7 @@ ca:
   account: "Compte"
   logout: "Tanca sessió"
   date_range: "Interval de dates"
-  status: "estat"
+  status: "Estat"
   new: "Nou"
   start: "Començar"
   end: "Acabar"
@@ -3476,9 +3483,9 @@ ca:
     more: "Més"
     new_adjustment: "Nou ajustament"
     new_tax_category: "Nova categoria fiscal"
-    new_taxon: "Nou tàxon"
     new_user: "Nou usuari"
     no_pending_payments: "No hi ha pagaments pendents"
+    remove: "Eliminar"
     none: "Cap"
     not_found: "No trobat"
     notice_messages:
@@ -3488,16 +3495,8 @@ ca:
     rma_credit: "credit RMA"
     refund: "Reembossament"
     server_error: "Error del servidor"
-    shipping_method_names:
-      UPS Ground: "UPS Ground"
-      pick_up: "Recollida a la granja"
-      delivery: "Signat, segellat, lliurat"
     start_date: "Data d'inici"
     successfully_removed: "S'ha suprimit correctament"
-    taxonomy_edit: "Edició de taxonomia"
-    taxonomy_tree_error: "Error d'arbre de taxonomia"
-    taxonomy_tree_instruction: "Instrucció d'arbre de taxonomia"
-    tree: "Arbre"
     updating: "Actualitzant"
     your_order_is_empty_add_product: "La comanda està buida, si us plau cerca i afegeix un producte a dalt"
     add_product: "Afegeix un producte"
@@ -3594,7 +3593,6 @@ ca:
     tax_rate_amount_explanation: "Les taxes impositives són un import decimal per ajudar en els càlculs (és a dir, si el tipus impositiu és del 5%, introduïu 0,05)"
     included_in_price: "Inclòs al preu"
     show_rate_in_label: "Mostra l'impost a l'etiqueta"
-    back_to_tax_rates_list: "Tornar a la llista d'impostos"
     tax_settings: "Configuració fiscal"
     zones: "Zones"
     new_zone: "Nova zona"
@@ -3607,14 +3605,11 @@ ca:
     iso_name: "Nom ISO"
     states_required: "Estats obligatoris"
     editing_country: "Editar el país"
-    back_to_countries_list: "Torna a la llista de països"
     states: "Estats"
     abbreviation: "Abreviatura"
     new_state: "Nou estat"
     payment_methods: "Mètodes de Pagament"
-    taxonomies: "Taxonomies"
-    new_taxonomy: "Nova taxonomia"
-    back_to_taxonomies_list: "Torna a la llista de taxonomies"
+    taxons: "Tipus de productes"
     shipping_methods: "Mètodes d'enviament"
     shipping_method: "Mètode d'enviament"
     shipment: "Enviament"
@@ -3704,6 +3699,9 @@ ca:
     validation:
       must_be_int: "ha de ser un nombre enter"
     admin:
+      images:
+        edit:
+          close: Enrere
       mail_methods:
         send_testmail: "Enviar correu electrònic de prova"
         testmail:
@@ -3718,6 +3716,7 @@ ca:
         bulk_order_management: "Gestió de comandes en bloc"
         subscriptions: "Subscripcions"
         products: "Productes "
+        products_v3: "Productes "
         option_types: "Tipus d'opcions"
         properties: "Propietats"
         variant_overrides: "Inventari"
@@ -3729,7 +3728,11 @@ ca:
         enterprises: "Organitzacions"
         enterprise_relationships: "Permisos"
         customers: "Consumidores"
-        groups: "Grups"
+        groups: "Xarxes"
+        overview: "Visió general"
+        product_import: "Importa"
+        enterprise_roles: "Rols"
+        payment_methods: "Mètodes de Pagament"
       product_properties:
         index:
           inherits_properties_checkbox_hint: "heredar propietats de %{supplier}? (llevat que es sobreescrigui a dalt)"
@@ -3760,7 +3763,6 @@ ca:
           continue: "Continua"
         new:
           new_return_authorization: "Nova autorització de devolució"
-          back_to_return_authorizations_list: "Tornar a la llista d'autorització"
           continue: "Continua"
         edit:
           receive: "rebre"
@@ -3943,9 +3945,7 @@ ca:
         providers:
           provider: "Proveïdor"
           check: "Efectiu / transferència / etc. (pagaments per als quals no és necessària la validació automàtica)"
-          pin: "Pin Payments"
           paypalexpress: "PayPal Express"
-          stripeconnect: "Stripe (obsolet)"
           stripesca: "Stripe SCA"
       payments:
         source_forms:
@@ -3996,6 +3996,7 @@ ca:
           product_name: Nom del producte
         primary_taxon_form:
           product_category: Categoria del producte
+          search_for_categories: "Cercar categories"
         group_buy_form:
           group_buy: "Compra en grup?"
           bulk_unit_size: Mida de la unitat a granel
@@ -4004,8 +4005,6 @@ ca:
       reports:
         table:
           select_and_search: "Seleccioneu els filtres i feu clic a %{option} per accedir a les vostres dades."
-        customer_names_message:
-          customer_names_tip: "Si els noms de les consumidores per a les comandes que heu subministrat apareixen amagats, podeu contactar amb la distribuïdora i preguntar-los si poden actualitzar les seves preferències de la botiga per permetre als seus proveïdors visualitzar els noms de les consumidores."
         products_and_inventory:
           all_products:
             message: "Pareu atenció al fet que els nivells d'estoc informats són només els de la llista de productes del proveïdor. Si feu servir l'inventari per a gestionar les vostres quantitats, aquests valors seran ignorats. "
@@ -4024,7 +4023,6 @@ ca:
         form:
           disabled: "Deshabilitat?"
           email: "E-mail"
-          roles: "Rols"
           enterprise_limit: "Límit d'organitzacions"
           confirm_password: "Confirma la contrassenya"
           password: "Contrasenya"
@@ -4047,12 +4045,15 @@ ca:
           new_variant: "Nova variant"
         form:
           sku: "Número de referència (SKU)"
-          price: "Preu"
           unit_price: "Preu unitari"
           display_as: "Mostra com"
           display_name: "Nom de visualització"
           display_as_placeholder: 'per exemple. 2 kg'
           display_name_placeholder: 'per exemple. Tomàquets'
+          unit: Unitat
+          price: Preu
+          unit_value: Valor de la unitat
+          variant_category: Categoria
         autocomplete:
           out_of_stock: "Fora d'existència"
           producer_name: "Productor"
@@ -4062,6 +4063,7 @@ ca:
           terms_of_service: "Termes del servei"
         sortable_header:
           name: "Nom"
+          on_hand: "Disponibles"
           number: "Número"
           completed_at: "Completat a"
           state: "Estat"
@@ -4071,14 +4073,14 @@ ca:
           total: "Total"
           billing_address_name: "Nom"
       taxons:
+        index:
+          title: "Tipus de productes"
         form:
           name: Nom
-          permalink: Enllaç permanent
           description: Descripció
       general_settings:
         edit:
           legal_settings: "Paràmetres legals"
-          cookies_consent_banner_toggle: "Mostra banner de consentiment de cookies"
           privacy_policy_url: "URL de la política de privacitat "
           enterprises_require_tos: "Les organitzacions han d'acceptar les condicions del servei"
           shoppers_require_tos: "Els compradors han d’acceptar les condicions del servei"
@@ -4168,13 +4170,6 @@ ca:
         subject: "Instruccions per restablir la contrasenya"
       confirmation_instructions:
         subject: "Si us plau confirma el teu compte d'OFN"
-    payment_mailer:
-      authorize_payment:
-        subject: "Autoritzeu el vostre pagament a %{distributor} a OFN"
-        instructions: "El vostre pagament de %{amount} a %{distributor} requereix una autenticació addicional. Visiteu l’URL següent per autoritzar el vostre pagament:"
-      authorization_required:
-        subject: "Un pagament requereix l’autorització del client"
-        message: "El pagament de la comanda %{order_number} requereix una autorització addicional del client. El client ha rebut una notificació per correu electrònic i el pagament apareixerà pendent fins que no s’autoritzi."
     shipment_mailer:
       shipped_email:
         dear_customer: "Benvolguda consumidora:"
@@ -4236,8 +4231,6 @@ ca:
         title: Clau API
       webhook_endpoints:
         title: Webhook Endpoints
-        event_types:
-          order_cycle_opened: Cicle de comanda obert
       form:
         account_settings: Configuració del compte
       show:
@@ -4254,6 +4247,10 @@ ca:
         transaction_history: Historial de transaccions
         authorisation_required: Cal autorització
         authorise: Autoritzar
+      customer_account_transactions:
+        description: Descripció
+        amount: Quantitat
+        running_balance: Balanç corrent
       open_orders:
         order: Comanda
         shop: Botiga
@@ -4301,7 +4298,6 @@ ca:
       key_cleared: "La clau esborrada"
       shipment:
         cannot_ready: "No es pot fer l'enviament."
-      invalid_taxonomy_id: "Identificador de taxonomia no vàlid."
     activerecord:
       models:
         spree/payment:
@@ -4354,7 +4350,33 @@ ca:
     search_input:
       placeholder: Cerca
     selector_with_filter:
+      selected_items: "%{count} seleccionat"
       search_placeholder: Cerca
     pagination:
       next: Següent
       previous: Anterior
+    tag_list_input:
+      default_placeholder: Afegeix una etiqueta
+    tag_rule_form:
+      tag_rules:
+        shipping_method_tagged_top: "Els mètodes d'enviament etiquetats"
+        shipping_method_tagged_bottom: "son:"
+        payment_method_tagged_top: "Mètodes de pagament etiquetats"
+        payment_method_tagged_bottom: "son:"
+        order_cycle_tagged_top: "Cicles de comandes etiquetats"
+        order_cycle_tagged_bottom: "son:"
+        inventory_tagged_top: "Variants d'inventari etiquetades"
+        inventory_tagged_bottom: "son:"
+        variant_tagged_bottom: "son:"
+        visible: VISIBLE
+        not_visible: NO VISIBLE
+    tag_rule_group_form:
+      for_customers_tagged: 'Per als clients etiquetats:'
+      add_new_rule: '+ Afegeix una nova regla'
+      no_rules_yet: Encara no hi ha cap regla aplicada a aquesta etiqueta
+    add_tag_rule_modal:
+      select_rule_type: "Selecciona un tipus de regla:"
+      add_rule: "Afegeix una regla"
+    webhook_endpoint_form:
+      event_types:
+        order_cycle_opened: Cicle de comanda obert

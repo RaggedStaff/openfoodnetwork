@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe "Footer Links" do
+RSpec.describe "Footer Links" do
   describe "policy link" do
     it "showing" do
       visit root_path
@@ -44,7 +44,7 @@ describe "Footer Links" do
     it "not showing if it is empty" do
       Spree::Config[:privacy_policy_url] = nil
       visit root_path
-      expect(page).to have_no_link "privacy policy"
+      expect(page).not_to have_link "privacy policy"
     end
 
     it "showing configured privacy policy link" do

@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
-
-describe "spree/admin/orders/edit.html.haml" do
+RSpec.describe "spree/admin/orders/edit.html.haml" do
   helper Spree::BaseHelper # required to make pretty_time work
   helper Spree::Admin::NavigationHelper
   helper Admin::InjectionHelper
@@ -14,14 +12,19 @@ describe "spree/admin/orders/edit.html.haml" do
     Spree::Config[:enable_invoices?] = original_config
   end
 
+  let(:current_test_user) { create(:admin_user) }
+
   before do
     controller.singleton_class.class_eval do
+      attr_accessor :current_test_user
+
       def current_ability
-        Spree::Ability.new(Spree::User.new)
+        Spree::Ability.new(current_test_user)
       end
     end
 
-    allow(view).to receive_messages spree_current_user: create(:user)
+    controller.current_test_user = current_test_user
+    allow(view).to receive_messages spree_current_user: current_test_user
   end
 
   context "when order is complete" do
@@ -54,8 +57,7 @@ describe "spree/admin/orders/edit.html.haml" do
       it "doesn't display a table of out of stock line items" do
         render
 
-        expect(rendered).to_not have_content "Out of Stock"
-        expect(rendered).to_not have_selector ".insufficient-stock-items",
+        expect(rendered).not_to have_selector ".insufficient-stock-items",
                                               text: out_of_stock_line_item.variant.display_name
       end
     end
@@ -63,7 +65,7 @@ describe "spree/admin/orders/edit.html.haml" do
     it "doesn't display closed associated adjustments" do
       render
 
-      expect(rendered).to_not have_content "Associated adjustment closed"
+      expect(rendered).not_to have_content "Associated adjustment closed"
     end
   end
 
@@ -96,14 +98,14 @@ describe "spree/admin/orders/edit.html.haml" do
       it "doesn't display a table of out of stock line items" do
         render
 
-        expect(rendered).to_not have_content "Out of Stock"
+        expect(rendered).not_to have_selector ".insufficient-stock-items"
       end
     end
 
     it "doesn't display closed associated adjustments" do
       render
 
-      expect(rendered).to_not have_content "Associated adjustment closed"
+      expect(rendered).not_to have_content "Associated adjustment closed"
     end
   end
 end

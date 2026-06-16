@@ -32,7 +32,7 @@ module Reporting
             total: proc { |_variant| '' },
             gst: proc { |variant| gst(variant) },
             grower: proc { |variant| grower_and_method(variant) },
-            taxon: proc { |variant| variant.product.primary_taxon.name }
+            taxon: proc { |variant| variant.primary_taxon.name }
           }
         end
 
@@ -65,7 +65,7 @@ module Reporting
         end
 
         def producer_name(variant)
-          variant.product.supplier.name
+          variant.supplier.name
         end
 
         def certification(variant)

@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Spree::OrdersController, type: :controller do
+RSpec.describe Spree::OrdersController do
   include CheckoutHelper
   include StripeStubs
 
@@ -26,7 +24,7 @@ describe Spree::OrdersController, type: :controller do
 
       it "loads page" do
         get :show, params: { id: order.number, order_token: order.token }
-        expect(response.status).to eq 200
+        expect(response).to have_http_status :ok
       end
 
       it "stores order token in session as 'access_token'" do
@@ -45,7 +43,7 @@ describe Spree::OrdersController, type: :controller do
 
       it "loads page" do
         get :show, params: { id: order.number }
-        expect(response.status).to eq 200
+        expect(response).to have_http_status :ok
       end
     end
 
@@ -54,7 +52,7 @@ describe Spree::OrdersController, type: :controller do
 
       it "loads page" do
         get :show, params: { id: order.number }
-        expect(response.status).to eq 200
+        expect(response).to have_http_status :ok
       end
     end
 
@@ -150,7 +148,7 @@ describe Spree::OrdersController, type: :controller do
           spree_registration_path = '/signup'
           ofn_registration_path = '/register'
           get :edit
-          expect(response.body).to_not match spree_registration_path
+          expect(response.body).not_to match spree_registration_path
           expect(response.body).to match ofn_registration_path
         end
       end
@@ -162,7 +160,7 @@ describe Spree::OrdersController, type: :controller do
 
         it "displays a flash message when we view the cart" do
           get :edit
-          expect(response.status).to eq 200
+          expect(response).to have_http_status :ok
           expect(flash[:error]).to eq 'An item in your cart has become unavailable. ' \
                                       'Please update the selected quantities.'
         end
@@ -175,7 +173,7 @@ describe Spree::OrdersController, type: :controller do
 
         it "displays a flash message when we view the cart" do
           get :edit
-          expect(response.status).to eq 200
+          expect(response).to have_http_status :ok
           expect(flash[:error]).to eq 'An item in your cart has become unavailable. ' \
                                       'Please update the selected quantities.'
         end
@@ -192,7 +190,7 @@ describe Spree::OrdersController, type: :controller do
           "0" => { quantity: "0", id: "9999" },
           "1" => { quantity: "99", id: li.id }
         } } }
-        expect(response.status).to eq(302)
+        expect(response).to have_http_status(:found)
         expect(li.reload.quantity).to eq(99)
       end
     end
@@ -283,7 +281,7 @@ describe Spree::OrdersController, type: :controller do
       let(:order_cycle) { create(:simple_order_cycle, distributors: [distributor]) }
       let(:enterprise_fee) { create(:enterprise_fee, calculator: build(:calculator_per_item) ) }
       let!(:exchange) {
-        create(:exchange, incoming: true, sender: variant1.product.supplier,
+        create(:exchange, incoming: true, sender: variant1.supplier,
                           receiver: order_cycle.coordinator, variants: [variant1, variant2],
                           enterprise_fees: [enterprise_fee])
       }
@@ -293,7 +291,7 @@ describe Spree::OrdersController, type: :controller do
                                                      order_cycle:)
         order.reload.line_items.first.update(variant_id: variant1.id)
         order.reload.line_items.last.update(variant_id: variant2.id)
-        break unless order.next! while !order.completed?
+        Orders::WorkflowService.new(order).complete!
         order.recreate_all_fees!
         order
       end
@@ -389,7 +387,7 @@ describe Spree::OrdersController, type: :controller do
 
     context "when no order id is given in params" do
       it "returns the current_order" do
-        expect(controller.send(:order_to_update)).to eq current_order
+        expect(controller.__send__(:order_to_update)).to eq current_order
       end
     end
 
@@ -402,7 +400,7 @@ describe Spree::OrdersController, type: :controller do
         let!(:order) { create(:order) }
 
         it "returns nil" do
-          expect(controller.send(:order_to_update)).to eq nil
+          expect(controller.__send__(:order_to_update)).to eq nil
         end
       end
 
@@ -413,7 +411,7 @@ describe Spree::OrdersController, type: :controller do
           before { allow(controller).to receive(:can?).with(:update, order) { false } }
 
           it "returns nil" do
-            expect(controller.send(:order_to_update)).to eq nil
+            expect(controller.__send__(:order_to_update)).to eq nil
           end
         end
 
@@ -422,7 +420,7 @@ describe Spree::OrdersController, type: :controller do
 
           context "and the order is not editable" do
             it "returns nil" do
-              expect(controller.send(:order_to_update)).to eq nil
+              expect(controller.__send__(:order_to_update)).to eq nil
             end
           end
 
@@ -441,7 +439,7 @@ describe Spree::OrdersController, type: :controller do
             end
 
             it "returns the order" do
-              expect(controller.send(:order_to_update)).to eq order
+              expect(controller.__send__(:order_to_update)).to eq order
             end
           end
         end
@@ -463,14 +461,34 @@ describe Spree::OrdersController, type: :controller do
       end
     end
 
+    context "when a guest user has the order token in session" do
+      let(:order) {
+        create(:completed_order_with_totals, user: nil, email: "guest@example.com",
+                                             distributor: create(:distributor_enterprise))
+      }
+
+      before do
+        allow(controller).to receive(:spree_current_user) { nil }
+        session[:access_token] = order.token
+      end
+
+      it "cancels the order and redirects to the order page" do
+        request.env['HTTP_REFERER'] = order_path(order)
+        spree_put :cancel, params
+
+        expect(response.body).to match(order_path(order)).and match("redirect")
+        expect(flash[:success]).to eq 'Your order has been cancelled'
+      end
+    end
+
     context "when the user has permission to cancel the order" do
       before { allow(controller).to receive(:spree_current_user) { user } }
 
       context "when the order is not yet complete" do
         it "responds with forbidden" do
+          request.env['HTTP_REFERER'] = order_path(order)
           spree_put :cancel, params
 
-          expect(response).to have_http_status(:found)
           expect(response.body).to match(order_path(order)).and match("redirect")
           expect(flash[:error]).to eq 'Sorry, the order could not be cancelled'
         end
@@ -483,9 +501,9 @@ describe Spree::OrdersController, type: :controller do
         }
 
         it "responds with success" do
+          request.env['HTTP_REFERER'] = order_path(order)
           spree_put :cancel, params
 
-          expect(response).to have_http_status(:found)
           expect(response.body).to match(order_path(order)).and match("redirect")
           expect(flash[:success]).to eq 'Your order has been cancelled'
         end

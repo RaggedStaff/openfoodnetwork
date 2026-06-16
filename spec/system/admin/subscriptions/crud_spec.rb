@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe 'Subscriptions' do
+RSpec.describe 'Subscriptions' do
   include AdminHelper
   include AuthenticationHelper
   include WebHelper
@@ -49,8 +49,8 @@ describe 'Subscriptions' do
 
           # Loads the right subscriptions
           expect(page).to have_selector "tr#so_#{subscription2.id}"
-          expect(page).to have_no_selector "tr#so_#{subscription.id}"
-          expect(page).to have_no_selector "tr#so_#{subscription_unmanaged.id}"
+          expect(page).not_to have_selector "tr#so_#{subscription.id}"
+          expect(page).not_to have_selector "tr#so_#{subscription_unmanaged.id}"
           within "tr#so_#{subscription2.id}" do
             expect(page).to have_selector "td.customer", text: subscription2.customer.email
           end
@@ -60,8 +60,8 @@ describe 'Subscriptions' do
 
           # Loads the right subscriptions
           expect(page).to have_selector "tr#so_#{subscription.id}"
-          expect(page).to have_no_selector "tr#so_#{subscription2.id}"
-          expect(page).to have_no_selector "tr#so_#{subscription_unmanaged.id}"
+          expect(page).not_to have_selector "tr#so_#{subscription2.id}"
+          expect(page).not_to have_selector "tr#so_#{subscription_unmanaged.id}"
           within "tr#so_#{subscription.id}" do
             expect(page).to have_selector "td.customer", text: subscription.customer.email
           end
@@ -72,23 +72,23 @@ describe 'Subscriptions' do
 
           # Using the Quick Search: no result
           fill_in 'query', with: 'blah blah blah'
-          expect(page).to have_no_selector "tr#so_#{subscription.id}"
-          expect(page).to have_no_selector "tr#so_#{other_subscription.id}"
+          expect(page).not_to have_selector "tr#so_#{subscription.id}"
+          expect(page).not_to have_selector "tr#so_#{other_subscription.id}"
 
           # Using the Quick Search: filter by email
           fill_in 'query', with: other_subscription.customer.email
           expect(page).to have_selector "tr#so_#{other_subscription.id}"
-          expect(page).to have_no_selector "tr#so_#{subscription.id}"
+          expect(page).not_to have_selector "tr#so_#{subscription.id}"
 
           # Using the Quick Search: filter by first_name
           fill_in 'query', with: other_subscription.customer.first_name
           expect(page).to have_selector "tr#so_#{other_subscription.id}"
-          expect(page).to have_no_selector "tr#so_#{subscription.id}"
+          expect(page).not_to have_selector "tr#so_#{subscription.id}"
 
           # Using the Quick Search: filter by last_name
           fill_in 'query', with: other_subscription.customer.last_name
           expect(page).to have_selector "tr#so_#{other_subscription.id}"
-          expect(page).to have_no_selector "tr#so_#{subscription.id}"
+          expect(page).not_to have_selector "tr#so_#{subscription.id}"
 
           # Using the Quick Search: reset filter
           fill_in 'query', with: ''
@@ -99,8 +99,8 @@ describe 'Subscriptions' do
           expect(page).to have_selector "th.customer"
           expect(page).to have_content subscription.customer.email
           toggle_columns "Customer"
-          expect(page).to have_no_selector "th.customer"
-          expect(page).to have_no_content subscription.customer.email
+          expect(page).not_to have_selector "th.customer"
+          expect(page).not_to have_content subscription.customer.email
 
           # Viewing Products
           open_subscription_products_panel
@@ -124,7 +124,7 @@ describe 'Subscriptions' do
 
             proxy_order = subscription.proxy_orders.first
             within "tr#po_#{proxy_order.id}" do
-              expect(page).to have_no_content 'CANCELLED'
+              expect(page).not_to have_content 'CANCELLED'
               accept_alert 'Are you sure?' do
                 find("a.cancel-order").click
               end
@@ -206,13 +206,13 @@ describe 'Subscriptions' do
         create(:customer, enterprise: shop, bill_address: address, user: customer_user,
                           allow_charges: true)
       }
-      let!(:test_product) { create(:product, supplier: shop) }
+      let!(:test_product) { create(:product) }
       let!(:test_variant) {
-        create(:variant, product: test_product, unit_value: "100", price: 12.00)
+        create(:variant, product: test_product, unit_value: "100", price: 12.00, supplier: shop)
       }
-      let!(:shop_product) { create(:product, supplier: shop) }
+      let!(:shop_product) { create(:product) }
       let!(:shop_variant) {
-        create(:variant, product: shop_product, unit_value: "1000", price: 6.00)
+        create(:variant, product: shop_product, unit_value: "1000", price: 6.00, supplier: shop)
       }
       let!(:enterprise_fee) { create(:enterprise_fee, amount: 1.75) }
       let!(:order_cycle) {
@@ -260,7 +260,7 @@ describe 'Subscriptions' do
             choose_today_from_datepicker
             click_button('Next')
 
-            expect(page).to have_content 'BILLING ADDRESS'
+            expect(page).to have_content 'Billing Address'
             # Customer bill address has been pre-loaded
             expect(page).to have_input "bill_address_firstname", with: address.firstname
             expect(page).to have_input "bill_address_lastname", with: address.lastname
@@ -371,7 +371,7 @@ describe 'Subscriptions' do
               expect{
                 click_button('Create Subscription')
                 expect(page).to have_content 'Please add at least one product'
-              }.to_not change { Subscription.count }
+              }.not_to change { Subscription.count }
             end
 
             context 'and adding a new product' do
@@ -448,17 +448,17 @@ describe 'Subscriptions' do
 
     context 'editing an existing subscription' do
       let!(:customer) { create(:customer, enterprise: shop) }
-      let!(:product1) { create(:product, supplier: shop) }
-      let!(:product2) { create(:product, supplier: shop) }
-      let!(:product3) { create(:product, supplier: shop) }
+      let!(:product1) { create(:product) }
+      let!(:product2) { create(:product) }
+      let!(:product3) { create(:product) }
       let!(:variant1) {
-        create(:variant, product: product1, unit_value: '100', price: 12.00)
+        create(:variant, product: product1, unit_value: '100', price: 12.00, supplier: shop)
       }
       let!(:variant2) {
-        create(:variant, product: product2, unit_value: '1000', price: 6.00)
+        create(:variant, product: product2, unit_value: '1000', price: 6.00, supplier: shop)
       }
       let!(:variant3) {
-        create(:variant, product: product3, unit_value: '10000', price: 22.00)
+        create(:variant, product: product3, unit_value: '10000', price: 22.00, supplier: shop)
       }
       let!(:enterprise_fee) { create(:enterprise_fee, amount: 1.75) }
       let!(:order_cycle) {

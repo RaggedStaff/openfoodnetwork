@@ -3,18 +3,28 @@
 # Controller used to provide the API products for the DFC application
 module DfcProvider
   class ApplicationController < ActionController::Base
+    class Unauthorized < StandardError; end
+
     include ActiveStorage::SetCurrent
 
     protect_from_forgery with: :null_session
 
     rescue_from ActiveRecord::RecordNotFound, with: :not_found
     rescue_from CanCan::AccessDenied, with: :unauthorized
+    rescue_from Unauthorized, with: :unauthorized
 
     before_action :check_authorization
 
     respond_to :json
 
     private
+
+    def require_permission(scope)
+      return if current_user.is_a? Spree::User
+      return if current_user.permissions(scope).where(enterprise: current_enterprise).exists?
+
+      raise Unauthorized
+    end
 
     def check_authorization
       unauthorized if current_user.nil?
@@ -60,8 +70,30 @@ module DfcProvider
       @current_ability ||= Spree::Ability.new(current_user)
     end
 
+    def profile
+      request.headers["Accept"][/\bprofile="?([^";,\s]+)"?/, 1]
+    end
+
     def import
       DfcIo.import(request.body)
+    end
+
+    # Checks weather a feature is enabled for any of the given actors.
+    def feature?(feature, *actors)
+      OpenFoodNetwork::FeatureToggle.enabled?(feature, *actors)
+    end
+
+    def render_dfc(*)
+      if profile == "dfc-v2"
+        render_v2(*)
+      else
+        render json: DfcIo.export(*)
+      end
+    end
+
+    def render_v2(*)
+      connector = DataFoodConsortium::Connector::Connector.instance
+      render json: connector.export(*), content_type: 'application/ld+json; profile="dfc-v2"'
     end
   end
 end

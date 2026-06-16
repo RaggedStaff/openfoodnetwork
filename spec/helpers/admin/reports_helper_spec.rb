@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe ReportsHelper, type: :helper do
+RSpec.describe ReportsHelper do
   describe "#report_payment_method_options" do
     let(:order_with_payments) { create(:order_ready_to_ship) }
     let(:order_without_payments) { create(:order_with_line_items) }

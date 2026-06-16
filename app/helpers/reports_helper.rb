@@ -17,7 +17,7 @@ module ReportsHelper
 
       next unless payment_method
 
-      [payment_method.name, payment_method.id]
+      [payment_method.display_name, payment_method.id]
     end.compact.uniq
   end
 
@@ -34,28 +34,10 @@ module ReportsHelper
     end
   end
 
-  def fee_name_options(orders)
-    EnterpriseFee.where(id: enterprise_fee_ids(orders))
-      .pluck(:name, :id)
-  end
+  delegate :currency_symbol, to: :'Spree::Money'
 
-  def fee_owner_options(orders)
-    Enterprise.where(id: enterprise_fee_owner_ids(orders))
-      .pluck(:name, :id)
-  end
-
-  def currency_symbol
-    Spree::Money.currency_symbol
-  end
-
-  def enterprise_fee_owner_ids(orders)
-    EnterpriseFee.where(id: enterprise_fee_ids(orders))
-      .pluck(:enterprise_id)
-  end
-
-  def enterprise_fee_ids(orders)
-    Spree::Adjustment.enterprise_fee
-      .where(order_id: orders.map(&:id))
-      .pluck(:originator_id)
+  def datepicker_time(datetime)
+    datetime = Time.zone.parse(datetime) if datetime.is_a? String
+    datetime.strftime('%Y-%m-%d %H:%M')
   end
 end

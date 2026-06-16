@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe TermsOfService do
+RSpec.describe TermsOfService do
   let(:customer) { create(:customer) }
   let(:distributor) { create(:distributor_enterprise) }
 
@@ -37,7 +35,7 @@ describe TermsOfService do
       it "should always return true" do
         expect {
           allow(TermsOfServiceFile).to receive(:exists?) { false }
-        }.to_not change {
+        }.not_to change {
           TermsOfService.tos_accepted?(customer)
         }.from(true)
       end

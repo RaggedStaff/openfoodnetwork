@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe "As a consumer I want to view products" do
+RSpec.describe "As a consumer I want to view products" do
   include AuthenticationHelper
   include WebHelper
   include ShopWorkflow
@@ -25,11 +25,11 @@ describe "As a consumer I want to view products" do
                                   orders_close_at: 2.days.from_now)
     }
     let(:product) {
-      create(:simple_product, supplier:, primary_taxon: taxon, properties: [property],
-                              name: "Beans")
+      create(:simple_product, supplier_id: supplier.id, primary_taxon: taxon,
+                              properties: [property], name: "Beans")
     }
     let(:product2) {
-      create(:product, supplier:, primary_taxon: taxon2, properties: [property2],
+      create(:product, supplier_id: supplier.id, primary_taxon: taxon2, properties: [property2],
                        name: "Chickpeas")
     }
     let(:variant) { product.variants.first }
@@ -38,7 +38,7 @@ describe "As a consumer I want to view products" do
     let(:order) { create(:order, distributor:) }
 
     before do
-      set_order order
+      pick_order order
     end
 
     describe "supplier's name is displayed" do
@@ -130,7 +130,7 @@ describe "As a consumer I want to view products" do
         add_variant_to_order_cycle(exchange1, variant2)
       end
 
-      context "product taxonomies" do
+      context "product taxons" do
         before do
           distributor.preferred_shopfront_product_sorting_method = "by_category"
           distributor.preferred_shopfront_taxon_order = taxon.id.to_s

@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Spree::BaseHelper do
+RSpec.describe Spree::BaseHelper do
   include Spree::BaseHelper
 
   context "available_countries" do
@@ -10,11 +8,12 @@ describe Spree::BaseHelper do
 
     before do
       3.times { create(:country) }
+      allow(ENV).to receive(:fetch).and_call_original
     end
 
     context "with no checkout zone defined" do
       before do
-        Spree::Config[:checkout_zone] = nil
+        allow(ENV).to receive(:fetch).and_return(nil)
       end
 
       it "return complete list of countries" do
@@ -25,9 +24,8 @@ describe Spree::BaseHelper do
     context "with a checkout zone defined" do
       context "checkout zone is of type country" do
         before do
-          @country_zone = create(:zone, name: "CountryZone")
-          @country_zone.members.create(zoneable: country)
-          Spree::Config[:checkout_zone] = @country_zone.name
+          country_zone = create(:zone, name: "CountryZone", member: country)
+          allow(ENV).to receive(:fetch).and_return(country_zone.name)
         end
 
         it "return only the countries defined by the checkout zone" do
@@ -40,7 +38,7 @@ describe Spree::BaseHelper do
           state_zone = create(:zone, name: "StateZone")
           state = create(:state, country:)
           state_zone.members.create(zoneable: state)
-          Spree::Config[:checkout_zone] = state_zone.name
+          allow(ENV).to receive(:fetch).and_return(state_zone.name)
         end
 
         it "return complete list of countries" do

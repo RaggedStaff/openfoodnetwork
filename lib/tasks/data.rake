@@ -7,7 +7,7 @@ namespace :ofn do
       input = request_months
 
       # For each order cycle which was modified within the past 3 months
-      OrderCycle.where('updated_at > ?', Date.current - input.months).each do |order_cycle|
+      OrderCycle.where('updated_at > ?', Date.current - input.months).find_each do |order_cycle|
         # Cycle through the incoming exchanges
         order_cycle.exchanges.incoming.each do |exchange|
           next if exchange.sender == exchange.receiver
@@ -46,11 +46,13 @@ namespace :ofn do
           end
 
           # For each variant in the exchange
-          products = Spree::Product.joins(:variants).where(
-            'spree_variants.id IN (?)', exchange.variants
-          ).pluck(:id).uniq
-          producers = Enterprise.joins(:supplied_products).where("spree_products.id IN (?)",
-                                                                 products).distinct
+          products = Spree::Product.joins(:variants)
+            .where(spree_variants: { id: exchange.variants })
+            .pluck(:id)
+            .uniq
+          producers = Enterprise.joins(:supplied_products)
+            .where(spree_products: { id: products })
+            .distinct
           producers.each do |producer|
             next if producer == exchange.receiver
 
@@ -76,11 +78,11 @@ namespace :ofn do
       # Ask how many months back we want to search for
       puts "This task will search order cycle edited within (n) months of today's date.\n" \
            "Please enter a value for (n), or hit ENTER to use the default of three (3) months."
-      input = check_default(STDIN.gets.chomp)
+      input = check_default($stdin.gets.chomp)
 
       while !is_integer?(input)
         puts "'#{input}' is not an integer. Please enter an integer."
-        input = check_default(STDIN.gets.chomp)
+        input = check_default($stdin.gets.chomp)
       end
 
       Integer(input)

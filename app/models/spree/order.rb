@@ -8,10 +8,11 @@ module Spree
     include Balance
     include SetUnusedAddressFields
 
-    self.belongs_to_required_by_default = false
+    PAYMENT_STATES = %w{balance_due completed checkout credit_owed failed paid pending
+                        requires_authorization processing void invalid}.freeze
 
     searchable_attributes :number, :state, :shipment_state, :payment_state, :distributor_id,
-                          :order_cycle_id, :email, :total, :customer_id
+                          :order_cycle_id, :email, :total, :customer_id, :distributor_name_alias
     searchable_associations :shipping_method, :bill_address, :distributor
     searchable_scopes :complete, :incomplete, :sort_by_billing_address_name_asc,
                       :sort_by_billing_address_name_desc
@@ -33,22 +34,25 @@ module Spree
 
     token_resource
 
-    belongs_to :user, class_name: "Spree::User"
-    belongs_to :created_by, class_name: "Spree::User"
+    belongs_to :user, class_name: "Spree::User", optional: true
+    belongs_to :created_by, class_name: "Spree::User", optional: true
 
-    belongs_to :bill_address, class_name: 'Spree::Address'
-    alias_attribute :billing_address, :bill_address
+    belongs_to :bill_address, class_name: 'Spree::Address', optional: true
+    alias_method :billing_address, :bill_address
+    alias_method :billing_address=, :bill_address=
 
-    belongs_to :ship_address, class_name: 'Spree::Address'
-    alias_attribute :shipping_address, :ship_address
+    belongs_to :ship_address, class_name: 'Spree::Address', optional: true
+    alias_method :shipping_address, :ship_address
+    alias_method :shipping_address=, :ship_address=
 
     has_many :state_changes, as: :stateful, dependent: :destroy
     has_many :line_items, -> {
                             order('created_at ASC')
-                          }, class_name: "Spree::LineItem", dependent: :destroy
+                          }, class_name: "Spree::LineItem", inverse_of: :order, dependent: :destroy
     has_many :payments, dependent: :destroy
     has_many :return_authorizations, dependent: :destroy, inverse_of: :order
     has_many :adjustments, -> { order "#{Spree::Adjustment.table_name}.created_at ASC" },
+             inverse_of: :adjustable,
              as: :adjustable,
              dependent: :destroy
 
@@ -67,12 +71,17 @@ module Spree
                  .order("#{Spree::Adjustment.table_name}.created_at ASC")
              },
              class_name: 'Spree::Adjustment',
+             inverse_of: :order,
              dependent: :destroy
     has_many :invoices, dependent: :restrict_with_exception
+    belongs_to :order_cycle, optional: true
+    has_one :exchange, ->(order) {
+      outgoing.to_enterprise(order.distributor)
+    }, through: :order_cycle, source: :exchanges
+    has_many :semantic_links, through: :exchange
 
-    belongs_to :order_cycle
-    belongs_to :distributor, class_name: 'Enterprise'
-    belongs_to :customer
+    belongs_to :distributor, class_name: 'Enterprise', optional: true
+    belongs_to :customer, optional: true
     has_one :proxy_order, dependent: :destroy
     has_one :subscription, through: :proxy_order
 
@@ -84,7 +93,7 @@ module Spree
 
     delegate :admin_and_handling_total, :payment_fee, :ship_total, to: :adjustments_fetcher
     delegate :update_totals, :update_totals_and_states, to: :updater
-    delegate :create_line_item_fees!, :create_order_fees!, :update_order_fees!,
+    delegate :create_order_fees!, :update_order_fees!,
              :update_line_item_fees!, :recreate_all_fees!, to: :fee_handler
 
     validates :customer, presence: true, if: :require_customer?
@@ -93,7 +102,7 @@ module Spree
     }
     validate :disallow_guest_order
     validates :email, presence: true,
-                      format: /\A([\w.%+\-']+)@([\w\-]+\.)+(\w{2,})\z/i,
+                      format: /\A([\w.%+\-']+)@([\w-]+\.)+(\w{2,})\z/i,
                       if: :require_email
 
     validates :order_cycle, presence: true, on: :require_distribution
@@ -104,7 +113,6 @@ module Spree
     before_validation :clone_billing_address, if: :use_billing?
     before_validation :ensure_customer
 
-    before_save :update_shipping_fees!, if: :complete?
     before_save :update_payment_fees!, if: :complete?
     before_create :link_by_email
 
@@ -123,25 +131,33 @@ module Spree
     }
 
     scope :managed_by, lambda { |user|
-      if user.has_spree_role?('admin')
+      if user.admin?
         where(nil)
       else
-        # Find orders that are distributed by the user or have products supplied by the user
-        # WARNING: This only filters orders,
-        #   you'll need to filter line items separately using LineItem.managed_by
-        with_line_items_variants_and_products_outer.
-          where('spree_orders.distributor_id IN (?) OR spree_products.supplier_id IN (?)',
-                user.enterprises.select(&:id),
-                user.enterprises.select(&:id)).
+        # Find orders that are distributed by the user or have variants supplied by the user
+        # WARNING: This only filters orders, not line items.
+        with_line_items_variants_outer.
+          where(distributor_id: user.enterprises).or(
+            where(spree_variants: { supplier_id: user.enterprises })
+          ).
           select('DISTINCT spree_orders.*')
       end
     }
 
+    scope :editable_by_producers, ->(enterprises) {
+      joins(
+        :distributor, line_items: :supplier
+      ).where(
+        supplier: { id: enterprises },
+        distributor: { enable_producers_to_edit_orders: true }
+      )
+    }
+
     scope :distributed_by_user, lambda { |user|
-      if user.has_spree_role?('admin')
+      if user.admin?
         where(nil)
       else
-        where('spree_orders.distributor_id IN (?)', user.enterprises.select(&:id))
+        where(spree_orders: { distributor_id: user.enterprises.select(&:id) })
       end
     }
 
@@ -155,8 +171,8 @@ module Spree
         .order("spree_addresses.lastname DESC, spree_addresses.firstname DESC")
     }
 
-    scope :with_line_items_variants_and_products_outer, lambda {
-      left_outer_joins(line_items: { variant: :product })
+    scope :with_line_items_variants_outer, lambda {
+      left_outer_joins(line_items: :variant)
     }
 
     # All the states an order can be in after completing the checkout
@@ -165,8 +181,14 @@ module Spree
     scope :finalized, -> { where(state: FINALIZED_STATES) }
     scope :complete, -> { where.not(completed_at: nil) }
     scope :incomplete, -> { where(completed_at: nil) }
+    scope :invoiceable, -> { where(state: [:complete, :resumed]) }
     scope :by_state, lambda { |state| where(state:) }
     scope :not_state, lambda { |state| where.not(state:) }
+
+    # This is used to filter line items by the distributor name on BOM page
+    ransacker :distributor_name_alias do
+      Arel.sql("distributor.name")
+    end
 
     def initialize(*_args)
       @checkout_processing = nil
@@ -180,13 +202,15 @@ module Spree
       line_items.inject(0.0) { |sum, li| sum + li.amount }
     end
 
-    # Order total without any applied discounts from vouchers
+    # Order total without pending payment or any applied discounts from vouchers
     def pre_discount_total
-      item_total + all_adjustments.additional.eligible.non_voucher.sum(:amount)
+      item_total +
+        all_adjustments.additional.eligible.non_voucher.sum(:amount) -
+        payments.customer_credit.incomplete.sum(:amount)
     end
 
     def currency
-      self[:currency] || Spree::Config[:currency]
+      self[:currency] || CurrentConfig.get(:currency)
     end
 
     def display_item_total
@@ -211,10 +235,6 @@ module Spree
 
     def completed?
       completed_at.present?
-    end
-
-    def invoiceable?
-      complete? || resumed?
     end
 
     # Indicates whether or not the user is allowed to proceed to checkout.
@@ -403,7 +423,7 @@ module Spree
 
     # Helper methods for checkout steps
     def paid?
-      payment_state == 'paid' || payment_state == 'credit_owed'
+      ['paid', 'credit_owed'].include?(payment_state)
     end
 
     # "Checkout" is the initial state and, for card payments, "pending" is the state after auth
@@ -421,18 +441,13 @@ module Spree
     #
     # Returns:
     # - true if all pending_payments processed successfully
-    # - true if a payment failed, ie. raised a GatewayError
-    #   which gets rescued and converted to TRUE when
-    #   :allow_checkout_gateway_error is set to true
     # - false if a payment failed, ie. raised a GatewayError
-    #   which gets rescued and converted to FALSE when
-    #   :allow_checkout_on_gateway_error is set to false
+    #   which gets rescued and converted to FALSE
     #
     def process_payments!
       process_each_payment(&:process!)
     rescue Core::GatewayError => e
-      result = !!Spree::Config[:allow_checkout_on_gateway_error]
-      errors.add(:base, e.message) && (return result)
+      errors.add(:base, e.message) && (return false)
     end
 
     def process_payments_offline!
@@ -534,7 +549,7 @@ module Spree
       # because an outdated shipping fee is not as bad as a lost payment.
       # And the shipping fee is already up-to-date when this error occurs.
       # https://github.com/openfoodfoundation/openfoodnetwork/issues/3924
-      Bugsnag.notify(e) do |report|
+      Alert.raise(e) do |report|
         report.add_metadata(:order, attributes)
         report.add_metadata(:shipment, shipment.attributes)
         report.add_metadata(:shipment_in_db, Spree::Shipment.find_by(id: shipment.id).attributes)
@@ -551,7 +566,7 @@ module Spree
       end
     end
 
-    def set_order_cycle!(order_cycle)
+    def assign_order_cycle!(order_cycle)
       return if self.order_cycle == order_cycle
 
       self.order_cycle = order_cycle
@@ -564,7 +579,7 @@ module Spree
       line_items.includes(variant: :stock_items).find_each(&:cap_quantity_at_stock!)
     end
 
-    def set_distributor!(distributor)
+    def assign_distributor!(distributor)
       self.distributor = distributor
       self.order_cycle = nil unless order_cycle&.has_distributor? distributor
       save!
@@ -652,7 +667,7 @@ module Spree
     end
 
     def fee_handler
-      @fee_handler ||= OrderFeesHandler.new(self)
+      @fee_handler ||= Orders::HandleFeesService.new(self)
     end
 
     def clear_legacy_taxes!
@@ -663,8 +678,6 @@ module Spree
     end
 
     def process_each_payment
-      raise Core::GatewayError, Spree.t(:no_pending_payments) if pending_payments.empty?
-
       pending_payments.each do |payment|
         if payment.amount.zero? && zero_priced_order?
           payment.update_columns(state: "completed", captured_at: Time.zone.now)
@@ -673,10 +686,6 @@ module Spree
         break if payment_total >= total
 
         yield payment
-
-        if payment.completed?
-          self.payment_total += payment.amount
-        end
       end
     end
 
@@ -689,7 +698,7 @@ module Spree
     end
 
     def set_currency
-      self.currency = Spree::Config[:currency] if self[:currency].nil?
+      self.currency = CurrentConfig.get(:currency) if self[:currency].nil?
     end
 
     def using_guest_checkout?
@@ -697,11 +706,11 @@ module Spree
     end
 
     def registered_email?
-      Spree::User.exists?(email:)
+      Spree::User.where(email:).exists?
     end
 
     def adjustments_fetcher
-      @adjustments_fetcher ||= OrderAdjustmentsFetcher.new(self)
+      @adjustments_fetcher ||= Orders::FetchAdjustmentsService.new(self)
     end
 
     def skip_payment_for_subscription?
@@ -722,6 +731,10 @@ module Spree
 
       adjustment.update_adjustment!(force: true)
       update_totals_and_states
+    end
+
+    def apply_customer_credit
+      Orders::CustomerCreditService.new(self).apply
     end
   end
 end

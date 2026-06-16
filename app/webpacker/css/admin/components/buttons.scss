@@ -1,57 +1,137 @@
+// Button styles
+// Design reference: https://github.com/openfoodfoundation/openfoodnetwork/wiki/Design-styleguide%3A-links-and-buttons
+
+@mixin disabled-button() {
+  &:disabled,
+  &:disabled:hover {
+    cursor: initial;
+    color: $color-btn-disabled-text;
+    background-color: $color-btn-disabled-bg;
+    border-color: transparent;
+  }
+}
+
 input[type="submit"],
+input[type="reset"],
 input[type="button"]:not(.trix-button),
 button:not(.plain):not(.trix-button),
 .button {
   position: relative;
   cursor: pointer;
-  font-size: 85%;
+  font-size: 14px;
   @include border-radius($border-radius);
   display: inline-block;
-  padding: 8px 15px;
-  border: none;
+  padding: 0px 12px;
   background-color: $color-btn-bg;
+  border: 1px solid $color-btn-bg;
   color: $color-btn-text;
-  text-transform: uppercase;
-  font-weight: 600 !important;
+  line-height: $btn-regular-height - 2px; // remove 2px to compensate for border
+  height: $btn-regular-height;
+  font-weight: bold;
+  @include disabled-button();
 
   &:before {
     font-weight: normal !important;
   }
 
-  &:visited,
   &:active,
   &:focus {
-    color: $color-btn-text;
+    outline: none;
+    border: 1px solid $color-btn-hover-border;
+  }
+
+  &:active:focus {
+    box-shadow: none;
   }
 
   &:hover {
     background-color: $color-btn-hover-bg;
+    border: 1px solid $color-btn-hover-bg;
     color: $color-btn-hover-text;
   }
 
-  &:active:focus {
-    box-shadow: 0 0 8px 0 darken($color-btn-hover-bg, 5) inset;
+  // --- Colours ---
+  &.secondary {
+    background-color: $color-btn-secondary-bg;
+    color: $color-link;
+
+    &:hover {
+      background-color: $color-btn-secondary-hover-bg;
+    }
+
+    &:focus {
+      background-color: $color-btn-secondary-hover-bg;
+      border-color: $color-link-focus;
+      color: $color-link-focus;
+    }
+
+    // "Naked" variation: text appears on hover
+    &.naked {
+      border: none;
+      color: transparent;
+
+      &:before {
+        color: $color-link;
+      }
+
+      &:hover {
+        background-color: $color-btn-secondary-bg;
+        color: $color-link;
+      }
+      &:focus {
+        background-color: $color-btn-secondary-hover-bg;
+        color: $color-link-focus;
+      }
+    }
+  }
+
+  &.disruptive {
+    background-color: transparent;
+    border: 1px solid $color-5;
+    color: $color-5;
+
+    &:hover {
+      background-color: $fair-pink;
+      border: 1px solid $color-5;
+      color: $color-5;
+    }
+
+    &:active,
+    &:focus {
+      background-color: $fair-pink;
+      border: 1px solid $roof-terracotta;
+      color: $roof-terracotta;
+    }
+  }
+
+  // --- Sizes ---
+  &.mini {
+    line-height: 18px;
+    height: auto; // DC: I don't like fixed heights.
+    padding: 0 6px;
+  }
+
+  &.condensed {
+    line-height: $btn-condensed-height - 2px; // remove 2px to compensate for border
+    height: $btn-condensed-height;
+  }
+
+  &.relaxed {
+    line-height: $btn-relaxed-height - 2px; // remove 2px to compensate for border
+    height: $btn-relaxed-height;
+  }
+
+  &.big {
+    @extend .relaxed; // use relaxed height
+    width: 100%;
+    font-size: 1rem;
+    @include border-radius(25px);
+    text-transform: uppercase;
   }
 
   &.fullwidth {
     width: 100%;
     text-align: center;
-  }
-
-  &.secondary {
-    background-color: transparent;
-    border: 1px solid $color-btn-bg;
-    color: $color-btn-bg;
-
-    &:hover,
-    &:active,
-    &:focus {
-      background-color: #ebf3fb;
-    }
-
-    &:active:focus {
-      box-shadow: none;
-    }
   }
 
   .badge {
@@ -77,17 +157,38 @@ button:not(.plain):not(.trix-button),
   }
 }
 
-input.red,
-a.button.red,
-button.red {
-  background-color: $color-warning;
-  margin-right: 5px;
-  color: #ffffff;
+// --- Reset buttons ---
+input[type="reset"],
+.reset {
+  // Reset button looks like a link, but has a border the same as buttons when active.
+  background: none;
+  border: 1px solid transparent;
+  color: $color-link;
+
+  &:active {
+    color: $color-link-active;
+  }
+  &:focus {
+    color: $color-link-focus;
+  }
+  &:hover {
+    color: $color-link-hover;
+    background: none;
+    border-color: transparent;
+  }
 }
 
-a.button.red {
-  &:not(:hover) {
-    color: #fff;
-    background-color: $color-warning;
-  }
+a.button {
+  text-decoration: none;
+}
+
+a[aria-disabled] {
+  pointer-events: none;
+}
+
+.button.disruptive::before {
+  margin-right: 3px;
+
+  @extend .icon-remove-sign;
+  font-family: FontAwesome;
 }

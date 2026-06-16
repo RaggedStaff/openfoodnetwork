@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 module OrderManagement
   module Order
-    describe StripeScaPaymentAuthorize do
+    RSpec.describe StripeScaPaymentAuthorize do
       let(:order) { create(:order) }
       let(:payment_authorize) {
         OrderManagement::Order::StripeScaPaymentAuthorize.new(order)
@@ -16,6 +14,15 @@ module OrderManagement
 
           it "does nothing" do
             expect(payment_authorize.call!).to eq nil
+          end
+        end
+
+        context "when the payment already requires 3D Secure authorization" do
+          let(:payment) { create(:payment, amount: 10, state: 'requires_authorization') }
+          before { allow(order).to receive(:pending_payments).once { [payment] } }
+
+          it "returns the payment without authorizing because it has already been authorized" do
+            expect(payment_authorize.call!).to eq payment
           end
         end
 
@@ -66,7 +73,7 @@ module OrderManagement
                 allow(PaymentMailer).to receive(:authorization_required) { mail_mock }
                 allow(payment).to receive(:authorize!) {
                   payment.state = "requires_authorization"
-                  payment.cvv_response_message = "https://stripe.com/redirect"
+                  payment.redirect_auth_url = "https://stripe.com/redirect"
                 }
               end
 
@@ -74,9 +81,9 @@ module OrderManagement
                 payment_authorize.call!
 
                 expect(order.errors.size).to eq 0
-                expect(PaymentMailer).to_not have_received(:authorize_payment)
-                expect(PaymentMailer).to_not have_received(:authorization_required)
-                expect(mail_mock).to_not have_received(:deliver_now)
+                expect(PaymentMailer).not_to have_received(:authorize_payment)
+                expect(PaymentMailer).not_to have_received(:authorization_required)
+                expect(mail_mock).not_to have_received(:deliver_now)
               end
 
               context "when the processing is off-session (via backoffice/subscription)" do

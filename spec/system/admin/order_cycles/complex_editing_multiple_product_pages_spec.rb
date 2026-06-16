@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe '
+RSpec.describe '
     As an administrator
     I want to manage complex order cycles
 ' do
@@ -13,7 +13,13 @@ describe '
   describe "editing an order cycle with multiple pages of products" do
     let(:order_cycle) { create(:order_cycle) }
     let(:supplier_enterprise) { order_cycle.exchanges.incoming.first.sender }
-    let!(:new_product) { create(:product, supplier: supplier_enterprise) }
+    let!(:new_product) {
+      create(
+        :product,
+        supplier_id: supplier_enterprise.id,
+        name: "Z Last Product", # ordered by name
+      )
+    }
 
     before do
       stub_const("#{Api::V0::ExchangeProductsController}::DEFAULT_PER_PAGE", 1)
@@ -26,7 +32,7 @@ describe '
       expect(page).to have_selector ".exchange-product-details"
 
       expect(page).to have_content "1 of 2 Variants Loaded"
-      expect(page).to_not have_content new_product.name
+      expect(page).not_to have_content "Z Last Product"
     end
 
     it "load all products" do
@@ -36,21 +42,17 @@ describe '
     end
 
     it "select all products" do
-      # replace with scroll_to method when upgrading to Capybara >= 3.13.0
-      checkbox_id = "order_cycle_incoming_exchange_0_select_all_variants"
-      page.execute_script("document.getElementById('#{checkbox_id}').scrollIntoView()")
-      check checkbox_id
+      check "Select All 2 Variants"
 
       expect_all_products_loaded
 
-      expect(page).to have_checked_field(
-        "order_cycle_incoming_exchange_0_variants_#{new_product.variants.first.id}",
-        disabled: false
-      )
+      within("div.exchange-product", text: "Z Last Product") do
+        expect(page).to have_checked_field "1g", disabled: false
+      end
     end
 
     def expect_all_products_loaded
-      expect(page).to have_content new_product.name.upcase
+      expect(page).to have_content new_product.name
       expect(page).to have_content "2 of 2 Variants Loaded"
     end
   end

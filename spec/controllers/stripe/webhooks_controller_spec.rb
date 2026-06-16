@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Stripe::WebhooksController, type: :controller do
+RSpec.describe Stripe::WebhooksController do
   describe "#create" do
     let(:params) do
       {
@@ -23,7 +21,7 @@ describe Stripe::WebhooksController, type: :controller do
 
       it "responds with a 400" do
         post('create', params:)
-        expect(response.status).to eq 400
+        expect(response).to have_http_status :bad_request
       end
     end
 
@@ -37,7 +35,7 @@ describe Stripe::WebhooksController, type: :controller do
 
       it "responds with a 401" do
         post('create', params:)
-        expect(response.status).to eq 401
+        expect(response).to have_http_status :unauthorized
       end
     end
 
@@ -55,7 +53,7 @@ describe Stripe::WebhooksController, type: :controller do
 
           it "falls back to 200" do
             post('create', params:)
-            expect(response.status).to eq 200
+            expect(response).to have_http_status :ok
           end
         end
 
@@ -64,7 +62,7 @@ describe Stripe::WebhooksController, type: :controller do
 
           it "responds with 202" do
             post('create', params:)
-            expect(response.status).to eq 202
+            expect(response).to have_http_status :accepted
           end
         end
       end
@@ -78,7 +76,7 @@ describe Stripe::WebhooksController, type: :controller do
         context "when the stripe_account id on the event does not match any known accounts" do
           it "doesn't delete any Stripe accounts, responds with 204" do
             post('create', params:)
-            expect(response.status).to eq 204
+            expect(response).to have_http_status :no_content
             expect(StripeAccount.all).to include stripe_account
           end
         end
@@ -88,7 +86,7 @@ describe Stripe::WebhooksController, type: :controller do
 
           it "deletes Stripe accounts in response to a webhook" do
             post('create', params:)
-            expect(response.status).to eq 200
+            expect(response).to have_http_status :ok
             expect(StripeAccount.all).not_to include stripe_account
           end
         end

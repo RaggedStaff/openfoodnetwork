@@ -2,7 +2,7 @@
 
 require "system_helper"
 
-describe "Developer Settings" do
+RSpec.describe "Developer Settings" do
   include AuthenticationHelper
   include WebHelper
 
@@ -39,15 +39,33 @@ describe "Developer Settings" do
         describe "Webhook Endpoints" do
           it "creates a new webhook endpoint and deletes it" do
             within "#webhook_endpoints" do
-              fill_in "webhook_endpoint_url", with: "https://url"
+              within(:table_row, ["Order Cycle Opened"]) do
+                fill_in "order_cycle_opened_webhook_endpoint_url", with: "https://url"
 
-              click_button I18n.t(:create)
-              expect(page.document).to have_content I18n.t('webhook_endpoints.create.success')
-              expect(page).to have_content "https://url"
+                click_button "Create"
+                expect(page.document).to have_content "Webhook endpoint successfully created"
+                expect(page).to have_content "https://url"
 
-              click_button I18n.t(:delete)
-              expect(page.document).to have_content I18n.t('webhook_endpoints.destroy.success')
-              expect(page).to_not have_content "https://url"
+                accept_confirm do
+                  click_button "Delete"
+                end
+              end
+              expect(page.document).to have_content "Webhook endpoint successfully deleted"
+              expect(page).not_to have_content "https://url"
+
+              within(:table_row, ["Post webhook on Payment status change"]) do
+                fill_in "payment_status_changed_webhook_endpoint_url", with: "https://url/payment"
+                click_button "Create"
+                expect(page.document).to have_content "Webhook endpoint successfully created"
+                expect(page).to have_content "https://url/payment"
+
+                accept_confirm do
+                  click_button "Delete"
+                end
+              end
+
+              expect(page.document).to have_content "Webhook endpoint successfully deleted"
+              expect(page).not_to have_content "https://url/payment"
             end
           end
         end
@@ -59,7 +77,7 @@ describe "Developer Settings" do
 
       it "does not show the developer settings tab" do
         within("#account-tabs") do
-          expect(page).to_not have_selector("a", text: "DEVELOPER SETTINGS")
+          expect(page).not_to have_selector("a", text: "DEVELOPER SETTINGS")
         end
       end
     end

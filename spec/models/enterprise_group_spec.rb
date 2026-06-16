@@ -1,8 +1,6 @@
 # frozen_string_literal: false
 
-require 'spec_helper'
-
-describe EnterpriseGroup do
+RSpec.describe EnterpriseGroup do
   describe "associations" do
     subject { build(:enterprise_group) }
 
@@ -77,7 +75,6 @@ describe EnterpriseGroup do
 
     it "finds a user's enterprise groups" do
       user = create(:user)
-      user.spree_roles = []
       eg1 = create(:enterprise_group, owner: user)
       eg2 = create(:enterprise_group)
 
@@ -116,6 +113,13 @@ describe EnterpriseGroup do
         existing = ["permalink", "permalink1"]
         expect(EnterpriseGroup.find_available_value(existing, "permalink1")).to eq "permalink11"
       end
+    end
+  end
+
+  describe "serialisation" do
+    it "sanitises HTML in long_description" do
+      subject.long_description = "Hello <script>alert</script> dearest <b>monster</b>."
+      expect(subject.long_description).to eq "Hello alert dearest <b>monster</b>."
     end
   end
 end

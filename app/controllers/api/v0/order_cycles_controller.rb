@@ -7,9 +7,11 @@ module Api
       include ApiActionCaching
 
       skip_authorization_check
-      skip_before_action :authenticate_user, :ensure_api_key, only: [:taxons, :properties]
+      skip_before_action :authenticate_user, :ensure_api_key, only: [
+        :taxons, :properties, :producer_properties
+      ]
 
-      caches_action :taxons, :properties,
+      caches_action :taxons, :properties, :producer_properties,
                     expires_in: CacheService::FILTERS_EXPIRY,
                     cache_path: proc { |controller| controller.request.url }
 
@@ -20,7 +22,9 @@ module Api
           distributor,
           order_cycle,
           customer,
-          search_params
+          search_params,
+          inventory_enabled:,
+          variant_tag_enabled:
         ).products_json
 
         render plain: products
@@ -41,7 +45,13 @@ module Api
 
       def properties
         render plain: ActiveModel::ArraySerializer.new(
-          product_properties | producer_properties, each_serializer: Api::PropertySerializer
+          product_properties, each_serializer: Api::PropertySerializer
+        ).to_json
+      end
+
+      def producer_properties
+        render plain: ActiveModel::ArraySerializer.new(
+          load_producer_properties, each_serializer: Api::PropertySerializer
         ).to_json
       end
 
@@ -58,7 +68,7 @@ module Api
           select('DISTINCT spree_properties.*')
       end
 
-      def producer_properties
+      def load_producer_properties
         producers = Enterprise.
           joins(:supplied_products).
           where(spree_products: { id: distributed_products })
@@ -70,22 +80,7 @@ module Api
       end
 
       def search_params
-        permitted_search_params = params.slice :q, :page, :per_page
-
-        if permitted_search_params.key? :q
-          permitted_search_params[:q].slice!(*permitted_ransack_params)
-        end
-
-        permitted_search_params
-      end
-
-      def permitted_ransack_params
-        [
-          "#{[:name, :meta_keywords, :variants_display_as,
-              :variants_display_name, :supplier_name]
-          .join('_or_')}_cont",
-          :with_properties, :primary_taxon_id_in_any
-        ]
+        params.slice :q, :page, :per_page
       end
 
       def distributor
@@ -101,7 +96,17 @@ module Api
       end
 
       def distributed_products
-        OrderCycleDistributedProducts.new(distributor, order_cycle, customer).products_relation
+        OrderCycles::DistributedProductsService.new(
+          distributor, order_cycle, customer, inventory_enabled:, variant_tag_enabled:,
+        ).products_relation.pluck(:id)
+      end
+
+      def inventory_enabled
+        OpenFoodNetwork::FeatureToggle.enabled?(:inventory, distributor)
+      end
+
+      def variant_tag_enabled
+        OpenFoodNetwork::FeatureToggle.enabled?(:variant_tag, distributor)
       end
     end
   end

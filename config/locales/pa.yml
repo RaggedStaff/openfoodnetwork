@@ -5,6 +5,8 @@ pa:
       spree/product: ਉਤਪਾਦ
       spree/shipping_method: ਸ਼ਿਪਿੰਗ ਦਾ ਤਰੀਕਾ
     attributes:
+      spree/image:
+        attachment: ਅਟੈਚਮੈਂਟ
       spree/order/ship_address:
         address1: "ਸ਼ਿਪਿੰਗ ਪਤਾ (ਗਲੀ + ਘਰ ਦਾ ਨੰਬਰ)"
         address2: "ਸ਼ਿਪਿੰਗ ਪਤੇ ਦੀ ਲਾਈਨ 2"
@@ -42,10 +44,12 @@ pa:
       spree/product:
         name: "ਉਤਪਾਦ ਦਾ ਨਾਂ"
         price: "ਕੀਮਤ"
-        primary_taxon: "ਉਤਪਾਦ ਸ਼੍ਰੇਣੀ"
-        supplier: "ਸਪਲਾਇਰ"
+        primary_taxon_id: "ਉਤਪਾਦ ਸ਼੍ਰੇਣੀ"
         shipping_category_id: "ਸ਼ਿਪਿੰਗ ਸ਼੍ਰੇਣੀ"
-        variant_unit: "ਵੇਰੀਐਂਟ ਯੂਨਿਟ"
+      spree/variant:
+        primary_taxon: "ਉਤਪਾਦ ਸ਼੍ਰੇਣੀ"
+        shipping_category_id: "ਸ਼ਿਪਿੰਗ ਸ਼੍ਰੇਣੀ"
+        supplier: "ਸਪਲਾਇਰ"
         variant_unit_name: "ਵੇਰੀਐਂਟ ਯੂਨਿਟ ਦਾ ਨਾਮ"
         unit_value: "ਯੂਨਿਟ ਵੈਲਯੂ"
       spree/credit_card:
@@ -73,8 +77,6 @@ pa:
         white_label_logo_link: "ਸ਼ੌਪਫਰੰਟ ਵਿੱਚ ਵਰਤੇ ਗਏ ਲੋਗੋ ਦਾ ਲਿੰਕ"
     errors:
       models:
-        enterprise_fee:
-          inherit_tax_requires_per_item_calculator: "ਟੈਕਸ ਸ਼੍ਰੇਣੀ ਪ੍ਰਾਪਤ ਕਰਨ ਲਈ ਪ੍ਰਤੀ-ਆਈਟਮ ਕੈਲਕੁਲੇਟਰ ਦੀ ਲੋੜ ਹੁੰਦੀ ਹੈ।"
         spree/user:
           attributes:
             email:
@@ -94,34 +96,12 @@ pa:
         variant_override:
           count_on_hand:
             using_producer_stock_settings_but_count_on_hand_set: "ਖਾਲੀ ਹੋਣੀ ਚਾਹੀਦੀ ਹੈ ਕਿਉਂਕਿ ਉਤਪਾਦਕ ਸਟਾਕ ਸੈਟਿੰਗਾਂ ਦੀ ਵਰਤੋਂ ਕੀਤੀ ਹੈ"
-            on_demand_but_count_on_hand_set: "ਜੇ ਡਿਮਾਂਡ ਤੇ ਹੋਵੇ ਤਾਂ ਖਾਲੀ ਹੋਣਾ ਚਾਹੀਦਾ ਹੈ"
             limited_stock_but_no_count_on_hand: "ਸੀਮਤ ਸਟਾਕ ਨੂੰ ਮਜਬੂਰ ਕਰਨ ਕਰਕੇ ਨਿਰਧਾਰਤ ਕੀਤਾ ਜਾਣਾ ਚਾਹੀਦਾ ਹੈ"
       messages:
         confirmation: "%{attribute} ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ"
         blank: "ਖਾਲੀ ਨਹੀਂ ਹੋ ਸਕਦਾ"
         too_short: "ਬਹੁਤ ਛੋਟਾ (ਨਿਊਨਤਮ %{count} ਅੱਖਰ)"
   errors:
-    messages:
-      content_type_invalid: "ਅਵੈਧ ਸਮੱਗਰੀ ਦੀ ਕਿਸਮ ਸ਼ਾਮਲ ਹੈ"
-      file_size_out_of_range: "ਸਾਈਜ਼ %{file_size} ਲੋੜੀਂਦੀ ਸੀਮਾ ਵਿੱਚਕਾਰ ਨਹੀਂ ਹੈ"
-      limit_out_of_range: "ਕੁੱਲ ਗਿਣਤੀ ਸੀਮਾ ਤੋਂ ਬਾਹਰ ਹੈ"
-      image_metadata_missing: "ਇਹ ਇੱਕ ਵੈਧ ਫੋਟੋ ਨਹੀਂ ਹੈ"
-      dimension_min_inclusion: "%{width} x %{height} ਪਿਕਸਲ ਤੋਂ ਵੱਧ ਜਾਂ ਬਰਾਬਰ ਦਾ ਹੋਣਾ ਚਾਹੀਦਾ ਹੈ।"
-      dimension_max_inclusion: "%{width} x %{height} ਪਿਕਸਲ ਤੋਂ ਘੱਟ ਜਾਂ ਬਰਾਬਰ ਹੋਣਾ ਚਾਹੀਦਾ ਹੈ।"
-      dimension_width_inclusion: "ਚੌੜਾਈ %{min} ਅਤੇ %{max} ਪਿਕਸਲਾਂ ਵਿੱਚਕਾਰ ਸ਼ਾਮਲ ਨਹੀਂ ਹੈ।"
-      dimension_height_inclusion: "ਲੰਬਾਈ %{min} ਅਤੇ %{max} ਪਿਕਸਲਾਂ ਵਿੱਚਕਾਰ ਸ਼ਾਮਲ ਨਹੀਂ ਹੈ।"
-      dimension_width_greater_than_or_equal_to: "ਚੌੜਾਈ %{length} ਪਿਕਸਲ ਤੋਂ ਵੱਧ ਜਾਂ ਬਰਾਬਰ ਹੋਣੀ ਚਾਹੀਦੀ ਹੈ।"
-      dimension_height_greater_than_or_equal_to: "ਲੰਬਾਈ %{length} ਪਿਕਸਲ ਤੋਂ ਵੱਧ ਜਾਂ ਬਰਾਬਰ ਹੋਣੀ ਚਾਹੀਦੀ ਹੈ।"
-      dimension_width_less_than_or_equal_to: "ਚੌੜਾਈ %{length} ਪਿਕਸਲ ਤੋਂ ਘੱਟ ਜਾਂ ਬਰਾਬਰ ਹੋਣੀ ਚਾਹੀਦੀ ਹੈ।"
-      dimension_height_less_than_or_equal_to: "ਲੰਬਾਈ %{length} ਪਿਕਸਲ ਤੋਂ ਘੱਟ ਜਾਂ ਬਰਾਬਰ ਹੋਣੀ ਚਾਹੀਦੀ ਹੈ।"
-      dimension_width_equal_to: "width must be equal to %{length} pixel."
-      dimension_height_equal_to: "ਲੰਬਾਈ %{length} ਪਿਕਸਲ ਦੇ ਬਰਾਬਰ ਹੋਣੀ ਚਾਹੀਦੀ ਹੈ।"
-      aspect_ratio_not_square: "ਇੱਕ ਚੌਰਸ ਫੋਟੋ ਹੋਣੀ ਚਾਹੀਦੀ ਹੈ"
-      aspect_ratio_not_portrait: "ਇੱਕ ਪੋਰਟਰੇਟ ਫੋਟੋ ਹੋਣੀ ਚਾਹੀਦੀ ਹੈ"
-      aspect_ratio_not_landscape: "ਇੱਕ ਲੈਂਡਸਕੇਪ ਫੋਟੋ ਹੋਣੀ ਚਾਹੀਦੀ ਹੈ"
-      aspect_ratio_is_not: "ਅਸਪੈਕਟ ਅਨੁਪਾਤ %{aspect ratio} ਹੋਣਾ ਚਾਹੀਦਾ ਹੈ"
-      aspect_ratio_unknown: "ਇੱਕ ਅਗਿਆਤ ਅਸਪੈਕਟ ਅਨੁਪਾਤ ਹੈ"
-      image_not_processable: "ਇਹ ਇੱਕ ਵੈਧ ਫੋਟੋ ਨਹੀਂ ਹੈ"
     not_found:
       title: "ਜਿਹੜਾ ਪੰਨਾ ਤੁਸੀਂ ਲੱਭ ਰਹੇ ਸੀ ਉਹ ਮੌਜੂਦ ਨਹੀਂ ਹੈ (404)"
       message_html: "<b>ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ</b> <p>ਇਹ ਇੱਕ ਅਸਥਾਈ ਸਮੱਸਿਆ ਹੋ ਸਕਦੀ ਹੈ। ਪਿਛਲੀ ਸਕ੍ਰੀਨ ਤੇ ਵਾਪਸ ਜਾਣ ਲਈ ਕਿਰਪਾ ਕਰਕੇ ਬੈਕ ਬਟਨ ਤੇ ਕਲਿੱਕ ਕਰੋ ਜਾਂ <a href='/'>ਹੋਮ</a> ਤੇ ਵਾਪਸ ਜਾਓ ਅਤੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।</p> <b>ਸਹਾਇਤਾ ਨਾਲ ਸੰਪਰਕ ਕਰੋ</b> <p>ਜੇਕਰ ਸਮੱਸਿਆ ਬਣੀ ਰਹਿੰਦੀ ਹੈ ਜਾਂ ਜ਼ਰੂਰੀ ਹੈ, ਤਾਂ ਕਿਰਪਾ ਕਰਕੇ ਸਾਨੂੰ ਇੱਸ ਦੇ ਬਾਰੇ ਵਿੱਚ ਦੱਸੋ। ਗਲੋਬਲ ਓਪਨ ਫੂਡ ਨੈੱਟਵਰਕ ਦੇ ਲੋਕਲ ਪੰਨੇ ਤੋਂ <a href='https://openfoodnetwork org/ofn-local/' target='blank'>ਸਾਡੇ ਸੰਪਰਕ ਵੇਰਵੇ ਪ੍ਰਾਪਤ ਕਰੋ</a>।</p> <p>ਤੁਹਾਡਾ ਸਾਨੂੰ ਗੁੰਮ ਹੋਏ ਪੰਨੇ ਬਾਰੇ ਜਿੰਨਾ ਸੰਭਵ ਹੋ ਸਕੇ ਉਨ੍ਹੇਂ ਜਿਆਦਾ ਵੇਰਵੇ ਪ੍ਰਦਾਨ ਕਰਨਾ ਅਸਲ ਵਿੱਚ ਸਾਡੀ ਵਧੇਰੀ ਮਦਦ ਕਰਦਾ ਹੈ।</p>"
@@ -131,7 +111,8 @@ pa:
     unprocessable_entity:
       title: "ਜੋ ਬਦਲਾਅ ਤੁਸੀਂ ਚਾਹੁੰਦੇ ਸੀ ਉਹ ਰੱਦ ਕਰ ਦਿੱਤਾ ਗਿਆ ਸੀ (422)"
       message_html: "<p>ਜੋ ਬਦਲਾਅ ਤੁਸੀਂ ਚਾਹੁੰਦੇ ਸੀ ਉਹ ਰੱਦ ਕਰ ਦਿੱਤਾ ਗਿਆ ਸੀ ਹੋ ਸਕਦਾ ਹੈ ਕਿ ਤੁਸੀਂ ਕਿਸੇ ਅਜਿਹੀ ਚੀਜ਼ ਨੂੰ ਬਦਲਣ ਦੀ ਕੋਸ਼ਿਸ਼ ਕੀਤੀ ਹੋਵੇ ਜਿਸ ਤੱਕ ਤੁਹਾਡੀ ਪਹੁੰਚ ਨਹੀਂ ਹੈ। <br><h3><a href='/'>ਹੋਮ ਤੇ ਵਾਪਸ ਜਾਓ</a></h3> </p>"
-    stimulus_reflex_error: "ਸਾਨੂੰ ਅਫਸੋਸ ਹੈ, ਪਰ ਕੁਝ ਗਲਤ ਹੋਇਆ ਹੈ।\\n\\nਇਹ ਇੱਕ ਅਸਥਾਈ ਸਮੱਸਿਆ ਹੋ ਸਕਦੀ ਹੈ, ਇਸ ਲਈ ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ ਜਾਂ ਪੰਨੇ ਨੂੰ ਦੋਬਾਰਾ ਲੋਡ ਕਰੋ।\\nਅਸੀਂ ਸਾਰੀਆਂ ਤਰੁੱਟੀਆਂ ਨੂੰ ਰਿਕਾਰਡ ਕਰਦੇ ਹਾਂ ਅਤੇ ਹੋ ਸਕਦਾ ਹੈ ਕਿ ਅਸੀਂ ਉਨਾਂ ਨੂੰ ਠੀਕ ਕਰਨ ਤੇ ਕੰਮ ਰਹੇ ਹੋਈਏ।\\nਜੇਕਰ ਸਮੱਸਿਆ ਬਣੀ ਰਹਿੰਦੀ ਹੈ ਜਾਂ ਜ਼ਰੂਰੀ ਹੈ, ਤਾਂ ਕਿਰਪਾ ਕਰਕੇ ਸਾਡੇ ਨਾਲ ਸੰਪਰਕ ਕਰੋ।"
+    general_error:
+      message: "ਸਾਨੂੰ ਅਫਸੋਸ ਹੈ, ਪਰ ਕੁਝ ਗਲਤ ਹੋਇਆ ਹੈ।\\n\\nਇਹ ਇੱਕ ਅਸਥਾਈ ਸਮੱਸਿਆ ਹੋ ਸਕਦੀ ਹੈ, ਇਸ ਲਈ ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ ਜਾਂ ਪੰਨੇ ਨੂੰ ਦੋਬਾਰਾ ਲੋਡ ਕਰੋ।\\nਅਸੀਂ ਸਾਰੀਆਂ ਤਰੁੱਟੀਆਂ ਨੂੰ ਰਿਕਾਰਡ ਕਰਦੇ ਹਾਂ ਅਤੇ ਹੋ ਸਕਦਾ ਹੈ ਕਿ ਅਸੀਂ ਉਨਾਂ ਨੂੰ ਠੀਕ ਕਰਨ ਤੇ ਕੰਮ ਰਹੇ ਹੋਈਏ।\\nਜੇਕਰ ਸਮੱਸਿਆ ਬਣੀ ਰਹਿੰਦੀ ਹੈ ਜਾਂ ਜ਼ਰੂਰੀ ਹੈ, ਤਾਂ ਕਿਰਪਾ ਕਰਕੇ ਸਾਡੇ ਨਾਲ ਸੰਪਰਕ ਕਰੋ।"
   stripe:
     error_code:
       incorrect_number: "ਕਾਰਡ ਨੰਬਰ ਗਲਤ ਹੈ।"
@@ -291,6 +272,9 @@ pa:
   report_job:
     report_failed: |
         ਇਹ ਰਿਪੋਰਟ ਅਸਫਲ ਰਹੀ। ਇਹ ਸੰਸਾਧਨ ਕਰਨ ਲਈ ਬਹੁਤ ਵੱਡਾ ਹੋ ਸਕਦੀ ਹੈ। ਅਸੀਂ ਇਸ ਦੀ ਜਾਂਚ ਕਰਾਂਗੇ, ਪਰ ਜੇਕਰ ਸਮੱਸਿਆ ਬਣੀ ਰਹਿੰਦੀ ਹੈ ਤਾਂ ਕਿਰਪਾ ਕਰਕੇ ਸਾਨੂੰ ਦੱਸੋ।
+  backorder_mailer:
+    backorder_failed:
+      product: "ਉਤਪਾਦ"
   enterprise_mailer:
     confirmation_instructions:
       subject: "ਕਿਰਪਾ ਕਰਕੇ %{enterprise} ਲਈ ਈਮੇਲ ਪਤੇ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ"
@@ -306,9 +290,18 @@ pa:
       join_community: "ਭਾਈਚਾਰੇ ਵਿੱਚ ਸ਼ਾਮਲ ਹੋਵੋ"
     invite_manager:
       subject: "%{enterprise} ਨੇ ਤੁਹਾਨੂੰ ਪ੍ਰਬੰਧਕ ਬਣਨ ਲਈ ਸੱਦਾ ਦਿੱਤਾ ਹੈ"
+  payment_mailer:
+    authorize_payment:
+      subject: "ਕਿਰਪਾ ਕਰਕੇ OFN ਤੇ %{distributor} ਨੂੰ ਆਪਣਾ ਭੁਗਤਾਨ ਅਧਿਕਾਰਤ ਕਰੋ"
+      instructions: "%{distributor} ਨੂੰ %{amount} ਦੇ ਤੁਹਾਡੇ ਭੁਗਤਾਨ ਲਈ ਵਾਧੂ ਪ੍ਰਮਾਣਿਕਤਾ ਦੀ ਲੋੜ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਆਪਣੇ ਭੁਗਤਾਨ ਨੂੰ ਅਧਿਕਾਰਤ ਕਰਨ ਲਈ ਹੇਠਾਂ ਦਿੱਤੇ URL ਉਤੇ ਜਾਓ:"
+    authorization_required:
+      subject: "ਭੁਗਤਾਨ ਲਈ ਗਾਹਕ ਤੋਂ ਅਧਿਕਾਰ ਦੀ ਲੋੜ ਹੁੰਦੀ ਹੈ"
+      message: "ਆਰਡਰ %{order_number} ਦੇ ਭੁਗਤਾਨ ਲਈ ਗਾਹਕ ਤੋਂ ਵਾਧੂ ਅਧਿਕਾਰ ਦੀ ਲੋੜ ਹੈ। ਗਾਹਕ ਨੂੰ ਈਮੇਲ ਰਾਹੀਂ ਸੂਚਿਤ ਕੀਤਾ ਗਿਆ ਹੈ ਅਤੇ ਜਦੋਂ ਤੱਕ ਇਹ ਅਧਿਕਾਰਤ ਨਹੀਂ ਹੋ ਜਾਂਦਾ, ਭੁਗਤਾਨ ਬਕਾਏ ਵਜੋਂ ਵਿਖਾਈ ਦੇਵੇਗਾ।"
   producer_mailer:
     order_cycle:
       subject: "%{producer} ਲਈ ਆਰਡਰ ਸਾਈਕਲ ਰਿਪੋਰਟ"
+    order_cycle_report:
+      order_number: "ਆਰਡਰ ਨੰਬਰ"
   provider_settings: "ਪ੍ਰਦਾਤਾ ਸੈਟਿੰਗਾਂ"
   report_mailer:
     report_ready:
@@ -457,7 +450,7 @@ pa:
   password_confirmation: ਪਾਸਵਰਡ ਦੀ ਪੁਸ਼ਟੀ
   reset_password_token: ਪਾਸਵਰਡ ਟੋਕਨ ਨੂੰ ਰੀਸੈਟ ਕਰੋ
   expired: ਮਿਆਦ ਪੁੱਗ ਗਈ ਹੈ, ਕਿਰਪਾ ਕਰਕੇ ਨਵੇਂ ਲਈ ਬੇਨਤੀ ਕਰੋ
-  back_to_payments_list: "ਭੁਗਤਾਨ ਸੂਚੀ ਤੇ ਵਾਪਸ"
+  back_to_payments_list: "ਭੁਗਤਾਨ ਸੂਚੀ ਤੇ ਵਾਪਸ ਜਾਓ"
   maestro_or_solo_cards: "ਮਾਏਸਟ੍ਰੋ/ਸੋਲੋ ਕਾਰਡ"
   backordered: "ਬੈਕਆਰਡਰ ਕੀਤਾ ਗਿਆ"
   on_hand: "ਹੱਥ ਵਿਚ"
@@ -473,6 +466,7 @@ pa:
     create_and_add_another: "ਬਣਾਓ ਅਤੇ ਦੂਜਾ ਜੋੜੋ"
     create: "ਬਣਾਓ"
     cancel: "ਰੱਦ ਕਰੋ"
+    cancel_order: "ਰੱਦ ਕਰੋ"
     resume: "ਮੁੜ ਤੋਂ ਸ਼ੁਰੂ ਕਰੋ"
     save: "ਸੇਵ ਕਰੋ"
     edit: "ਸੰਪਾਦਿਤ ਕਰੋ"
@@ -496,8 +490,10 @@ pa:
         per_page: "ਪ੍ਰਤੀ ਪੰਨਾ %{count} ਆਈਟਮਾਂ"
         colums: ਕਾਲਮ
       columns:
+        image: ਤਸਵੀਰ
         name: ਨਾਮ
         unit: ਯੂਨਿਟ
+        unit_value: ਯੂਨਿਟ ਵੈਲਯੂ
         price: ਕੀਮਤ
         producer: ਉਤਪਾਦਕ
         category: ਸ਼੍ਰੇਣੀ
@@ -508,6 +504,7 @@ pa:
         inherits_properties: "ਪ੍ਰਾਪਰਟੀਜ਼ ਅਪਣਾਉਂਦੇ ਹਨ?"
         import_date: "ਇਮਪੋਰਟ ਮਿਤੀ"
         actions: <div></div>
+        tags: ਟੈਗ
       columns_selector:
         unit: ਯੂਨਿਟ
         price: ਕੀਮਤ
@@ -523,8 +520,11 @@ pa:
         edit: ਸੰਪਾਦਿਤ ਕਰੋ
         clone: ਕਲੋਨ
         delete: ਹਟਾਓ
+        remove: Remove
       image:
         edit: ਸੰਪਾਦਿਤ ਕਰੋ
+      product_preview:
+        shop_tab: ਸ਼ਾਪ
     adjustments:
       skipped_changing_canceled_order: "ਤੁਸੀਂ ਰੱਦ ਕੀਤੇ ਆਰਡਰ ਨੂੰ ਬਦਲ ਨਹੀਂ ਸਕਦੇ ਹੋ।"
     begins_at: ਇਸਤੇ ਸ਼ੁਰੂ ਹੋਵੇਗਾ
@@ -577,7 +577,6 @@ pa:
     show_more: ਹੋਰ ਵਿਖਾਓ
     choose: "ਚੁਣੋ..."
     please_select: ਕਿਰਪਾ ਕਰਕੇ ਚੁਣੋ...
-    column_save_as_default: ਡਿਫੌਲਟ ਦੇ ਤੌਰ ਤੇ ਸੇਵ ਕਰੋ
     columns: ਕਾਲਮ
     actions: ਸੰਪਾਦਿਤ ਕਰੋ
     viewing: "ਵੇਖ ਰਹੇ ਹਾਂ: %{current_view_name}"
@@ -662,6 +661,11 @@ pa:
         balance_due: "ਬਕਾਇਆ ਰਕਮ"
       destroy:
         has_associated_subscriptions: "ਹਟਾਉਣਾ ਅਸਫਲ ਰਿਹਾ: ਇਸ ਗਾਹਕ ਕੋਲ ਕਿਰਿਆਸ਼ੀਲ ਗਾਹਕੀਆਂ ਹਨ। ਪਹਿਲਾਂ ਉਹਨਾਂ ਨੂੰ ਰੱਦ ਕਰੋ।"
+    customer_account_transaction:
+      index:
+        description: ਵਰਣਨ
+        amount: ਰਕਮ
+        running_balance: ਚਲ ਰਹੀ ਬਕਾਇਆ ਰਕਮ
     contents:
       edit:
         title: ਕੰਟੇਂਟ
@@ -675,6 +679,13 @@ pa:
         your_content: ਤੁਹਾਡਾ ਕੰਟੇਂਟ
         user_guide: ਉਪਭੋਗਤਾ ਗਾਈਡ
         map: ਮੈਪ
+    dfc_product_imports:
+      index:
+        update: ਅੱਪਡੇਟ
+        new: ਨਵਾਂ
+        selected:
+          other: "%{count} ਚੁਣੇ ਗਏ"
+        import: ਇਮਪੋਰਟ
     enterprise_fees:
       index:
         title: "ਐਂਟਰਪ੍ਰਾਈਜ਼ ਫ਼ੀਸ"
@@ -728,7 +739,6 @@ pa:
       variants:
         infinity: "ਇਨਫਿਨਿਟੀ"
         to_order_tip: "ਆਰਡਰ ਉਤੇ ਬਣੀਆਂ ਆਈਟਮਾਂ ਵਿੱਚ ਸਟਾਕ ਦੇ ਪੱਧਰ ਨਿਰਧਾਰਤ ਨਹੀਂ ਹੁੰਦੇ, ਜਿਵੇਂ ਕਿ ਆਰਡਰ ਤੇ ਬਣਾਈ ਗਈ ਤਾਜ਼ਾ ਬ੍ਰੈਡ।"
-      back_to_products_list: "ਉਤਪਾਦਾਂ ਦੀ ਸੂਚੀ ਤੇ ਵਾਪਿਸ"
       editing_product: "ਉਤਪਾਦ ਦਾ ਸੰਪਾਦਨ"
       tabs:
         product_details: "ਉਤਪਾਦ ਵੇਰਵੇ"
@@ -740,14 +750,8 @@ pa:
       index:
         header:
           title: ਥੋਕ ਸੰਪਾਦਿਤ ਉਤਪਾਦ
+      content:
         loading: ਤੁਹਾਡੇ ਉਤਪਾਦ ਲੋਡ ਕੀਤੇ ਜਾ ਰਹੇ ਹਨ
-      sort:
-        pagination:
-          total_html: "ਤੁਹਾਡੇ ਖੋਜ ਮਾਪਦੰਡ ਲਈ <strong>%{total} ਉਤਪਾਦ</strong> ਮਿਲੇ ਹਨ। %{from} ਤੋਂ %{to} ਦਿਖਾ ਰਹੇ ਹਨ।"
-          per_page:
-            show: ਵਿਖਾਓ
-            per_page: "%{num} ਪ੍ਰਤੀ ਪੇਜ"
-          clear_search: ਖੋਜ ਮਿਟਾਓ
       filters:
         search_products: ਉਤਪਾਦਾਂ ਦੀ ਖੋਜ ਕਰੋ
         all_producers: ਸਾਰੇ ਉਤਪਾਦਕ
@@ -756,7 +760,16 @@ pa:
           label: ਉਤਪਾਦਕ
         categories:
           label: ਸ਼੍ਰੇਣੀਆਂ
+        tags:
+          label: ਟੈਗ
+          none: ਕੋਈ ਨਹੀਂ
         search: ਖੋਜੋ
+      sort:
+        pagination:
+          per_page:
+            show: ਵਿਖਾਓ
+            per_page: "%{num} ਪ੍ਰਤੀ ਪੇਜ"
+          clear_search: ਖੋਜ ਮਿਟਾਓ
       no_products:
         no_products_found: ਕੋਈ ਉਤਪਾਦ ਨਹੀਂ ਲੱਭੇ
         import_products: ਇੱਕ ਤੋਂ ਜ਼ਿਆਦਾ ਉਤਪਾਦ ਇਮਪੋਰਟ ਕਰੋ
@@ -764,11 +777,16 @@ pa:
       table:
         reset: ਤਬਦੀਲੀਆਂ ਤਿਆਗੋ
         save: ਤਬਦੀਲੀਆਂ ਨੂੰ ਸੇਵ ਕਰੋ
+      product_variant_row:
         new_variant: ਨਵਾਂ ਵੇਰੀਐਂਟ
       bulk_update:
         success: ਬਦਲਾਵ ਸੇਵ ਕੀਤੇ ਗਏ।'
-      edit_image:
-        close: ਵਾਪਸ
+      variant_row:
+        none_tax_category: ਕੋਈ ਨਹੀਂ
+        category_field_name: "ਸ਼੍ਰੇਣੀ"
+        tax_category_field_name: "ਟੈਕਸ ਸ਼੍ਰੇਣੀ"
+        producer_field_name: "ਉਤਪਾਦਕ"
+        add_a_tag: ਟੈਗ ਜੋੜੋ
     product_import:
       title: ਉਤਪਾਦ ਦਾ ਇਮਪੋਰਟ
       file_not_found: ਫ਼ਾਈਲ ਨਹੀਂ ਮਿਲੀ ਜਾਂ ਖੋਲ੍ਹੀ ਨਹੀਂ ਜਾ ਸਕੀ
@@ -829,7 +847,6 @@ pa:
         no_name: ਕੋਈ ਨਾਂ ਨਹੀਂ
         blank_enterprise: ਕੁਝ ਉਤਪਾਦਾਂ ਲਈ ਕੋਈ ਵੀ ਪਰਿਭਾਸ਼ਿਤ ਐਂਟਰਪ੍ਰਾਈਜ਼ ਨਹੀਂ ਹੈ
         reset_absent?: ਗੈਰਹਾਜ਼ਰ ਉਤਪਾਦਾਂ ਨੂੰ ਰੀਸੈਟ ਕਰੋ
-        reset_absent_tip: ਫਾਈਲ ਵਿੱਚ ਮੌਜੂਦ ਨਾ ਹੋਣ ਵਾਲੇ ਸਾਰੇ ਉਤਪਾਦਾਂ ਲਈ ਸਟਾਕ ਨੂੰ ਜ਼ੀਰੋ ਤੇ ਸੇਟ ਕਰੋ
         overwrite_all: ਸਭ ਨੂੰ ਓਵਰਰਾਈਟ ਕਰੋ
         overwrite_empty: ਜੇਕਰ ਖਾਲੀ ਹੈ ਤਾਂ ਓਵਰਰਾਈਟ ਕਰੋ
         default_stock: ਸਟਾਕ ਦਾ ਪੱਧਰ ਸੇਟ ਕਰੋ
@@ -1014,12 +1031,6 @@ pa:
         images:
           legend: "ਫੋਟੋ"
           logo: ਲੋਗੋ
-          promo_image_placeholder: 'ਇਹ ਫੋਟੋ "ਸਾਡੇ ਬਾਰੇ ਵਿੱਚ" ਪ੍ਰਦਰਸ਼ਿਤ ਹੈ'
-          promo_image_note1: 'ਕਿਰਪਾ ਕਰਕੇ ਨੋਟ ਕਰੋ:'''
-          promo_image_note2: ਇੱਥੇ ਅੱਪਲੋਡ ਕੀਤੀ ਕਿਸੇ ਵੀ ਪ੍ਰੋਮੋ ਦੀ ਫੋਟੋ ਨੂੰ 1200 x 260 ਵਿੱਚ ਕੱਟਿਆ ਜਾਵੇਗਾ।
-          promo_image_note3: ਪ੍ਰੋਮੋ ਫੋਟੋ ਕਿਸੇ ਐਂਟਰਪ੍ਰਾਈਜ਼ ਦੀ ਪ੍ਰੋਫਾਈਲ ਪੇਜ ਦੇ ਉਪਰ ਦੀ ਔਰ ਅਤੇ ਪੌਪ-ਅਪ ਵਿੱਚ ਪ੍ਰਦਰਸ਼ਿਤ ਕੀਤੀ ਜਾਂਦੀ ਹੈ।
-          remove_logo: "ਫੋਟੋ ਹਟਾਓ"
-          remove_promo_image: "ਫੋਟੋ ਹਟਾਓ"
         inventory_settings:
           legend: "ਇਨਵੇਂਟਰੀ ਸੈਟਿੰਗਾਂ"
           text1: ਤੁਸੀਂ ਆਪਣੀ ਇਨਵੇਂਟਰੀ ਰਾਹੀਂ ਸਟਾਕ ਦੇ ਪੱਧਰ ਅਤੇ ਕੀਮਤਾਂ ਦੇ ਪ੍ਰਬੰਧਨ ਦਾ ਵਿਕਲਪ ਚੁਣ ਸਕਦੇ ਹੋ
@@ -1100,13 +1111,15 @@ pa:
           customer_names_tip: "ਰਿਪੋਰਟਾਂ ਵਿੱਚ ਆਪਣੇ ਗਾਹਕਾਂ ਦੇ ਨਾ ਵੇਖਣ ਲਈ ਆਪਣੇ ਸਪਲਾਇਰਾਂ ਨੂੰ ਸਮਰੱਥ ਬਣਾਓ"
           customer_names_false: "ਅਸਮਰੱਥ ਕੀਤਾ ਗਿਆ"
           customer_names_true: "ਸਮਰੱਥ ਕੀਤਾ ਗਿਆ"
+          customer_contacts_false: "ਅਸਮਰੱਥ ਕੀਤਾ ਗਿਆ"
+          customer_contacts_true: "ਸਮਰੱਥ ਕੀਤਾ ਗਿਆ"
+          producers_edit_orders_false: "ਅਸਮਰੱਥ ਕੀਤਾ ਗਿਆ"
+          producers_edit_orders_true: "ਸਮਰੱਥ ਕੀਤਾ ਗਿਆ"
           shopfront_message: "ਸ਼ਾਪਫਰੰਟ ਸੰਦੇਸ਼"
           shopfront_message_placeholder: >
               ਗਾਹਕਾਂ ਦਾ ਸੁਆਗਤ ਕਰਨ ਅਤੇ ਤੁਹਾਡੇ ਨਾਲ ਖਰੀਦਦਾਰੀ ਕਰਨ ਦਾ ਢੰਗ ਦੱਸਣ ਲਈ ਇੱਕ ਵਿਕਲਪਿਕ
               ਸੰਦੇਸ਼। ਜੇਕਰ ਟੈਕਸਟ ਇੱਥੇ ਦਰਜ ਕੀਤਾ ਗਿਆ ਹੈ ਤਾਂ ਉਹ ਹੋਮ ਟੈਬ ਵਿੱਚ ਪ੍ਰਦਰਸ਼ਿਤ
               ਹੋਵੇਗਾ ਜਦੋਂ ਗਾਹਕ ਪਹਿਲੀ ਵਾਰ ਤੁਹਾਡੇ ਸ਼ਾਪ ਦੇ ਸਾਹਮਣੇ ਆਉਂਦੇ ਹਨ।
-          shopfront_message_link_tooltip: "ਲਿੰਕ ਪਾਓ / ਸੰਪਾਦਿਤ ਕਰੋ"
-          shopfront_message_link_prompt: "ਸਮਿਲਿਤ ਕਰਨ ਲਈ ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ URL ਦਾਖਲ ਕਰੋ"
           shopfront_closed_message: "ਸ਼ਾਪਫ੍ਰੰਟ ਦੇ ਬੰਦ ਹੋਣ ਦਾ ਸੰਦੇਸ਼"
           shopfront_closed_message_placeholder: >
               ਇੱਕ ਸੰਦੇਸ਼ ਜੋ ਇਸ ਬਾਰੇ ਵਧੇਰੇ ਵਿਸਤ੍ਰਿਤ ਵਿਆਖਿਆ ਪ੍ਰਦਾਨ ਕਰਦਾ ਹੈ ਕਿ ਤੁਹਾਡੀ
@@ -1151,27 +1164,24 @@ pa:
             no_rules_yet: ਅਜੇ ਤੱਕ ਕੋਈ ਡਿਫੌਲਟ ਨਿਯਮ ਲਾਗੂ ਨਹੀਂ ਹੁੰਦੇ
             add_new_button: '+ ਇੱਕ ਨਵਾਂ ਡਿਫੌਲਟ ਨਿਯਮ ਜੋੜੋ'''
           no_tags_yet: ਇਸ ਐਂਟਰਪ੍ਰਾਈਜ਼ ਤੇ ਅਜੇ ਤੱਕ ਕੋਈ ਟੈਗ ਲਾਗੂ ਨਹੀਂ ਹਨ
-          no_rules_yet: ਇਸ ਟੈਗ ਤੇ ਅਜੇ ਤੱਕ ਕੋਈ ਨਿਯਮ ਲਾਗੂ ਨਹੀਂ ਹਨ
-          for_customers_tagged: 'ਟੈਗ ਕੀਤੇ ਗਾਹਕਾਂ ਲਈ:'''
-          add_new_rule: '+ ਇੱਕ ਨਵਾਂ ਨਿਯਮ ਜੋੜੋ'''
           add_new_tag: '+ ਇੱਕ ਨਵਾਂ ਟੈਗ ਜੋੜੋ'''
+          show_hide_variants: 'ਮੇਰੇ ਸ਼ੌਪਫਰੰਟ ਵਿੱਚ ਵਾਰੀਏਂਟ ਵਿ ਓ ਜਾਂ ਲੁਕਾਓ'''
+          show_hide_shipping: 'ਚੈਕਆਉਟ ਵੇਲੇ ਸ਼ਿਪਿੰਗ ਢੰਗ ਵਿਖਾਓ ਜਾਂ ਲੁਕਾਓ'''
+          show_hide_payment: 'ਚੈਕਆਉਟ ਵੇਲੇ ਭੁਗਤਾਨ ਦੇ ਢੰਗ ਵਿਖਾਓ ਜਾਂ ਲੁਕਾਓ'''
+          show_hide_order_cycles: 'ਮੇਰੇ ਸ਼ੌਪਫਰੰਟ ਵਿੱਚ ਆਰਡਰ ਸਾਈਕਲ ਵਿਖਾਓ ਜਾਂ ਲੁਕਾਓ'''
         users:
           legend: "ਉਪਭੋਗਤਾ"
           email_confirmation_notice_html: "ਈਮੇਲ ਪੁਸ਼ਟੀਕਰਨ ਲੰਬਿਤ ਹੈ। ਅਸੀਂ %{email} ਨੂੰ ਇੱਕ ਪੁਸ਼ਟੀਕਰਨ ਈਮੇਲ ਭੇਜੀ ਹੈ।"
           resend: ਦੁਬਾਰਾ ਭੇਜੋ
-          owner: 'ਮਾਲਕ'''
           contact: "ਸੰਪਰਕ"
+          owner: 'ਮਾਲਕ'''
           contact_tip: "ਪ੍ਰਬੰਧਕ ਜੋ ਆਰਡਰਾਂ ਅਤੇ ਸੂਚਨਾਵਾਂ ਲਈ ਐਂਟਰਪ੍ਰਾਈਜ਼ ਈਮੇਲ ਪ੍ਰਾਪਤ ਕਰੇਗਾ। ਉਦੇ ਕੋਲ ਇੱਕ ਪੁਸ਼ਟੀ ਕੀਤਾ ਈਮੇਲ ਪਤਾ ਹੋਣਾ ਚਾਹੀਦਾ ਹੈ।"
           owner_tip: ਇਸ ਐਂਟਰਪ੍ਰਾਈਜ਼ ਲਈ ਜ਼ਿੰਮੇਵਾਰ ਪ੍ਰਾਥਮਿਕ ਉਪਭੋਗਤਾ।
           notifications: ਸੂਚਨਾਵਾਂ
           notifications_tip: ਆਰਡਰਾਂ ਬਾਰੇ ਸੂਚਨਾਵਾਂ ਇਸ ਈਮੇਲ ਪਤੇ ਉਤੇ ਭੇਜੀਆਂ ਜਾਣਗੀਆਂ।
           notifications_placeholder: ਜਿਵੇਂ - gustav@truffles.com
           notifications_note: 'ਨੋਟ: ਵਰਤਣ ਤੋਂ ਪਹਿਲਾਂ ਇੱਕ ਨਵੇਂ ਈਮੇਲ ਪਤੇ ਦੀ ਪੁਸ਼ਟੀ ਕਰਨ ਦੀ ਲੋੜ ਹੋ ਸਕਦੀ ਹੈ'''
-          managers: ਪ੍ਰਬੰਧਕ
-          managers_tip: ਦੂਜੇ ਉਪਭੋਗਤਾ ਜਿਹਨਾਂ ਕੋਲ ਇਸ ਐਂਟਰਪ੍ਰਾਈਜ਼ ਦਾ ਪ੍ਰਬੰਧਨ ਕਰਨ ਦੀ ਇਜਾਜ਼ਤ ਹੈ।
           invite_manager: "ਪ੍ਰਬੰਧਕ ਨੂੰ ਸੱਦਾ ਦਿਓ"
-          invite_manager_tip: "ਕਿਸੇ ਗੈਰ-ਰਜਿਸਟਰਡ ਉਪਭੋਗਤਾ ਨੂੰ ਸਾਈਨ ਅੱਪ ਕਰਨ ਅਤੇ ਇਸ ਐਂਟਰਪ੍ਰਾਈਜ਼ ਦਾ ਪ੍ਰਬੰਧਕ ਬਣਨ ਲਈ ਸੱਦਾ ਦਿਓ।"
-          add_unregistered_user: "ਇੱਕ ਗੈਰ-ਰਜਿਸਟਰਡ ਉਪਭੋਗਤਾ ਜੋੜੋ"
           email_confirmed: "ਈਮੇਲ ਦੀ ਪੁਸ਼ਟੀ ਹੋਈ"
           email_not_confirmed: "ਈਮੇਲ ਦੀ ਪੁਸ਼ਟੀ ਨਹੀਂ ਹੋਈ"
         vouchers:
@@ -1190,17 +1200,18 @@ pa:
         white_label:
           legend: "ਚਿੱਟਾ ਲੇਬਲ"
           hide_ofn_navigation: "OFN ਨੈਵੀਗੇਸ਼ਨ ਲੁਕਾਓ"
-          upload_logo: "ਸ਼ੋਪਫ੍ਰੰਟ ਵਿੱਚ ਵਰਤਿਆ ਗਿਆ ਲੋਗੋ"
-          remove_logo: "ਲੋਗੋ ਹਟਾਓ"
-          remove_logo_confirm: "ਕੀ ਤੁਸੀਂ ਯਕੀਨੀ ਤੌਰ ਤੇ ਇਸ ਲੋਗੋ ਨੂੰ ਹਟਾਉਣਾ ਚਾਹੁੰਦੇ ਹੋ?"
-          remove_logo_success: "ਲੋਗੋ ਹਟਾਇਆ ਗਿਆ"
           white_label_logo_link_label: "ਸ਼ੌਪਫਰੰਟ ਵਿੱਚ ਵਰਤੇ ਗਏ ਲੋਗੋ ਦਾ ਲਿੰਕ"
           hide_groups_tab: "ਸ਼ਾਪਫਰੰਟ ਵਿੱਚ ਸਮੂਹ ਟੈਬ ਨੂੰ ਲੁਕਾਓ"
           create_custom_tab: "ਸ਼ਾਪਫ੍ਰੰਟ ਵਿੱਚ ਕਸਟਮ ਟੈਬ ਬਣਾਓ"
           custom_tab_title: "ਕਸਟਮ ਟੈਬ ਲਈ ਸਿਰਲੇਖ"
           custom_tab_content: "ਕਸਟਮ ਟੈਬ ਲਈ ਕੰਟੇਂਟ"
         connected_apps:
-          loading: "ਲੋਡ ਕੀਤਾ ਜਾ ਰਿਹਾ ਹੈ"
+          affiliate_sales_data:
+            loading: "ਲੋਡ ਕੀਤਾ ਜਾ ਰਿਹਾ ਹੈ"
+          discover_regen:
+            loading: "ਲੋਡ ਕੀਤਾ ਜਾ ਰਿਹਾ ਹੈ"
+          vine:
+            enable: "ਕਨੈਕਟ"
       actions:
         edit_profile: ਸੈਟਿੰਗਾਂ
         properties: ਪ੍ਰਾਪਰਟੀਜ਼
@@ -1253,10 +1264,8 @@ pa:
         contact_name: ਸੰਪਰਕ ਨਾਮ
       edit:
         editing: 'ਸੈਟਿੰਗਾਂ:'''
-        back_link: ਐਂਟਰਪ੍ਰਾਈਜ਼ ਸੂਚੀ ਤੇ ਵਾਪਸ ਜਾਓ
       new:
         title: ਐਂਟਰਪ੍ਰਾਈਜ਼ਜ਼
-        back_link: ਐਂਟਰਪ੍ਰਾਈਜ਼ ਸੂਚੀ ਤੇ ਵਾਪਸ ਜਾਓ
       welcome:
         welcome_title: ਓਪਨ ਫੂਡ ਨੈਟਵਰਕ ਵਿੱਚ ਤੁਹਾਡਾ ਸੁਆਗਤ ਹੈ!
         welcome_text: ਤੁਸੀਂ ਸਫਲਤਾਪੂਰਵਕ ਇਹ ਬਣਾ ਲਿਆ ਹੈ
@@ -1264,9 +1273,6 @@ pa:
         choose_starting_point: 'ਆਪਣਾ ਪੈਕੇਜ ਚੁਣੋ:'''
         profile: 'ਪ੍ਰੋਫਾਈਲ'
         producer_profile: 'ਉਤਪਾਦਕ ਪ੍ਰੋਫਾਈਲ'''
-      invite_manager:
-        user_already_exists: "ਉਪਭੋਗਤਾ ਪਹਿਲਾਂ ਹੀ ਮੌਜੂਦ ਹੈ"
-        error: "ਕੁਝ ਗਲਤ ਹੋ ਗਿਆ"
     order_cycles:
       loading_flash:
         loading_order_cycles: ਆਰਡਰ ਸਾਈਕਲ ਲੋਡ ਕੀਤੇ ਜਾ ਰਹੇ ਹਨ
@@ -1293,6 +1299,8 @@ pa:
         choose_products_from: "ਇਥੋਂ ਉਤਪਾਦ ਚੁਣੋ:"
         re_notify_producers: ਉਤਪਾਦਕਾਂ ਨੂੰ ਦੁਬਾਰਾ ਸੂਚਿਤ ਕਰੋ
         notify_producers_tip: ਇਹ ਹਰੇਕ ਉਤਪਾਦਕ ਨੂੰ ਉਹਨਾਂ ਦੇ ਆਰਡਰ ਦੀ ਸੂਚੀ ਦੇ ਨਾਲ ਇੱਕ ਈਮੇਲ ਭੇਜੇਗਾ।
+      date_time_warning_modal_content:
+        cancel: 'ਰੱਦ ਕਰੋ'
       incoming:
         incoming: "ਅੰਦਰ ਆਉਣ ਵਾਲੇ"
         supplier: "ਸਪਲਾਇਰ"
@@ -1424,6 +1432,19 @@ pa:
       searching: ਖੋਜ ਕੀਤੀ ਜਾ ਰਹੀ ਹੈ...
       no_matches: ਕੋਈ ਮੇਲ ਨਹੀਂ ਮਿਲਿਆ
     shared:
+      attachment_field:
+        logo_label: "ਲੋਗੋ"
+        logo_remove: "ਫੋਟੋ ਹਟਾਓ"
+        logo_remove_confirm: "ਤੁਹਾਡੇ ਵੱਲੋਂ ਪੁਸ਼ਟੀ ਕਰਨ ਤੋਂ ਬਾਅਦ ਲੋਗੋ ਤੁਰੰਤ ਹਟਾ ਦਿੱਤਾ ਜਾਵੇਗਾ।"
+        promo_image_note1: 'ਕਿਰਪਾ ਕਰਕੇ ਨੋਟ ਕਰੋ:'''
+        promo_image_note2: ਇੱਥੇ ਅੱਪਲੋਡ ਕੀਤੀ ਕਿਸੇ ਵੀ ਪ੍ਰੋਮੋ ਦੀ ਫੋਟੋ ਨੂੰ 1200 x 260 ਵਿੱਚ ਕੱਟਿਆ ਜਾਵੇਗਾ।
+        promo_image_note3: ਪ੍ਰੋਮੋ ਫੋਟੋ ਕਿਸੇ ਐਂਟਰਪ੍ਰਾਈਜ਼ ਦੀ ਪ੍ਰੋਫਾਈਲ ਪੇਜ ਦੇ ਉਪਰ ਦੀ ਔਰ ਅਤੇ ਪੌਪ-ਅਪ ਵਿੱਚ ਪ੍ਰਦਰਸ਼ਿਤ ਕੀਤੀ ਜਾਂਦੀ ਹੈ।
+        promo_image_placeholder: 'ਇਹ ਫੋਟੋ "ਸਾਡੇ ਬਾਰੇ ਵਿੱਚ" ਪ੍ਰਦਰਸ਼ਿਤ ਹੈ'
+        promo_image_remove: "ਫੋਟੋ ਹਟਾਓ"
+        promo_image_remove_confirm: "ਤੁਹਾਡੇ ਵੱਲੋਂ ਪੁਸ਼ਟੀ ਕਰਨ ਤੋਂ ਬਾਅਦ ਪ੍ਰੋਮੋ ਫੋਟੋ ਨੂੰ ਤੁਰੰਤ ਹਟਾ ਦਿੱਤਾ ਜਾਵੇਗਾ।"
+        white_label_logo_label: "ਸ਼ੋਪਫ੍ਰੰਟ ਵਿੱਚ ਵਰਤਿਆ ਗਿਆ ਲੋਗੋ"
+        white_label_logo_remove: "ਫੋਟੋ ਹਟਾਓ"
+        white_label_logo_remove_confirm: "ਕੀ ਤੁਸੀਂ ਯਕੀਨੀ ਤੌਰ ਤੇ ਇਸ ਲੋਗੋ ਨੂੰ ਹਟਾਉਣਾ ਚਾਹੁੰਦੇ ਹੋ?"
       user_guide_link:
         user_guide: ਉਪਭੋਗਤਾ ਗਾਈਡ
       enterprises_hubs_tabs:
@@ -1466,7 +1487,7 @@ pa:
       not_visible: "%{enterprise} ਦਿਖਾਈ ਨਹੀਂ ਦੇ ਰਿਹਾ ਹੈ ਅਤੇ ਇਸ ਲਈ ਮੈਪ ਤੇ ਜਾਂ ਖੋਜਾਂ ਵਿੱਚ ਨਹੀਂ ਲੱਭਿਆ ਜਾ ਸਕਦਾ"
     reports:
       deprecated: "ਇਹ ਰਿਪੋਰਟ ਬਰਤਰਫ਼ ਕੀਤੀ ਗਈ ਹੈ ਅਤੇ ਭਵਿੱਖ ਵਿੱਚ ਰੀਲੀਜ਼ ਵਿੱਚ ਹਟਾ ਦਿੱਤੀ ਜਾਵੇਗੀ।"
-      hidden: ਲੁਕਿਆ ਹੋਇਆ
+      hidden_field: "<ਲੁਕਿਆ ਹੋਇਆ >"
       unitsize: ਯੂਨਿਟ ਦਾ ਸਾਈਜ਼
       total: ਕੁੱਲ
       total_items: ਕੁੱਲ ਆਈਟਮਾਂ
@@ -1538,7 +1559,6 @@ pa:
         no_report_type: "ਕਿਰਪਾ ਕਰਕੇ ਰਿਪੋਰਟ ਦੀ ਕਿਸਮ ਨਿਰਦੇਸ਼ਿਤ ਕਰੋ"
         report_not_found: "ਰਿਪੋਰਟ ਨਹੀਂ ਮਿਲੀ"
         missing_ransack_params: "ਕਿਰਪਾ ਕਰਕੇ ਬੇਨਤੀ ਵਿੱਚ ਰੈਨਸੈਕ ਖੋਜ ਪੇਰਾਮੀਟਰ ਦੀ ਸਪਲਾਈ ਕਰੋ"
-      hidden_field: "<ਲੁਕਿਆ ਹੋਇਆ >"
       summary_row:
         total: "ਕੁੱਲ"
       table:
@@ -1668,6 +1688,11 @@ pa:
     schedules:
       destroy:
         associated_subscriptions_error: ਇਸ ਸ਼ਡਿਊਲ ਨੂੰ ਹਟਾਇਆ ਨਹੀਂ ਜਾ ਸਕਦਾ ਹੈ ਕਿਉਂਕਿ ਇਸ ਵਿੱਚ ਸੰਬੰਧਿਤ ਸਬਸਕ੍ਰਿਪਸ਼ਨ ਹਨ
+    user_invitations:
+      new:
+        back: ਵਾਪਸ
+        email: ਈਮੇਲ
+        invite: ਸੱਦਾ ਦਿਓ
     vouchers:
       new:
         legend: ਨਵਾਂ ਵਾਊਚਰ
@@ -1683,6 +1708,9 @@ pa:
         stripe_connect_cancelled: "ਸਟ੍ਰਾਈਪ ਨਾਲ ਕਨੇਕਸ਼ਨ ਰੱਦ ਕਰ ਦਿੱਤਾ ਗਿਆ ਹੈ"
         stripe_connect_success: "ਸਟ੍ਰਾਈਪ ਖਾਤੇ ਸਫ਼ਲਤਾਪੂਰਵਕ ਕਨੇਕਟ ਕੀਤਾ ਗਿਆ"
         stripe_connect_fail: ਮਾਫ਼ ਕਰਨਾ, ਤੁਹਾਡੇ ਸਟ੍ਰਾਈਪ ਖਾਤੇ ਦਾ ਕਨੇਕਸ਼ਨ ਅਸਫਲ ਰਿਹਾ
+        remove_logo_success: "ਲੋਗੋ ਸਫਲਤਾਪੂਰਵਕ ਹਟਾਇਆ ਗਿਆ"
+        remove_promo_image_success: "ਪ੍ਰੋਮੋ ਦੀ ਫੋਟੋ ਨੂੰ ਸਫਲਤਾਪੂਰਵਕ ਹਟਾਇਆ ਗਿਆ"
+        remove_white_label_logo_success: "ਲੋਗੋ ਸਫਲਤਾਪੂਰਵਕ ਹਟਾਇਆ ਗਿਆ"
       stripe_connect_settings:
         resource: ਸਟ੍ਰਾਈਪ ਕਨੇਕਟ ਕੌਂਫਿਗਰੇਸ਼ਨ
   api:
@@ -1806,7 +1834,6 @@ pa:
       select_a_shipping_method: ਇੱਕ ਸ਼ਿਪਿੰਗ ਦਾ ਢੰਗ ਚੁਣੋ
       select_a_payment_method: ਇੱਕ ਭੁਗਤਾਨ ਦਾ ਤਰੀਕਾ ਚੁਣੋ
       no_shipping_methods_available: ਸ਼ਿਪਿੰਗ ਵਿਕਲਪਾਂ ਦੀ ਅਣਹੋਂਦ ਕਾਰਨ ਚੈਕਆਉਟ ਸੰਭਵ ਨਹੀਂ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਸ਼ਾਪ ਦੇ ਮਾਲਕ ਨਾਲ ਸੰਪਰਕ ਕਰੋ।
-      voucher_not_found: ਨਹੀਂ ਲਭਿਆ
       add_voucher_error: ਵਾਊਚਰ ਜੋੜਦੇ ਸਮੇਂ ਇੱਕ ਤਰੁੱਟੀ ਉਤਪੰਨ ਹੋਈ
   shops:
     hubs:
@@ -1973,7 +2000,6 @@ pa:
   label_account: "ਖਾਤਾ"
   label_more: "ਹੋਰ ਵਿਖਾਓ"
   label_less: "ਘੱਟ ਵਿਖਾਓ"
-  label_notices: "ਨੋਟਿਸ"
   cart_items: "ਆਈਟਮਾਂ"
   cart_headline: "ਤੁਹਾਡਾ ਸ਼ਾਪਿੰਗ ਕਾਰਟ"
   total: "ਕੁੱਲ"
@@ -2009,7 +2035,6 @@ pa:
       essential_cookies_note: "ਜ਼ਿਆਦਾਤਰ ਕੂਕੀਜ਼ ਵਿੱਚ ਸਿਰਫ਼ ਇੱਕ ਵਿਲੱਖਣ ਪਛਾਣਕਰਤਾ ਹੁੰਦਾ ਹੈ, ਪਰ ਕੋਈ ਹੋਰ ਡੇਟਾ ਨਹੀਂ, ਇਸਲਈ ਤੁਹਾਡਾ ਈਮੇਲ ਪਤਾ ਅਤੇ ਪਾਸਵਰਡ ਕਦੇ ਵੀ ਉਹਨਾਂ ਵਿੱਚ ਸ਼ਾਮਲ ਨਹੀਂ ਹੁੰਦਾ ਅਤੇ ਕਦੇ ਵੀ ਸਾਹਮਣੇ ਨਹੀਂ ਆਉਂਦਾ।"
       cookie_domain: "ਇਸ ਦੁਆਰਾ ਸੇਟ ਕਰੋ:"
       cookie_session_desc: "ਵੇਬਸਾਈਟ ਨੂੰ ਪੇਜ ਉਤੇ ਵਿਜ਼ਿਟ ਦੇ ਵਿਚਕਾਰ ਉਪਭੋਗਤਾਵਾਂ ਨੂੰ ਯਾਦ ਰੱਖਣ ਦੀ ਆਗਿਆ ਦੇਣ ਲਈ ਵਰਤਿਆ ਜਾਂਦਾ ਹੈ, ਉਦਾਹਰਨ ਲਈ, ਤੁਹਾਡੀ ਕਾਰਟ ਵਿੱਚ ਆਈਟਮਾਂ ਨੂੰ ਯਾਦ ਰੱਖਣ ਲਈ।"
-      cookie_consent_desc: "ਕੂਕੀਜ਼ ਨੂੰ ਸਟੋਰ ਕਰਨ ਲਈ ਉਪਭੋਗਤਾ ਦੀ ਸਹਿਮਤੀ ਦੀ ਸਥਿਤੀ ਨੂੰ ਕਾਇਮ ਰੱਖਣ ਲਈ ਵਰਤਿਆ ਜਾਂਦਾ ਹੈ"
       cookie_remember_me_desc: "ਜੇਕਰ ਉਪਭੋਗਤਾ ਨੇ ਵੈਬਸਾਈਟ ਨੂੰ ਉਸਨੂੰ ਯਾਦ ਰੱਖਣ ਲਈ ਬੇਨਤੀ ਕੀਤੀ ਹੈ ਤਾਂ ਇਸਨੂੰ ਵਰਤਿਆ ਜਾਂਦਾ ਹੈ। ਇਹ ਕੂਕੀ 12 ਦਿਨਾਂ ਬਾਅਦ ਆਪਣੇ ਆਪ ਮਿਟਾ ਦਿੱਤੀ ਜਾਂਦੀ ਹੈ। ਜੇਕਰ ਇੱਕ ਉਪਭੋਗਤਾ ਦੇ ਰੂਪ ਵਿੱਚ ਤੁਸੀਂ ਚਾਹੁੰਦੇ ਹੋ ਕਿ ਕੂਕੀ ਨੂੰ ਹਟਾ ਦਿੱਤਾ ਜਾਵੇ, ਤਾਂ ਤੁਹਾਨੂੰ ਸਿਰਫ਼ ਲੌਗਆਊਟ ਕਰਨ ਦੀ ਲੋੜ ਹੈ। ਜੇਕਰ ਤੁਸੀਂ ਨਹੀਂ ਚਾਹੁੰਦੇ ਕਿ ਕੂਕੀ ਨੂੰ ਤੁਹਾਡੇ ਕੰਪਿਊਟਰ ਉਤੇ ਇੰਸਟਾਲ ਕੀਤਾ ਜਾਵੇ ਤਾਂ ਤੁਹਾਨੂੰ ਲੌਗਇਨ ਕਰਨ ਵੇਲੇ \"ਮੈਨੂੰ ਯਾਦ ਰੱਖੋ\" ਚੈਕਬਾਕਸ ਤੇ ਚੈਕ ਦਾ ਨਿਸ਼ਾਨ ਨਹੀਂ ਲਾਉਣਾ ਚਾਹੀਦਾ।"
       cookie_openstreemap_desc: "ਸਾਡੇ ਦੋਸਤਾਨਾ ਓਪਨ ਸੋਰਸ ਮੈਪਿੰਗ ਪ੍ਰਦਾਤਾ (OpenStreetMap) ਦੁਆਰਾ ਇਹ ਯਕੀਨੀ ਬਣਾਉਣ ਲਈ ਵਰਤਿਆ ਜਾਂਦਾ ਹੈ ਕਿ ਇੱਕ ਦਿੱਤੇ ਸਮੇਂ ਦੇ ਦੌਰਾਨ ਉਹ ਬਹੁਤ ਸਾਰੀਆਂ ਬੇਨਤੀਆਂ ਪ੍ਰਾਪਤ ਨਾ ਕਰਨ, ਤਾਂ ਜੋ ਉਹਨਾਂ ਦੀਆਂ ਸੇਵਾਵਾਂ ਦੀ ਦੁਰਵਰਤੋਂ ਨੂੰ ਰੋਕਿਆ ਜਾ ਸਕੇ।"
       cookie_stripe_desc: "ਧੋਖਾਧੜੀ ਦਾ ਪਤਾ ਲਗਾਉਣ ਲਈ ਸਾਡੇ ਭੁਗਤਾਨ ਪ੍ਰੋਸੈਸਰ ਸਟ੍ਰਾਈਪ ਦੁਆਰਾ ਇਕੱਤਰ ਕੀਤਾ ਗਿਆ ਡੇਟਾ https://stripe.com/cookies-policy/legal। ਸਾਰੀਆਂ ਸ਼ਾਪਾਂ ਸਟ੍ਰਾਈਪ ਨੂੰ ਭੁਗਤਾਨ ਵਿਧੀ ਵਜੋਂ ਨਹੀਂ ਵਰਤਦੀਆਂ ਹਨ, ਪਰ ਧੋਖਾਧੜੀ ਨੂੰ ਰੋਕਣ ਲਈ ਇਸਨੂੰ ਸਾਰੇ ਪੰਨਿਆਂ ਤੇ ਲਾਗੂ ਕਰਨਾ ਇੱਕ ਚੰਗਾ ਅਭਿਆਸ ਹੈ। ਸ਼ਾਇਦ ਸਟ੍ਰਾਈਪ ਇੱਕ ਤਸਵੀਰ ਬਣਾਉਂਦਾ ਹੈ ਕਿ ਸਾਡੇ ਕਿਹੜੇ ਪੰਨੇ ਆਮ ਤੌਰ ਤੇ ਉਹਨਾਂ ਦੇ API ਨਾਲ ਇੰਟਰੈਕਟ ਕਰਦੇ ਹਨ ਅਤੇ ਫਿਰ ਕਿਸੇ ਵੀ ਅਸਧਾਰਨ ਚੀਜ਼ਾਂ ਨੂੰ ਫਲੈਗ ਕਰਦੇ ਹਨ। ਇਸ ਲਈ ਸਟ੍ਰਾਈਪ ਕੂਕੀ ਨੂੰ ਸੈਟ ਕਰਨਾ ਇੱਕ ਉਪਭੋਗਤਾ ਲਈ ਭੁਗਤਾਨ ਵਿਧੀ ਪ੍ਰਦਾਨ ਕਰਨ ਨਾਲੋਂ ਵਧੇਰੇ ਵਿਆਪਕ ਹੈ। ਇਸਨੂੰ ਹਟਾਉਣਾ ਸੰਭਵ ਹੈ। ਇਸਨੂੰ ਹਟਾਉਣ ਨਾਲ ਸੁਰੱਖਿਆ ਦੀ ਸੇਵਾ ਪ੍ਰਭਾਵਿਤ ਹੋ ਸਕਦੀ ਹੈ। ਤੁਸੀਂ ਸਟ੍ਰਾਈਪ ਬਾਰੇ ਹੋਰ ਜਾਣ ਸਕਦੇ ਅਤੇ ਇਸਦੀ ਗੋਪਨੀਯਤਾ ਨੀਤੀ ਨੂੰ https://stripe.com/privacy ਤੇ ਪੜ੍ਹ ਸਕਦੇ ਹੋ।"
@@ -2025,13 +2050,6 @@ pa:
       disabling_cookies_ie_link: "https://support.microsoft.com/en-us/help/17442/windows-internet-explorer-delete-manage-cookies"
       disabling_cookies_safari_link: "https://www.apple.com/legal/privacy/en-ww/cookies/"
       disabling_cookies_note: "ਪਰ ਧਿਆਨ ਰੱਖੋ ਕਿ ਜੇਕਰ ਤੁਸੀਂ ਓਪਨ ਫੂਡ ਨੈਟਵਰਕ ਦੁਆਰਾ ਵਰਤੀਆਂ ਜਾਣ ਵਾਲੀਆਂ ਜ਼ਰੂਰੀ ਕੂਕੀਜ਼ ਨੂੰ ਹਟਾਉਂਦੇ ਜਾਂ ਸੰਸ਼ੋਧਿਤ ਕਰਦੇ ਹੋ, ਤਾਂ ਵੈਬਸਾਈਟ ਕੰਮ ਨਹੀਂ ਕਰੇਗੀ, ਉਦਾਹਰਨ ਲਈ ਤੁਸੀਂ ਆਪਣੇ ਕਾਰਟ ਵਿੱਚ ਨਾ ਤਾਂ ਕੁਜ ਜੋੜ ਸਕੋਗੇ ਅਤੇ ਨਾ ਹੀ ਚੈਕਆਉਟ ਕਰ ਸਕੋਗੇ।"
-    cookies_banner:
-      cookies_usage: "ਇਹ ਸਾਈਟ ਤੁਹਾਡੀ ਨੈਵੀਗੇਸ਼ਨ ਨੂੰ ਪਰੇਸ਼ਾਨੀ-ਮੁਕਤ ਅਤੇ ਸੁਰੱਖਿਅਤ ਬਣਾਉਣ ਲਈ ਕੂਕੀਜ਼ ਦੀ ਵਰਤੋਂ ਕਰਦੀ ਹੈ, ਅਤੇ ਨਾਲ ਹੀ ਸਾਨੂੰ ਇਹ ਸਮਝਾ ਕੇ ਕੀ ਤੁਸੀ ਇਸਦਾ ਉਪਯੋਗ ਕਿਵੇਂ ਕਰਦੇ ਹੋ, ਸਾਡੇ ਦੁਆਰਾ ਪ੍ਰਦਾਨ ਕੀਤੀਆਂ ਜਾਣ ਵਾਲਿਆਂ ਸੁਵਿਧਾਵਾਂ ਨੂੰ ਬਿਹਤਰ ਬਣਾਉਣ ਵਿੱਚ ਸਾਡੀ ਮਦਦ ਕਰਦੀ ਹੈ।"
-      cookies_definition: "ਕੂਕੀਜ਼ ਬਹੁਤ ਛੋਟੀਆਂ ਟੈਕਸਟ ਫਾਈਲਾਂ ਹੁੰਦੀਆਂ ਹਨ ਜੋ ਤੁਹਾਡੇ ਕੰਪਿਊਟਰ ਉਤੇ ਸਟੋਰ ਕੀਤੀਆਂ ਜਾਂਦੀਆਂ ਹਨ ਜਦੋਂ ਤੁਸੀਂ ਕੁਝ ਵੈਬਸਾਈਟਾਂ ਤੇ ਜਾਂਦੇ ਹੋ।"
-      cookies_desc: "ਅਸੀਂ ਸਿਰਫ਼ ਉਹਨਾਂ ਕੂਕੀਜ਼ ਦੀ ਵਰਤੋਂ ਕਰਦੇ ਹਾਂ ਜੋ ਤੁਹਾਨੂੰ ਆਨਲਾਈਨ ਭੋਜਨ ਵੇਚਣ/ਖਰੀਦਣ ਦੀ ਸੇਵਾ ਪ੍ਰਦਾਨ ਕਰਨ ਲਈ ਜ਼ਰੂਰੀ ਹਨ। ਅਸੀਂ ਤੁਹਾਡਾ ਕੋਈ ਵੀ ਡੇਟਾ ਵੇਚਦੇ ਨਹੀਂ ਹਾਂ। ਅਸੀਂ ਕੂਕੀਜ਼ ਦੀ ਵਰਤੋਂ ਮੁੱਖ ਤੌਰ ਤੇ ਇਹ ਯਾਦ ਰੱਖਣ ਲਈ ਕਰਦੇ ਹਾਂ ਕਿ ਜੇਕਰ ਤੁਸੀਂ ਸੇਵਾ ਵਿੱਚ 'ਲਾਗ ਇਨ' ਕਰਦੇ ਹੋ ਤਾਂ ਤੁਸੀਂ ਕੌਣ ਹੋ, ਜਾਂ ਤੁਹਾਡੇ ਦੁਆਰਾ ਆਪਣੀ ਕਾਰਟ ਵਿੱਚ ਰੱਖੀਆਂ ਆਈਟਮਾਂ ਨੂੰ ਯਾਦ ਰੱਖਣ ਲਈ, ਉਦੋਂ ਵੀ ਜਦੋਂ ਤੁਸੀਂ ਲਾਗਇਨ ਨਾ ਹੋਵੋ। ਜੇਕਰ ਤੁਸੀਂ \"ਕੂਕੀਜ਼ ਸਵੀਕਾਰ ਹਨ\" ਉਤੇ ਕਲਿੱਕ ਕੀਤੇ ਬਿਨਾਂ ਵੈਬਸਾਈਟ ਰਾਹੀਂ ਨੈਵੀਗੇਟ ਕਰਨਾ ਜਾਰੀ ਰੱਖਦੇ ਹੋ, ਤਾਂ ਅਸੀਂ ਇਹ ਮੰਨ ਕੇ ਚਲਦੇ ਹਾਂ ਕਿ ਤੁਸੀਂ ਸਾਨੂੰ ਉਹਨਾਂ ਕੂਕੀਜ਼ ਨੂੰ ਸਟੋਰ ਕਰਨ ਦੀ ਇਜਾਜ਼ਤ ਦੇ ਰਹੇ ਹੋ ਜੋ ਵੈਬਸਾਈਟ ਦੇ ਕੰਮ ਕਰਨ ਲਈ ਜ਼ਰੂਰੀ ਹਨ।"
-      cookies_policy_link_desc: "ਜੇ ਤੁਸੀਂ ਹੋਰ ਜਾਣਨਾ ਚਾਹੁੰਦੇ ਹੋ, ਤਾਂ ਚੈਕ ਕਰੋ ਸਾਡੀ"
-      cookies_policy_link: "ਕੂਕੀਜ਼ ਪਾਲਿਸੀ"
-      cookies_accept_button: "ਕੂਕੀਜ਼ ਸਵੀਕਾਰ ਹਨ"
   home_shop: ਹੁਣੇ ਖਰੀਦੋ
   brandstory_headline: "ਆਰਗੈਨਿਕ ਅਤੇ ਸਥਾਨਕ ਭੋਜਨ ਖਰੀਦੋ।"
   brandstory_intro: "Search for local farmers and food producers."
@@ -2042,12 +2060,11 @@ pa:
   brandstory_part5_strong: "ਅਸੀਂ ਇਸਨੂੰ ਓਪਨ ਫੂਡ ਨੈੱਟਵਰਕ ਇੰਡੀਆ ਜਾਂ OFN ਇੰਡੀਆ ਕਹਿੰਦੇ ਹਾਂ।"
   brandstory_part6: "ਜੇਕਰ ਤੁਸੀਂ ਚੰਗਾ ਭੋਜਨ ਵੇਚਦੇ ਹੋ - ਇੱਕ ਕਿਸਾਨ, ਕਿਸਾਨ ਬਜ਼ਾਰ, ਫੂਡ ਕੋ-ਆਪ, ਜਾਂ ਫੂਡ ਹੱਬ- ਦੇ ਰੂਪ ਵਿੱਚ- ਤਾਂ OFN ਇੰਡੀਆ ਤੁਹਾਡਾ ਸਭ ਤੋਂ ਵਧੀਆ ਵਿਕਲਪ ਹੈ।"
   system_headline: "OFN ਉਤੇ ਵੇਚਣਾ - 3 ਆਸਾਨ ਕਦਮ"
-  system_step1: "1. ਨਵਾਂ ਖਾਤਾ ਬਣਾਓ"
-  system_step1_text: "ਨਾਂ, ਵਰਣਨ, ਫੋਟੋਆਂ, ਸੰਪਰਕ ਵੇਰਵਿਆਂ ਅਤੇ ਸੋਸ਼ਲ ਮੀਡੀਆ ਲਿੰਕਾਂ ਦੇ ਨਾਲ ਆਪਣੇ ਐਂਟਰਪ੍ਰਾਈਜ਼ ਨੂੰ ਸੇਟ ਅਪ ਕਰੋ।"
-  system_step2: "2. ਆਪਣੇ ਉਤਪਾਦ ਜੋੜੋ"
-  system_step2_text: "ਆਪਣੀ ਸ਼ਾਪ ਵਿੱਚ ਉਤਪਾਦ ਸ਼ਾਮਲ ਕਰੋ - ਤੁਹਾਡੇ ਆਪਣੇ ਅਤੇ/ਜਾਂ ਤੁਹਾਡੇ ਆਲੇ-ਦੁਆਲੇ ਦੇ ਹੋਰ ਉਤਪਾਦਕਾਂ ਦੇ। ਫੋਟੋ, ਵਰਣਨ, ਕੀਮਤਾਂ, ਸਟਾਕ ਦੇ ਪੱਧਰ ਅਤੇ ਲਚਕਦਾਰ ਵਜ਼ਨ ਅਤੇ ਮਾਪ ਸੇਟ ਕਰੋ।"
-  system_step3: "3. ਆਪਣੀਆਂ ਡਿਲੀਵਰੀ ਦੀ ਯੋਜਨਾ ਬਣਾਓ"
-  system_step3_text: "ਭੁਗਤਾਨ ਦੇ ਢੰਗ ਸੇਟ ਅਪ ਕਰੋ। ਕਈ ਪਿਕ-ਅੱਪ ਪੁਆਇੰਟ ਅਤੇ ਡਿਲੀਵਰੀ ਵੇਰਵੇ ਬਣਾਓ। ਆਵਰਤੀ ਆਰਡਰ ਅਤੇ ਨਿਯਮਤ ਵੰਡਣ ਦੀ ਪ੍ਰਕ੍ਰਿਆ ਬਣਾਓ।"
+  system_step1_html: "1. ਨਵਾਂ ਖਾਤਾ ਬਣਾਓ"
+  system_step2_html: "2. ਆਪਣੇ ਉਤਪਾਦ ਜੋੜੋ"
+  system_step2_text_html: "ਆਪਣੀ ਸ਼ਾਪ ਵਿੱਚ ਉਤਪਾਦ ਸ਼ਾਮਲ ਕਰੋ - ਤੁਹਾਡੇ ਆਪਣੇ ਅਤੇ/ਜਾਂ ਤੁਹਾਡੇ ਆਲੇ-ਦੁਆਲੇ ਦੇ ਹੋਰ ਉਤਪਾਦਕਾਂ ਦੇ। ਫੋਟੋ, ਵਰਣਨ, ਕੀਮਤਾਂ, ਸਟਾਕ ਦੇ ਪੱਧਰ ਅਤੇ ਲਚਕਦਾਰ ਵਜ਼ਨ ਅਤੇ ਮਾਪ ਸੇਟ ਕਰੋ।"
+  system_step3_html: "3. ਆਪਣੀਆਂ ਡਿਲੀਵਰੀ ਦੀ ਯੋਜਨਾ ਬਣਾਓ"
+  system_step3_text_html: "ਭੁਗਤਾਨ ਦੇ ਢੰਗ ਸੇਟ ਅਪ ਕਰੋ। ਕਈ ਪਿਕ-ਅੱਪ ਪੁਆਇੰਟ ਅਤੇ ਡਿਲੀਵਰੀ ਵੇਰਵੇ ਬਣਾਓ। ਆਵਰਤੀ ਆਰਡਰ ਅਤੇ ਨਿਯਮਤ ਵੰਡਣ ਦੀ ਪ੍ਰਕ੍ਰਿਆ ਬਣਾਓ।"
   cta_headline: "ਭਵਿੱਖ ਦਾ ਟਿਕਾਊ ਭੋਜਨ ਨੈਟਵਰਕ।"
   cta_label: "ਮੈਂ ਤਿਆਰ ਹਾਂ"
   stats_headline: "ਅਸੀਂ ਇੱਕ ਨਵੀਂ ਭੋਜਨ ਪ੍ਰਣਾਲੀ ਬਣਾ ਰਹੇ ਹਾਂ।"
@@ -2084,6 +2101,7 @@ pa:
   order_total: ਕੁੱਲ ਆਰਡਰ
   order_payment: "ਇਸ ਰਾਹੀਂ ਭੁਗਤਾਨ:"
   no_payment_required: "ਕਿਸੇ ਭੁਗਤਾਨ ਦੀ ਲੋੜ ਨਹੀਂ"
+  customer_credit: ਕ੍ਰੈਡਿਟ
   order_billing_address: ਬਿਲਿੰਗ ਪਤਾ
   order_delivery_on: ਡਿਲਿਵਰੀ ਦਾ ਦਿਨ
   order_delivery_address: ਡਿਲਿਵਰੀ ਪਤਾ
@@ -2111,10 +2129,8 @@ pa:
   email_confirmed: "ਆਪਣੇ ਈਮੇਲ ਪਤੇ ਦੀ ਪੁਸ਼ਟੀ ਕਰਨ ਲਈ ਤੁਹਾਡਾ ਧੰਨਵਾਦ।"
   email_confirmation_activate_account: "ਇਸ ਤੋਂ ਪਹਿਲਾਂ ਕਿ ਅਸੀਂ ਤੁਹਾਡੇ ਨਵੇਂ ਖਾਤੇ ਨੂੰ ਕਿਰਿਆਸ਼ੀਲ ਕਰ ਸਕੀਏ, ਸਾਨੂੰ ਤੁਹਾਡੇ ਈਮੇਲ ਪਤੇ ਦੀ ਪੁਸ਼ਟੀ ਕਰਨ ਦੀ ਲੋੜ ਹੈ।"
   email_confirmation_greeting: "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ, %{contact}!"
-  email_confirmation_profile_created: "%{name} ਲਈ ਇੱਕ ਪ੍ਰੋਫਾਈਲ ਨੂੰ ਸਫਲਤਾਪੂਰਵਕ ਬਣਾਇਆ ਗਿਆ ਹੈ! ਤੁਹਾਡੇ ਪ੍ਰੋਫਾਈਲ ਨੂੰ ਕਿਰਿਆਸ਼ੀਲ ਕਰਨ ਲਈ ਸਾਨੂੰ ਇਸ ਈਮੇਲ ਪਤੇ ਦੀ ਪੁਸ਼ਟੀ ਕਰਨ ਦੀ ਲੋੜ ਹੈ।"
   email_confirmation_click_link: "ਕਿਰਪਾ ਕਰਕੇ ਆਪਣੀ ਈਮੇਲ ਦੀ ਪੁਸ਼ਟੀ ਕਰਨ ਅਤੇ ਆਪਣੀ ਪ੍ਰੋਫਾਈਲ ਨੂੰ ਸੇਟ ਕਰਨਾ ਜਾਰੀ ਰੱਖਣ ਲਈ ਹੇਠਾਂ ਦਿੱਤੇ ਲਿੰਕ ਉਤੇ ਕਲਿੱਕ ਕਰੋ।"
   email_confirmation_link_label: "ਇਸ ਈਮੇਲ ਪਤੇ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ »"
-  email_confirmation_help_html: "ਆਪਣੀ ਈਮੇਲ ਦੀ ਪੁਸ਼ਟੀ ਕਰਨ ਤੋਂ ਬਾਅਦ ਤੁਸੀਂ ਇਸ ਐਂਟਰਪ੍ਰਾਈਜ਼ ਲਈ ਆਪਣੇ ਪ੍ਰਬੰਧਨ ਖਾਤੇ ਤੱਕ ਪਹੁੰਚ ਕਰ ਸਕਦੇ ਹੋ। %{sitename} ਦੇ ਫ਼ੀਚਰ ਬਾਰੇ ਹੋਰ ਜਾਣਨ ਲਈ ਅਤੇ ਆਪਣੇ ਪ੍ਰੋਫਾਈਲ ਜਾਂ ਔਨਲਾਈਨ ਸਟੋਰ ਦੀ ਵਰਤੋਂ ਸ਼ੁਰੂ ਕਰਨ ਲਈ %{link} ਨੂੰ ਵੇਖੋ।"
   email_confirmation_notice_unexpected: "ਤੁਹਾਨੂੰ ਇਹ ਸੁਨੇਹਾ ਇਸ ਲਈ ਪ੍ਰਾਪਤ ਹੋਇਆ ਹੈ ਕਿਉਂਕਿ ਤੁਸੀਂ %{sitename} ਤੇ ਸਾਈਨ ਅੱਪ ਕੀਤਾ ਸੀ, ਜਾਂ ਕਿਸੇ ਅਜਿਹੇ ਵਿਅਕਤੀ ਦੁਆਰਾ ਸਾਈਨ ਅੱਪ ਕਰਨ ਲਈ ਤੁਹਾਨੂੰ ਸੱਦਾ ਦਿੱਤਾ ਗਿਆ ਸੀ ਜਿਸਨੂੰ ਤੁਸੀਂ ਸ਼ਾਇਦ ਜਾਣਦੇ ਹੋ। ਜੇਕਰ ਤੁਸੀਂ ਇਹ ਸਮਝ ਨਹੀਂ ਪਾ ਰਹੇ ਹੋ ਕਿ ਤੁਸੀਂ ਇਹ ਈਮੇਲ ਕਿਉਂ ਪ੍ਰਾਪਤ ਕੀਤਾ ਹੈ, ਤਾਂ ਕਿਰਪਾ ਕਰਕੇ %{contact} ਨੂੰ ਲਿਖੋ।"
   email_social: "ਸਾਡੇ ਨਾਲ ਜੁੜੋ:"
   email_contact: "ਸਾਨੂੰ ਈਮੇਲ ਕਰੋ:"
@@ -2704,26 +2720,14 @@ pa:
   spree_admin_enterprises_fees: "ਐਂਟਰਪ੍ਰਾਈਜ਼ ਫ਼ੀਸ"
   spree_admin_enterprises_none_create_a_new_enterprise: "ਇੱਕ ਨਵਾਂ ਐਂਟਰਪ੍ਰਾਈਜ਼ ਬਣਾਓ"
   spree_admin_enterprises_none_text: "ਤੁਹਾਡੇ ਕੋਲ ਅਜੇ ਕੋਈ ਐਂਟਰਪ੍ਰਾਈਜ਼ ਨਹੀਂ ਹੈ"
-  spree_admin_enterprises_tabs_hubs: "ਹੱਬ"
   spree_admin_enterprises_producers_manage_products: "ਉਤਪਾਦਾਂ ਦਾ ਪ੍ਰਬੰਧਨ ਕਰੋ"
   spree_admin_enterprises_create_new_product: "ਇੱਕ ਨਵਾਂ ਉਤਪਾਦ ਬਣਾਓ"
-  spree_admin_single_enterprise_alert_mail_confirmation: "ਕਿਰਪਾ ਕਰਕੇ ਈਮੇਲ ਪਤੇ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ"
-  spree_admin_single_enterprise_alert_mail_sent: "ਅਸੀਂ ਇਸ ਨੂੰ ਇੱਕ ਈਮੇਲ ਭੇਜੀ ਹੈ"
-  spree_admin_overview_action_required: "ਕਾਰਵਾਈ ਲੋੜੀਂਦੀ ਹੈ"
-  spree_admin_overview_check_your_inbox: "ਕਿਰਪਾ ਕਰਕੇ ਹੋਰ ਹਦਾਇਤਾਂ ਲਈ ਆਪਣੇ ਇਨਬਾਕਸ ਦੀ ਜਾਂਚ ਕਰੋ। ਧੰਨਵਾਦ!"
-  spree_admin_unit_value: ਯੂਨਿਟ ਵੈਲਯੂ
-  spree_admin_unit_description: ਯੂਨਿਟ ਵਰਣਨ
-  spree_admin_variant_unit: ਵੇਰੀਐਂਟ ਯੂਨਿਟ
-  spree_admin_variant_unit_scale: ਵੇਰੀਐਂਟ ਯੂਨਿਟ ਸਕੇਲ
   spree_admin_supplier: ਸਪਲਾਇਰ
-  spree_admin_product_category: ਉਤਪਾਦ ਸ਼੍ਰੇਣੀ
-  spree_admin_variant_unit_name: ਵੇਰੀਐਂਟ ਯੂਨਿਟ ਦਾ ਨਾਮ
   unit_name: "ਯੂਨਿਟ ਦਾ ਨਾਮ"
   change_package: "ਪੈਕੇਜ ਬਦਲੋ"
   spree_admin_single_enterprise_hint: "ਸੰਕੇਤ: ਲੋਕਾਂ ਨੂੰ ਤੁਹਾਨੂੰ ਲੱਭਣ ਦੀ ਇਜਾਜ਼ਤ ਦੇਣ ਲਈ, ਇਸ ਦੇ ਹੇਠਾਂ ਆਪਣੀ ਦਿੱਖ ਨੂੰ ਚਾਲੂ ਕਰੋ"
   spree_admin_eg_pickup_from_school: "ਜਿਵੇਂ ਕਿ 'ਪ੍ਰਾਇਮਰੀ ਸਕੂਲ ਤੋਂ ਪਿਕ-ਅੱਪ'"
   spree_admin_eg_collect_your_order: "ਜਿਵੇਂ ਕਿ 'ਕਿਰਪਾ ਕਰਕੇ 123 ਇਮੇਜਿਨਰੀ ਸੇਂਟ, ਨੌਰਥਕੋਟ, 3070' ਤੋਂ ਆਪਣਾ ਆਰਡਰ ਲਵੋ"
-  spree_classification_primary_taxon_error: "ਟੈਕਸਨ %{taxon}, %{product} ਦਾ ਪ੍ਰਾਇਮਰੀ ਟੈਕਸਨ ਹੈ ਅਤੇ ਇਸ ਨੂੰ ਮਿਟਾਇਆ ਨਹੀਂ ਜਾ ਸਕਦਾ"
   spree_order_availability_error: "ਵਿਤਰਕ ਜਾਂ ਆਰਡਰ ਸਾਈਕਲ ਤੁਹਾਡੇ ਕਾਰਟ ਵਿੱਚ ਉਤਪਾਦਾਂ ਦੀ ਸਪਲਾਈ ਨਹੀਂ ਕਰ ਸਕਦਾ"
   spree_order_populator_error: "ਉਹ ਵਿਤਰਕ ਜਾਂ ਆਰਡਰ ਸਾਈਕਲ ਤੁਹਾਡੇ ਕਾਰਟ ਵਿੱਚ ਦਿੱਤੇ ਸਾਰੇ ਉਤਪਾਦਾਂ ਦੀ ਸਪਲਾਈ ਨਹੀਂ ਕਰ ਸਕਦਾ। ਕਿਰਪਾ ਕਰਕੇ ਕੋਈ ਹੋਰ ਚੁਣੋ।"
   spree_order_cycle_error: "ਕਿਰਪਾ ਕਰਕੇ ਇਸ ਆਰਡਰ ਲਈ ਇੱਕ ਆਰਡਰ ਸਾਈਕਲ ਚੁਣੋ।"
@@ -2826,7 +2830,6 @@ pa:
   report_header_paid: ਭੁਗਤਾਨ ਕੀਤਾ?
   report_header_delivery: ਡਿਲਿਵਰੀ?
   report_header_shipping: ਸ਼ਿਪਿੰਗ
-  report_header_shipping_method: ਸ਼ਿਪਿੰਗ ਦਾ ਤਰੀਕਾ
   report_header_shipping_instructions: ਸ਼ਿਪਿੰਗ ਨਿਰਦੇਸ਼
   report_header_ship_street: ਸ਼ਿਪ ਸਟ੍ਰੀਟ
   report_header_ship_street_2: ਸ਼ਿਪ ਸਟ੍ਰੀਟ 2
@@ -2875,6 +2878,7 @@ pa:
   report_header_quantity: ਮਾਤਰਾ
   report_header_max_quantity: ਅਧਿਕਤਮ ਮਾਤਰਾ
   report_header_variant: ਵੇਰੀਐਂਟ
+  report_header_variant_unit_name: ਵੇਰੀਐਂਟ ਯੂਨਿਟ ਦਾ ਨਾਮ
   report_header_variant_value: ਵੇਰੀਐਂਟ ਵੈਲਯੂ
   report_header_variant_unit: '"ਵੇਰੀਐਂਟ ਯੂਨਿਟ"'
   report_header_total_available: ਕੁੱਲ ਉਪਲਬਧ
@@ -2948,6 +2952,8 @@ pa:
   report_header_total_excl_vat: "ਟੈਕਸ ਹਟਾ ਕੇ ਕੁੱਲ (%{currency_symbol})"
   report_header_total_incl_vat: "ਕੁੱਲ ਟੈਕਸ ਸਮੇਤ (%{currency_symbol})"
   report_header_temp_controlled: ਤਾਪਮਾਨ ਦਵਾਰਾ ਨਿਯੰਤ੍ਰਿਤ?
+  report_header_shipment_state: "ਸ਼ਿਪਮੈਂਟ ਦੀ ਸਥਿਤੀ"
+  report_header_shipping_method: "ਸ਼ਿਪਿੰਗ ਦਾ ਤਰੀਕਾ"
   report_header_is_producer: ਉਤਪਾਦਕ?
   report_header_not_confirmed: ਪੁਸ਼ਟੀ ਨਹੀਂ ਹੋਈ
   report_header_gst_on_income: ਆਮਦਨੀ ਤੇ ਜੀਐਸਟੀ
@@ -3054,6 +3060,7 @@ pa:
     ready: ਤਿਆਰ
     pending: ਲੰਬਿਤ
     shipped: ਭੇਜਿਆ ਗਿਆ
+  business_name: ਕਾਰੋਬਾਰ ਦਾ ਨਾਮ
   js:
     saving: 'ਸੇਵ ਕੀਤਾ ਜਾ ਰਿਹਾ ਹੈ...'''
     changes_saved: 'ਬਦਲਾਵਾਂ ਨੂੰ ਸੇਵ ਕੀਤਾ ਗਿਆ।'
@@ -3223,18 +3230,6 @@ pa:
           loading_variants: "ਵੇਰੀਐਂਟ ਲੋਡ ਕੀਤੇ ਜਾ ਰਹੇ ਹਨ"
           no_variants: "ਇਸ ਉਤਪਾਦ ਲਈ ਕੋਈ ਵੇਰੀਐਂਟ ਉਪਲਬਧ ਨਹੀਂ ਹੈ (ਇਨਵੇਂਟਰੀ ਸੈਟਿੰਗਾਂ ਰਾਹੀਂ ਲੁਕਿਆ ਹੋਇਆ)।"
           some_variants_hidden: "(ਕੁਝ ਵੇਰੀਐਂਟ ਇਨਵੇਂਟਰੀ ਸੈਟਿੰਗਾਂ ਰਾਹੀਂ ਲੁਕੇ ਹੋਏ ਹੋ ਸਕਦੇ ਹਨ)"
-      tag_rules:
-        shipping_method_tagged_top: "ਸ਼ਿਪਿੰਗ ਢੰਗ ਟੈਗ ਕੀਤੇ ਗਏ"
-        shipping_method_tagged_bottom: "ਹਨ:"
-        payment_method_tagged_top: "ਭੁਗਤਾਨ ਦੇ ਢੰਗ ਟੈਗ ਕੀਤੇ ਗਏ"
-        payment_method_tagged_bottom: "ਹਨ:"
-        order_cycle_tagged_top: "ਟੈਗ ਕੀਤੇ ਆਰਡਰ ਸਾਈਕਲ"
-        order_cycle_tagged_bottom: "ਹਨ:"
-        inventory_tagged_top: "ਟੈਗ ਕੀਤੇ ਗਏ ਇਨਵੇਂਟਰੀ ਵੇਰੀਐਂਟ"
-        inventory_tagged_bottom: "ਹਨ:"
-      new_tag_rule_dialog:
-        select_rule_type: "ਇੱਕ ਨਿਯਮ ਕਿਸਮ ਚੁਣੋ:"
-        add_rule: "ਨਿਯਮ ਜੋੜੋ"
       enterprise_fees:
         inherit_from_product: "ਉਤਪਾਦ ਤੋਂ ਅਪਣਾਓ"
       orders:
@@ -3318,10 +3313,6 @@ pa:
       enterprises:
         form:
           images:
-            removed_logo_successfully: "ਲੋਗੋ ਸਫਲਤਾਪੂਰਵਕ ਹਟਾਇਆ ਗਿਆ"
-            immediate_logo_removal_warning: "ਤੁਹਾਡੇ ਵੱਲੋਂ ਪੁਸ਼ਟੀ ਕਰਨ ਤੋਂ ਬਾਅਦ ਲੋਗੋ ਤੁਰੰਤ ਹਟਾ ਦਿੱਤਾ ਜਾਵੇਗਾ।"
-            removed_promo_image_successfully: "ਪ੍ਰੋਮੋ ਦੀ ਫੋਟੋ ਨੂੰ ਸਫਲਤਾਪੂਰਵਕ ਹਟਾਇਆ ਗਿਆ"
-            immediate_promo_image_removal_warning: "ਤੁਹਾਡੇ ਵੱਲੋਂ ਪੁਸ਼ਟੀ ਕਰਨ ਤੋਂ ਬਾਅਦ ਪ੍ਰੋਮੋ ਫੋਟੋ ਨੂੰ ਤੁਰੰਤ ਹਟਾ ਦਿੱਤਾ ਜਾਵੇਗਾ।"
             immediate_terms_and_conditions_removal_warning: "ਨਿਯਮ ਅਤੇ ਸ਼ਰਤਾਂ ਦੀ ਫਾਈਲ ਤੁਹਾਡੇ ਪੁਸ਼ਟੀ ਕਰਨ ਤੋਂ ਤੁਰੰਤ ਬਾਅਦ ਹਟਾ ਦਿੱਤੀ ਜਾਵੇਗੀ।"
             removed_terms_and_conditions_successfully: "ਨਿਯਮ ਅਤੇ ਸ਼ਰਤਾਂ ਦੀ ਫਾਈਲ ਸਫਲਤਾਪੂਰਵਕ ਹਟਾਈ ਗਈ"
     insufficient_stock: "ਨਾਕਾਫ਼ੀ ਸਟਾਕ ਉਪਲਬਧ ਹੈ, ਸਿਰਫ਼ %{on_hand} ਬਾਕੀ"
@@ -3331,7 +3322,7 @@ pa:
           ਜਦੋਂ ਤੁਸੀਂ ਖਰੀਦਦਾਰੀ ਕਰ ਰਹੇ ਹੁੰਦੇ ਹੋ, ਤੁਹਾਡੇ ਕਾਰਟ ਵਿੱਚ ਇੱਕ ਜਾਂ ਇੱਕ ਤੋਂ ਵੱਧ
           ਉਤਪਾਦਾਂ ਦੇ ਸਟਾਕ ਦੇ ਪੱਧਰ ਘਟ ਗਏ ਹਨ। ਇੱਥੇ ਕੀ ਬਦਲਿਆ ਹੈ. ਉਹ ਵਿਖਾਇਆ ਗਿਆ ਹੈ:
       now_out_of_stock: ਹੁਣ ਸਟਾਕ ਤੋਂ ਬਾਹਰ ਹੈ।
-      only_n_remainging: "ਹੁਣ ਸਿਰਫ਼ %{num} ਬਾਕੀ ਹਨ।"
+      only_n_remaining: "ਹੁਣ ਸਿਰਫ਼ %{num} ਬਾਕੀ ਹਨ।"
     shopfront:
       variant:
         add_to_cart: "ਜੋੜੋ"
@@ -3364,13 +3355,6 @@ pa:
       some_trouble: "ਮੈਨੂੰ ਸੇਵ ਕਰਨ ਵਿੱਚ ਕੁਝ ਮੁਸ਼ਕਲ ਆਈ: %{errors}"
       changing_on_hand_stock: ਹੱਥ ਵਿਚ ਸਟਾਕ ਦੇ ਪੱਧਰਾਂ ਨੂੰ ਬਦਲ ਰਹੇ ਹਾਂ...
       stock_reset: ਸਟਾਕ ਡਿਫੌਲਟ ਤੇ ਰੀਸੈਟ ਕੀਤੇ ਗਏ ਹਨ।
-    tag_rules:
-      show_hide_variants: 'ਮੇਰੇ ਸ਼ੌਪਫਰੰਟ ਵਿੱਚ ਵਾਰੀਏਂਟ ਵਿ ਓ ਜਾਂ ਲੁਕਾਓ'''
-      show_hide_shipping: 'ਚੈਕਆਉਟ ਵੇਲੇ ਸ਼ਿਪਿੰਗ ਢੰਗ ਵਿਖਾਓ ਜਾਂ ਲੁਕਾਓ'''
-      show_hide_payment: 'ਚੈਕਆਉਟ ਵੇਲੇ ਭੁਗਤਾਨ ਦੇ ਢੰਗ ਵਿਖਾਓ ਜਾਂ ਲੁਕਾਓ'''
-      show_hide_order_cycles: 'ਮੇਰੇ ਸ਼ੌਪਫਰੰਟ ਵਿੱਚ ਆਰਡਰ ਸਾਈਕਲ ਵਿਖਾਓ ਜਾਂ ਲੁਕਾਓ'''
-      visible: ਵਿਖਾਈ ਦੇ ਰਿਹਾ ਹੈ
-      not_visible: ਵਿਖਾਈ ਨਹੀਂ ਦੇ ਰਿਹਾ ਹੈ
     services:
       unsaved_changes_message: ਸੇਵ ਨਾ ਕਿੱਤੇ ਗਏ ਬਦਲਾਵ ਮੌਜੂਦ ਹਨ, ਹੁਣੇ ਸੇਵ ਕਰੋ ਜਾਂ ਨਜ਼ਰਅੰਦਾਜ਼ ਕਰੋ?
       save: ਸੇਵ ਕਰੋ
@@ -3385,6 +3369,8 @@ pa:
       confirmation: |
           ਇਹ ਇਸ ਐਂਟਰਪ੍ਰਾਈਜ਼ ਲਈ ਉਹਨਾਂ ਸਾਰੇ ਉਤਪਾਦਾਂ ਦੇ ਸਟਾਕ ਪੱਧਰ ਨੂੰ ਜ਼ੀਰੋ ਤੇ ਸੇਟ ਕਰ ਦੇਵੇਗਾ ਜੋ ਅੱਪਲੋਡ ਕੀਤੀ ਫਾਈਲ ਵਿੱਚ ਮੌਜੂਦ ਨਹੀਂ ਹਨ।
     order_cycles:
+      unsaved_changes: "ਤੁਹਾਡੇ ਕੋਲ ਸੇਵ ਨਾ ਕੀਤੀਆਂ ਤਬਦੀਲੀਆਂ ਹਨ"
+      bulk_save_error: "ਓ ਨਹੀਂ! ਮੈਂ ਤੁਹਾਡੇ ਬਦਲਾਵਾਂ ਨੂੰ ਸੇਵ ਕਰਨ ਵਿੱਚ ਅਸਮਰੱਥ ਰਿਹਾ।"
       create_failure: "ਆਰਡਰ ਸਾਈਕਲ ਬਣਾਉਣ ਵਿੱਚ ਅਸਫਲ"
       update_success: 'ਤੁਹਾਡਾ ਆਰਡਰ ਸਾਈਕਲ ਅੱਪਡੇਟ ਕਰ ਦਿੱਤਾ ਗਿਆ ਹੈ।'''
       update_failure: "ਆਰਡਰ ਸਾਈਕਲ ਅੱਪਡੇਟ ਕਰਨ ਵਿੱਚ ਅਸਫਲ"
@@ -3410,6 +3396,9 @@ pa:
     stripe_elements:
       unknown_error_from_stripe: |
           ਸਾਡੇ ਭੁਗਤਾਨ ਗੇਟਵੇ ਵਿੱਚ ਤੁਹਾਡੇ ਕਾਰਡ ਨੂੰ ਸੇਟ ਕਰਨ ਵਿੱਚ ਇੱਕ ਸਮੱਸਿਆ ਆਈ ਸੀ। ਕਿਰਪਾ ਕਰਕੇ ਪੇਜ ਨੂੰ ਤਾਜ਼ਾ ਕਰੋ ਅਤੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ, ਜੇਕਰ ਇਹ ਦੂਜੀ ਵਾਰ ਅਸਫਲ ਹੁੰਦਾ ਹੈ, ਤਾਂ ਕਿਰਪਾ ਕਰਕੇ ਮਦਦ ਲਈ ਸਾਡੇ ਨਾਲ ਸੰਪਰਕ ਕਰੋ।
+    trix:
+      code: "ਕੋਡ"
+      urlPlaceholder: "ਸਮਿਲਿਤ ਕਰਨ ਲਈ ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ URL ਦਾਖਲ ਕਰੋ"
   producers:
     signup:
       start_free_profile: "ਇੱਕ ਮੁਫ਼ਤ ਪ੍ਰੋਫਾਈਲ ਨਾਲ ਸ਼ੁਰੂ ਕਰੋ, ਅਤੇ ਜਦੋਂ ਤੁਸੀਂ ਤਿਆਰ ਹੋਵੋ ਤਾਂ ਵਿਸਤਾਰ ਕਰੋ!"
@@ -3532,9 +3521,9 @@ pa:
     more: "ਹੋਰ"
     new_adjustment: "ਨਵਾਂ ਸਮਾਯੋਜਨ"
     new_tax_category: "ਨਵੀਂ ਟੈਕਸ ਸ਼੍ਰੇਣੀ"
-    new_taxon: "ਨਵਾਂ ਟੈਕਸੋਨ"
     new_user: "ਨਵਾਂ ਉਪਭੋਗਤਾ"
     no_pending_payments: "ਕੋਈ ਬਕਾਇਆ ਭੁਗਤਾਨ ਨਹੀਂ ਹੈ"
+    remove: "Remove"
     none: "ਕੋਈ ਨਹੀਂ"
     not_found: "ਨਹੀਂ ਲਭਿਆ"
     notice_messages:
@@ -3544,16 +3533,8 @@ pa:
     rma_credit: "RMA ਕ੍ਰੈਡਿਟ"
     refund: "ਰਿਫੰਡ"
     server_error: "ਸਰਵਰ ਤਰੁੱਟੀ"
-    shipping_method_names:
-      UPS Ground: "ਯੂਪੀਐਸ ਗਰਾਊਂਡ"
-      pick_up: "ਖੇਤ ਤੋਂ ਪਿਕ-ਅੱਪ"
-      delivery: "ਦਸਤਖਤ ਕੀਤੇ, ਸੀਲ ਕੀਤੇ, ਡਿਲੀਵਰ ਕੀਤੇ ਗਏ"
     start_date: "ਸ਼ੁਰੂ ਕਰਨ ਦੀ ਮਿਤੀ"
     successfully_removed: "ਸਫਲਤਾਪੂਰਵਕ ਹਟਾਇਆ ਗਿਆ"
-    taxonomy_edit: "ਟੈਕਸੋਨੌਮੀ ਸੰਪਾਦਨ"
-    taxonomy_tree_error: "ਟੈਕਸੋਨੌਮੀ ਟ੍ਰੀ ਗਲਤੀ"
-    taxonomy_tree_instruction: "ਟੈਕਸੋਨੌਮੀ ਟ੍ਰੀ ਹਿਦਾਇਤ"
-    tree: "ਟ੍ਰੀ"
     updating: "ਅੱਪਡੇਟ ਹੋ ਰਿਹਾ ਹੈ"
     your_order_is_empty_add_product: "ਤੁਹਾਡਾ ਆਰਡਰ ਖਾਲੀ ਹੈ, ਕਿਰਪਾ ਕਰਕੇ ਉਪਰ ਇੱਕ ਉਤਪਾਦ ਦੀ ਖੋਜ ਕਰੋ ਅਤੇ ਜੋੜੋ"
     add_product: "ਉਤਪਾਦ ਜੋੜੋ"
@@ -3617,6 +3598,7 @@ pa:
     logourl: "ਲੋਗੋurl"
     are_you_sure_delete: "ਕੀ ਤੁਸੀਂ ਵਾਕਈ ਇਸ ਰਿਕਾਰਡ ਨੂੰ ਹਟਾਉਣਾ ਚਾਹੁੰਦੇ ਹੋ?"
     confirm_delete: "ਹਟਾਉਣ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ"
+    voucher: "ਵਾਊਚਰ"
     configurations: "ਕੌਂਫਿਗਰੇਸ਼ਨ"
     general_settings: "ਆਮ ਸੈਟਿੰਗਾਂ"
     site_name: "ਸਾਈਟ ਦਾ ਨਾਂ"
@@ -3650,7 +3632,6 @@ pa:
     tax_rate_amount_explanation: "ਟੈਕਸ ਦੀਆਂ ਦਰਾਂ ਗਣਨਾ ਵਿੱਚ ਸਹਾਇਤਾ ਲਈ ਇੱਕ ਦਸ਼ਮਲਵ ਰਕਮ ਹਨ, (ਜਿਵੇਂ ਕਿ ਜੇਕਰ ਟੈਕਸ ਦਰ 5% ਹੈ ਤਾਂ 0.05 ਦਰਜ ਕਰੋ)"
     included_in_price: "ਕੀਮਤ ਵਿੱਚ ਸ਼ਾਮਲ"
     show_rate_in_label: "ਲੇਬਲ ਵਿੱਚ ਦਰ ਦਿਖਾਓ"
-    back_to_tax_rates_list: "ਟੈਕਸ ਦਰਾਂ ਦੀ ਸੂਚੀ ਤੇ ਵਾਪਸ"
     tax_settings: "ਟੈਕਸ ਸੈਟਿੰਗਾਂ"
     zones: "ਜ਼ੋਨਾਂ"
     new_zone: "ਨਵਾਂ ਜ਼ੋਨ"
@@ -3663,14 +3644,11 @@ pa:
     iso_name: "ISO ਨਾਂ"
     states_required: "ਰਾਜਾਂ ਦੀ ਲੋੜ ਹੈ"
     editing_country: "ਦੇਸ਼ ਦਾ ਸੰਪਾਦਨ"
-    back_to_countries_list: "ਦੇਸ਼ਾਂ ਦੀ ਸੂਚੀ ਤੇ ਵਾਪਸ"
     states: "ਰਾਜ"
     abbreviation: "ਸੰਖਿਪਤ ਰੂਪ"
     new_state: "ਨਵਾਂ ਰਾਜ"
     payment_methods: "ਭੁਗਤਾਨ ਦੇ ਢੰਗ"
-    taxonomies: "ਟੈਕਸੋਨੌਮੀਜ਼"
-    new_taxonomy: "ਨਵਾਂ ਟੈਕਸੋਨੌਮੀ"
-    back_to_taxonomies_list: "\"ਟੈਕਸਨੋਮੀਜ਼ ਸੂਚੀ ਤੇ ਵਾਪਸ"
+    taxons: "ਉਤਪਾਦ ਸ਼੍ਰੇਣੀਆਂ"
     shipping_methods: "ਸ਼ਿਪਿੰਗ ਦੇ ਢੰਗ"
     shipping_method: "ਸ਼ਿਪਿੰਗ ਦਾ ਤਰੀਕਾ"
     shipment: "ਸ਼ਿਪਮੈਂਟ"
@@ -3763,6 +3741,9 @@ pa:
     validation:
       must_be_int: "ਇੱਕ ਪੂਰਨ ਅੰਕ ਹੋਣਾ ਚਾਹੀਦਾ ਹੈ"
     admin:
+      images:
+        edit:
+          close: ਵਾਪਸ
       mail_methods:
         send_testmail: "ਟੈਸਟ ਈਮੇਲ ਭੇਜੋ"
         testmail:
@@ -3777,6 +3758,7 @@ pa:
         bulk_order_management: "ਥੋਕ ਆਰਡਰ ਪ੍ਰਬੰਧਨ"
         subscriptions: "ਸਬਸਕ੍ਰਿਪਸ਼ਨ"
         products: "ਉਤਪਾਦ"
+        products_v3: "ਉਤਪਾਦ"
         option_types: "ਵਿਕਲਪ ਦੀਆਂ ਕਿਸਮਾਂ"
         properties: "ਪ੍ਰਾਪਰਟੀਜ਼"
         variant_overrides: "ਇਨਵੇਂਟਰੀ"
@@ -3790,6 +3772,10 @@ pa:
         customers: "ਗਾਹਕ"
         groups: "ਸਮੂਹ"
         oidc_settings: "OIDC ਸੈਟਿੰਗਾਂ"
+        overview: "ਸੰਖੇਪ ਜਾਣਕਾਰੀ"
+        product_import: "ਇਮਪੋਰਟ"
+        enterprise_roles: "ਭੂਮਿਕਾਵਾਂ"
+        payment_methods: "ਭੁਗਤਾਨ ਦੇ ਢੰਗ"
       product_properties:
         index:
           inherits_properties_checkbox_hint: "%{supplier} ਤੋਂ ਪ੍ਰੋਪੇਰਟੀਜ਼ ਅਪਣਾਓ? (ਜਦੋਂ ਤੱਕ ਕਿ ਉਪਰ ਓਵਰਰਾਈਡ ਨਾ ਕੀਤਾ ਗਿਆ ਹੋਵੇ)"
@@ -3820,7 +3806,6 @@ pa:
           continue: "ਜਾਰੀ ਰੱਖੋ"
         new:
           new_return_authorization: "ਨਵਾਂ ਵਾਪਸੀ ਅਧਿਕਾਰ"
-          back_to_return_authorizations_list: "ਵਾਪਸੀ ਅਧਿਕਾਰ ਸੂਚੀ ਤੇ ਵਾਪਸ"
           continue: "ਜਾਰੀ ਰੱਖੋ"
         edit:
           receive: "ਪ੍ਰਾਪਤ ਕਰੋ"
@@ -4007,9 +3992,7 @@ pa:
         providers:
           provider: "ਪ੍ਰਦਾਤਾ"
           check: "ਨਕਦ/ਈਐਫਟੀ/ਆਦਿ (ਭੁਗਤਾਨ ਜਿਸ ਲਈ ਸਵੈਚਲਿਤ ਪ੍ਰਮਾਣਿਕਤਾ ਦੀ ਲੋੜ ਨਹੀਂ ਹੈ)"
-          pin: "ਪਿੰਨ ਭੁਗਤਾਨ"
           paypalexpress: "ਪੇਪਾਲ ਐਕਸਪ੍ਰੈਸ"
-          stripeconnect: "ਸਟ੍ਰਾਈਪ"
           stripesca: "ਸਟ੍ਰਾਈਪ SCA"
       payments:
         source_forms:
@@ -4068,8 +4051,6 @@ pa:
       reports:
         table:
           select_and_search: "ਫਿਲਟਰ ਚੁਣੋ ਅਤੇ ਆਪਣੇ ਡੇਟਾ ਤੱਕ ਪਹੁੰਚਣ ਲਈ %{option} ਤੇ ਕਲਿੱਕ ਕਰੋ।"
-        customer_names_message:
-          customer_names_tip: "ਜੇਕਰ ਤੁਹਾਡੇ ਦੁਆਰਾ ਸਪਲਾਈ ਕੀਤੇ ਗਏ ਆਰਡਰਾਂ ਲਈ ਗਾਹਕ ਦੇ ਨਾਂ ਲੁਕੇ ਹੋਏ ਹਨ, ਤਾਂ ਤੁਸੀਂ ਵਿਤਰਕ ਨਾਲ ਸੰਪਰਕ ਕਰ ਸਕਦੇ ਹੋ ਅਤੇ ਪੁੱਛ ਸਕਦੇ ਹੋ ਕਿ ਕੀ ਉਹ ਆਪਣੇ ਸਪਲਾਇਰਾਂ ਨੂੰ ਗਾਹਕਾਂ ਦੇ ਨਾਮ ਵੇਖਣ ਦੀ ਆਗਿਆ ਦੇਣ ਲਈ ਆਪਣੀਆਂ ਸ਼ਾਪਾਂ ਦੀਆਂ ਤਰਜੀਹਾਂ ਨੂੰ ਅਪਡੇਟ ਕਰ ਸਕਦੇ ਹਨ।"
         products_and_inventory:
           all_products:
             message: "ਨੋਟ ਕਰੋ ਕਿ ਰਿਪੋਰਟ ਕੀਤੇ ਗਏ ਸਟਾਕ ਦੇ ਪੱਧਰ ਕੇਵਲ ਸਪਲਾਇਰ ਉਤਪਾਦ ਸੂਚੀਆਂ ਤੋਂ ਹਨ। ਜੇਕਰ ਤੁਸੀਂ ਆਪਣੇ ਸਟਾਕ ਦੀ ਮਾਤਰਾ ਦਾ ਪ੍ਰਬੰਧਨ ਕਰਨ ਲਈ ਇਨਵੇਂਟਰੀ ਦੀ ਵਰਤੋਂ ਕਰ ਰਹੇ ਹੋ ਤਾਂ ਇਸ ਵੈਲਯੂ ਨੂੰ ਇਸ ਰਿਪੋਰਟ ਵਿੱਚ ਨਜ਼ਰਅੰਦਾਜ਼ ਕੀਤਾ ਜਾਵੇਗਾ।"
@@ -4088,7 +4069,6 @@ pa:
         form:
           disabled: "ਅਸਮਰੱਥ ਕੀਤਾ ਗਿਆ"
           email: "ਈਮੇਲ"
-          roles: "ਭੂਮਿਕਾਵਾਂ"
           enterprise_limit: "ਐਂਟਰਪ੍ਰਾਈਜ਼ ਸੀਮਾ"
           confirm_password: "ਪਾਸਵਰਡ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ"
           password: "ਪਾਸਵਰਡ"
@@ -4111,12 +4091,15 @@ pa:
           new_variant: "ਨਵਾਂ ਵੇਰੀਐਂਟ"
         form:
           sku: "SKU"
-          price: "ਕੀਮਤ"
           unit_price: "ਯੂਨਿਟ ਦੀ ਕੀਮਤ"
           display_as: "ਇਸ ਤਰ੍ਹਾਂ ਪ੍ਰਦਰਸ਼ਿਤ ਕਰੋ"
           display_name: "ਡਿਸਪਲੇ ਕੀਤੇ ਜਾਣ ਵਾਲਾ ਨਾਂ"
           display_as_placeholder: 'ਜਿਵੇਂ ਕਿ 2 ਕਿਲੋ'
           display_name_placeholder: 'ਜਿਵੇਂ ਕਿ ਟਮਾਟਰ'''
+          unit: ਯੂਨਿਟ
+          price: ਕੀਮਤ
+          unit_value: ਯੂਨਿਟ ਵੈਲਯੂ
+          variant_category: ਸ਼੍ਰੇਣੀ
         autocomplete:
           out_of_stock: "ਸਟਾਕ ਵਿੱਚ ਨਹੀਂ ਹੈਂ"
           producer_name: "ਉਤਪਾਦਕ"
@@ -4126,6 +4109,7 @@ pa:
           terms_of_service: "ਸੇਵਾ ਦੀਆਂ ਸ਼ਰਤਾਂ"
         sortable_header:
           name: "ਨਾਮ"
+          on_hand: "ਹੱਥ ਵਿਚ"
           number: "ਨੰਬਰ"
           completed_at: "ਇਸ ਸਮੇਂ ਪੂਰਾ ਹੋਇਆ"
           state: "ਸਥਿਤੀ"
@@ -4135,14 +4119,14 @@ pa:
           total: "ਕੁੱਲ"
           billing_address_name: "ਨਾਮ"
       taxons:
+        index:
+          title: "ਉਤਪਾਦ ਸ਼੍ਰੇਣੀਆਂ"
         form:
           name: ਨਾਂ
-          permalink: ਪਰਮਾਲਿੰਕ
           description: ਵਰਣਨ
       general_settings:
         edit:
           legal_settings: "ਕਾਨੂੰਨੀ ਸੈਟਿੰਗਾਂ"
-          cookies_consent_banner_toggle: "ਕੂਕੀਜ਼ ਸਹਿਮਤੀ ਬੈਨਰ ਡਿਸਪਲੇ ਕਰੋ"
           privacy_policy_url: "ਗੋਪਨੀਯਤਾ ਨੀਤੀ URL"
           enterprises_require_tos: "ਐਂਟਰਪ੍ਰਾਈਜ਼ਾਂ ਨੂੰ ਸੇਵਾ ਦੀਆਂ ਸ਼ਰਤਾਂ ਸਵੀਕਾਰ ਕਰਨੀਆਂ ਚਾਹੀਦੀਆਂ ਹਨ"
           shoppers_require_tos: "ਖਰੀਦਦਾਰਾਂ ਨੂੰ ਸੇਵਾ ਦੀਆਂ ਸ਼ਰਤਾਂ ਨੂੰ ਸਵੀਕਾਰ ਕਰਨਾ ਚਾਹੀਦਾ ਹੈ"
@@ -4232,13 +4216,6 @@ pa:
         subject: "ਪਾਸਵਰਡ ਰੀਸੈਟ ਕਰਨ ਦੀਆਂ ਹਦਾਇਤਾਂ"
       confirmation_instructions:
         subject: "ਕਿਰਪਾ ਕਰਕੇ ਆਪਣੇ OFN ਖਾਤੇ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ"
-    payment_mailer:
-      authorize_payment:
-        subject: "ਕਿਰਪਾ ਕਰਕੇ OFN ਤੇ %{distributor} ਨੂੰ ਆਪਣਾ ਭੁਗਤਾਨ ਅਧਿਕਾਰਤ ਕਰੋ"
-        instructions: "%{distributor} ਨੂੰ %{amount} ਦੇ ਤੁਹਾਡੇ ਭੁਗਤਾਨ ਲਈ ਵਾਧੂ ਪ੍ਰਮਾਣਿਕਤਾ ਦੀ ਲੋੜ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਆਪਣੇ ਭੁਗਤਾਨ ਨੂੰ ਅਧਿਕਾਰਤ ਕਰਨ ਲਈ ਹੇਠਾਂ ਦਿੱਤੇ URL ਉਤੇ ਜਾਓ:"
-      authorization_required:
-        subject: "ਭੁਗਤਾਨ ਲਈ ਗਾਹਕ ਤੋਂ ਅਧਿਕਾਰ ਦੀ ਲੋੜ ਹੁੰਦੀ ਹੈ"
-        message: "ਆਰਡਰ %{order_number} ਦੇ ਭੁਗਤਾਨ ਲਈ ਗਾਹਕ ਤੋਂ ਵਾਧੂ ਅਧਿਕਾਰ ਦੀ ਲੋੜ ਹੈ। ਗਾਹਕ ਨੂੰ ਈਮੇਲ ਰਾਹੀਂ ਸੂਚਿਤ ਕੀਤਾ ਗਿਆ ਹੈ ਅਤੇ ਜਦੋਂ ਤੱਕ ਇਹ ਅਧਿਕਾਰਤ ਨਹੀਂ ਹੋ ਜਾਂਦਾ, ਭੁਗਤਾਨ ਬਕਾਏ ਵਜੋਂ ਵਿਖਾਈ ਦੇਵੇਗਾ।"
     shipment_mailer:
       shipped_email:
         dear_customer: "ਪਿਆਰੇ ਗਾਹਕ,"
@@ -4301,13 +4278,10 @@ pa:
       webhook_endpoints:
         title: ਵੈਬਹੁੱਕ ਐਂਡਪੁਆਇੰਟ
         description: ਸਿਸਟਮ ਵਿੱਚ ਇਵੈਂਟਸ ਵੈਬਹੁੱਕ ਨੂੰ ਬਾਹਰੀ ਸਿਸਟਮਾਂ ਲਈ ਟਰਿੱਗਰ ਕਰ ਸਕਦੇ ਹਨ।
-        event_types:
-          order_cycle_opened: ਆਰਡਰ ਸਾਈਕਲ ਖੋਲ੍ਹਿਆ ਗਿਆ
         event_type:
           header: ਇਵੇੰਟ ਦੀ ਕਿਸਮ
         url:
           header: ਐਂਡਪੁਆਇੰਟ URL
-          create_placeholder: ਰਿਮੋਟ ਵੈਬਹੁੱਕ ਐਂਡਪੁਆਇੰਟ ਦਾ URL ਦਾਖਲ ਕਰੋ
       developer_settings:
         title: ਡਿਵੈਲਪਰ ਸੈਟਿੰਗਜ਼
       form:
@@ -4327,6 +4301,10 @@ pa:
         transaction_history: ਲੈਣ-ਦੇਣ ਦਾ ਇਤਿਹਾਸ
         authorisation_required: ਅਧਿਕਾਰ ਦੀ ਲੋੜ ਹੈ
         authorise: ਅਧਿਕਾਰਤ ਕਰੋ
+      customer_account_transactions:
+        description: ਵਰਣਨ
+        amount: ਰਕਮ
+        running_balance: ਚਲ ਰਹੀ ਬਕਾਇਆ ਰਕਮ
       open_orders:
         order: ਆਰਡਰ
         shop: ਸ਼ਾਪ
@@ -4375,7 +4353,6 @@ pa:
       key_cleared: "ਕੁੰਜੀ ਹਟਾਈ ਗਈ"
       shipment:
         cannot_ready: "ਸ਼ਿਪਮੈਂਟ ਤਿਆਰ ਨਹੀਂ ਹੋ ਸਕਦੀ।"
-      invalid_taxonomy_id: "ਅਵੈਧ ਟੈਕਸੋਨੌਮੀ ਆਈਡੀ।"
       toggle_api_key_view: "ਉਪਭੋਗਤਾ ਲਈ API ਕੁੰਜੀ ਦ੍ਰਿਸ਼ ਵਿਖਾਓ"
     unit: ਯੂਨਿਟ
     per_unit: ਪ੍ਰਤੀ ਯੂਨਿਟ
@@ -4393,3 +4370,30 @@ pa:
     pagination:
       next: ਅਗਲਾ
       previous: ਪਿਛਲਾ
+    tag_list_input:
+      default_placeholder: ਟੈਗ ਜੋੜੋ
+    tag_rule_form:
+      tag_rules:
+        shipping_method_tagged_top: "ਸ਼ਿਪਿੰਗ ਢੰਗ ਟੈਗ ਕੀਤੇ ਗਏ"
+        shipping_method_tagged_bottom: "ਹਨ:"
+        payment_method_tagged_top: "ਭੁਗਤਾਨ ਦੇ ਢੰਗ ਟੈਗ ਕੀਤੇ ਗਏ"
+        payment_method_tagged_bottom: "ਹਨ:"
+        order_cycle_tagged_top: "ਟੈਗ ਕੀਤੇ ਆਰਡਰ ਸਾਈਕਲ"
+        order_cycle_tagged_bottom: "ਹਨ:"
+        inventory_tagged_top: "ਟੈਗ ਕੀਤੇ ਗਏ ਇਨਵੇਂਟਰੀ ਵੇਰੀਐਂਟ"
+        inventory_tagged_bottom: "ਹਨ:"
+        variant_tagged_bottom: "ਹਨ:"
+        visible: ਵਿਖਾਈ ਦੇ ਰਿਹਾ ਹੈ
+        not_visible: ਵਿਖਾਈ ਨਹੀਂ ਦੇ ਰਿਹਾ ਹੈ
+    tag_rule_group_form:
+      for_customers_tagged: 'ਟੈਗ ਕੀਤੇ ਗਾਹਕਾਂ ਲਈ:'''
+      add_new_rule: '+ ਇੱਕ ਨਵਾਂ ਨਿਯਮ ਜੋੜੋ'''
+      no_rules_yet: ਇਸ ਟੈਗ ਤੇ ਅਜੇ ਤੱਕ ਕੋਈ ਨਿਯਮ ਲਾਗੂ ਨਹੀਂ ਹਨ
+    add_tag_rule_modal:
+      select_rule_type: "ਇੱਕ ਨਿਯਮ ਕਿਸਮ ਚੁਣੋ:"
+      add_rule: "ਨਿਯਮ ਜੋੜੋ"
+    webhook_endpoint_form:
+      url:
+        create_placeholder: ਰਿਮੋਟ ਵੈਬਹੁੱਕ ਐਂਡਪੁਆਇੰਟ ਦਾ URL ਦਾਖਲ ਕਰੋ
+      event_types:
+        order_cycle_opened: ਆਰਡਰ ਸਾਈਕਲ ਖੋਲ੍ਹਿਆ ਗਿਆ

@@ -1,12 +1,15 @@
 # Docker Scripts
 
-## What's the point?
-* Setting up the Open Food Network app on your local machine is quick and easy with the aid of Docker.
-* Docker provides a common virtual environment available to all developers and resolves the infamous "but it works on my machine" problem.
-* Use the scripts in this directory to execute tasks in Docker. Please note that these scripts are intended to be executed from this app's root directory (/openfoodnetwork). These scripts allow you to bypass the need to keep typing "docker-compose run web".
+> [!WARNING]
+> **Docker is NOT the recommended way to set up the development environment.**
+> While Docker provides a quick way to get the app running, several test suites (especially system/browser specs) are known to fail in this environment. For a full development experience and reliable test results, please follow the [native installation guide](../GETTING_STARTED.md).
+
+Docker is intended to provide a common virtual environment available to all developers. Please note that it is not commonly used by developers at this time.
 
 ## Limitations
 1. The docker environment can't directly control your host system browser, which means that browser specs (under `/spec/system/`) and email previews will not work. You may be able to find a solution with [this article](https://evilmartians.com/chronicles/system-of-a-test-setting-up-end-to-end-rails-testing). If so, please contribute!
+
+2. You can try circumventing this by setting the option `DOCKER=true` on the `.env.test.local` file, which will disable the `sandbox` mode for Chrome, used for system tests.
 
 ## Installing Docker
 ### Requirements
@@ -17,10 +20,6 @@
 * Visit https://docs.docker.com/engine/install/#server and select your Linux distribution to install Docker Engine.
 Note: There is no need to install Docker Desktop on Linux.
 * Follow the installation instructions provided. Installing from Docker repositories is recommended.
-* Install Docker Compose V1. Docker Engine comes with Docker Compose V2 which is not yet supported by our Docker scripts.
-```sh
-$ sudo apt install docker-compose
-```
 * To run Docker commands as a regular user instead of as root (with sudo), follow the instructions at https://docs.docker.com/engine/install/linux-postinstall/.
 
 #### Windows
@@ -28,7 +27,8 @@ $ sudo apt install docker-compose
 * You may have to deselect the option to use Docker Compose V2 in Docker settings to make our scripts work.
 
 ## Getting Started
-### Linux
+
+1. **Clone the Repository**:
 * Open a terminal with a shell.
 * Clone the repository. If you're planning on contributing code to the project (which we [LOVE](CONTRIBUTING.md)), begin by forking this repo with the Fork button in the top-right corner of this screen.
 * Use git clone to copy your fork onto your local machine.
@@ -39,48 +39,50 @@ $ git clone https://github.com/YOUR_GITHUB_USERNAME_HERE/openfoodnetwork
 ```sh
 $ git clone git@github.com:openfoodfoundation/openfoodnetwork.git
 ```
-* Go at the root of the app:
-```sh
-$ cd openfoodnetwork
-```
-* Download the Docker images, build the Docker containers, seed the database with sample data, AND log the screen output from these tasks:
-```sh
-$ docker/build
-```
-* Run the Rails server and its required Docker containers:
-```sh
-$ docker/server
-```
-* The default admin user is 'ofn@example.com' with the password 'ofn123'.
-* View the app in the browser at `http://localhost:3000`.
-* You will then get the trace of the containers in the terminal. You can stop the containers using Ctrl-C in the terminal.
-* You can find some useful tips and commands [here](https://github.com/openfoodfoundation/openfoodnetwork/wiki/Docker:-useful-tips-and-commands).
 
-### Windows
-* Prerequisite : don't forget to activate the execution of powershell scripts following the instruction on [this page chosing "Using RemoteSigned Execution Policy"](https://shellgeek.com/powershell-fix-running-scripts-is-disabled-on-this-system/)
-* Open a terminal with a shell command.
-* Clone the repository. If you're planning on contributing code to the project (which we [LOVE](CONTRIBUTING.md)), begin by forking this repo with the Fork button in the top-right corner of this screen.
-* Use git clone to copy your fork onto your local machine.
-```command
-$ git clone https://github.com/YOUR_GITHUB_USERNAME_HERE/openfoodnetwork
-```
-* Otherwise, if you just want to get things running, clone from the OFN main repo:
-```command
-$ git clone git@github.com:openfoodfoundation/openfoodnetwork.git
-```
-* Go at the root of the app:
-```command
+2. **Navigate to the App Directory**:
+```sh
 $ cd openfoodnetwork
 ```
-* Download the Docker images, build the Docker containers, seed the database with sample data, AND log the screen output from these tasks:
-```command
-$ docker/build.ps1
-```
+
+3. **Choose and Build Docker Image**:
+* You have two choices of images you can build. The default Alpine image is faster to setup and should be compatible with Ubuntu setup. Alternatively, you can use the Ubuntu image which is most similar to the production servers but is larger in size and will take longer to build. Note that the Alpine image will need to be updated when ruby is updated. To download the Docker images, build the Docker containers, seed the database with sample data, AND log the screen output from these tasks:
+  - **Alpine Image** (smaller, faster):
+    - **Linux**:
+    ```sh
+    $ docker/build
+    ```
+    - **Windows**:
+    ```command
+    $ docker/build.ps1
+    ```
+  - **Ubuntu Image** (larger, production-like):
+    - **Linux**:
+    ```sh
+    $ docker/build Dockerfile.ubuntu
+    ```
+    - **Windows**:
+    ```command
+    $ docker/build.ps1 Dockerfile.ubuntu
+    ```
+
+4. **Run the Rails Server**:
 * Run the Rails server and its required Docker containers:
-```command
-$ docker/server.ps1
-```
-You may need to wait several minutes before getting the server up and running properly.
+  - **Linux**:
+  ```sh
+  $ docker/server
+  ```
+  - **Windows**:
+  ```command
+  $ docker/server.ps1
+  ```
+  * To run tests or access the server directly, you can use bash:
+  ```sh
+  $ docker compose exec web bash
+  ```
+
+> **Note**: Windows users may need to enable PowerShell script execution by setting the RemoteSigned policy. See instructions [here](https://shellgeek.com/powershell-fix-running-scripts-is-disabled-on-this-system/).
+
 * The default admin user is 'ofn@example.com' with the password 'ofn123'.
 * View the app in the browser at `http://localhost:3000`.
 * You will then get the trace of the containers in the terminal. You can stop the containers using Ctrl-C in the terminal.
@@ -93,7 +95,7 @@ You may need to wait several minutes before getting the server up and running pr
 * If you’re getting the following error:
 ```sh
 dockerpycreds.errors.InitializationError: docker-credential-desktop not installed or not available in PATH
-[8929] Failed to execute script docker-compose
+[8929] Failed to execute script docker compose
 ```
 Just change the entry in ~/.docker/config.json like this (credStore instead of credsStore), and you’re good to go:
 ```sh
@@ -124,8 +126,10 @@ You may also need to comment out stuff related to Chromedriver and Chrome. Chrom
 See [#8421](https://github.com/openfoodfoundation/openfoodnetwork/issues/8421) for more info
 
 ## Script Summary
+Use the scripts in this directory to execute tasks in Docker. Please note that these scripts are intended to be executed from this app's root directory (/openfoodnetwork). These scripts allow you to bypass the need to keep typing "docker compose run web".
+
 * docker/build(.ps1): This script builds the Docker containers specified for this app, seeds the database, and logs the screen output for these operations. After you use "git clone" to download this repository, run the docker/build script to start the setup process.
-* docker/server(.ps1): Use this script to run this app in the Rails server. This script executes the "docker-compose up" command and logs the results. If all goes well, you will be able to view this app on your local browser at http://localhost:3000/.
+* docker/server(.ps1): Use this script to run this app in the Rails server. This script executes the "docker compose up" command and logs the results. If all goes well, you will be able to view this app on your local browser at http://localhost:3000/.
 * docker/test(.ps1): Use this script to run the entire test suite. **Note limitation with system specs mentioned above**.
 * docker/qtest: Use this script to run the entire test suite in quiet mode. The deprecation warnings are removed to make the test results easier to read.
 * docker/run: Use this script to run commands within the Docker container. If you want shell access, enter "docker/run bash". To execute "ls -l" within the Docker container, enter "docker/run ls -l".

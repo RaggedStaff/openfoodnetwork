@@ -1,10 +1,9 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Api::V0::ProductImagesController, type: :controller do
+RSpec.describe Api::V0::ProductImagesController do
   include AuthenticationHelper
   include FileHelper
+
   render_views
 
   describe "uploading an image" do
@@ -23,7 +22,7 @@ describe Api::V0::ProductImagesController, type: :controller do
         product_id: product_without_image.id, file: image, use_route: :product_images
       }
 
-      expect(response.status).to eq 201
+      expect(response).to have_http_status :created
       expect(product_without_image.reload.image.id).to eq json_response['id']
     end
 
@@ -32,7 +31,7 @@ describe Api::V0::ProductImagesController, type: :controller do
         product_id: product_with_image.id, file: image, use_route: :product_images
       }
 
-      expect(response.status).to eq 200
+      expect(response).to have_http_status :ok
       expect(product_with_image.reload.image.id).to eq json_response['id']
     end
 
@@ -41,10 +40,11 @@ describe Api::V0::ProductImagesController, type: :controller do
         product_id: product_without_image.id, file: pdf, use_route: :product_images
       }
 
-      expect(response.status).to eq 422
+      expect(response).to have_http_status :unprocessable_entity
       expect(product_without_image.image).to be_nil
       expect(json_response["id"]).to eq nil
-      expect(json_response["errors"]).to include "Attachment has an invalid content type"
+      expect(json_response["errors"]).to include "Attachment is " \
+                                                 "not identified as a valid media file"
     end
   end
 end

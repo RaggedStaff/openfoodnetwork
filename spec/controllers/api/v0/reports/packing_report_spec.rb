@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
-
-describe Api::V0::ReportsController, type: :controller do
+RSpec.describe Api::V0::ReportsController do
   let(:params) {
     {
       report_type: 'packing',
@@ -27,14 +25,14 @@ describe Api::V0::ReportsController, type: :controller do
       it "renders results" do
         api_get :show, params
 
-        expect(response.status).to eq 200
+        expect(response).to have_http_status :ok
         expect(json_response[:data]).to match_array report_output(order, "distributor")
       end
     end
 
     context "as an enterprise user with partial order permissions (supplier with P-OC)" do
       let!(:order) { create(:completed_order_with_totals) }
-      let(:supplier) { order.line_items.first.product.supplier }
+      let(:supplier) { order.line_items.first.variant.supplier }
       let(:current_user) { supplier.owner }
       let!(:perms) {
         create(:enterprise_relationship, parent: supplier, child: order.distributor,
@@ -44,7 +42,7 @@ describe Api::V0::ReportsController, type: :controller do
       it "renders results" do
         api_get :show, params
 
-        expect(response.status).to eq 200
+        expect(response).to have_http_status :ok
         expect(json_response[:data]).to match_array report_output(order, "supplier")
       end
     end
@@ -53,25 +51,26 @@ describe Api::V0::ReportsController, type: :controller do
   private
 
   def report_output(order, user_type)
-    results = []
-
-    order.line_items.each do |line_item|
-      results << __send__("#{user_type}_report_row", line_item)
+    results = order.line_items.map do |line_item|
+      __send__("#{user_type}_report_row", line_item)
     end
-
-    results
   end
 
   def distributor_report_row(line_item)
+    order = line_item.order
+    variant = line_item.variant
+
     {
-      "hub" => line_item.order.distributor.name,
-      "customer_code" => line_item.order.customer&.code,
-      "supplier" => line_item.product.supplier.name,
+      "hub" => order.distributor.name,
+      "customer_code" => order.customer&.code,
+      "supplier" => variant.supplier.name,
       "product" => line_item.product.name,
       "variant" => line_item.full_name,
       "quantity" => line_item.quantity,
       "price" => (line_item.quantity * line_item.price).to_s,
-      "temp_controlled" => line_item.variant.shipping_category&.temperature_controlled
+      "temp_controlled" => variant.shipping_category&.temperature_controlled,
+      "shipment_state" => order.shipment_state,
+      "shipping_method" => order.shipping_method&.name,
     }.
       merge(dimensions(line_item)).
       merge(contacts(line_item.order.bill_address))
@@ -84,12 +83,14 @@ describe Api::V0::ReportsController, type: :controller do
       'first_name' => '< Hidden >',
       'last_name' => '< Hidden >',
       'phone' => '< Hidden >',
-      "supplier" => line_item.product.supplier.name,
+      "supplier" => line_item.variant.supplier.name,
       "product" => line_item.product.name,
       "variant" => line_item.full_name,
       "quantity" => line_item.quantity,
       "price" => (line_item.quantity * line_item.price).to_s,
-      "temp_controlled" => line_item.variant.shipping_category&.temperature_controlled
+      "temp_controlled" => line_item.variant.shipping_category&.temperature_controlled,
+      "shipment_state" => line_item.order.shipment_state,
+      "shipping_method" => line_item.order.shipping_method&.name,
     }.merge(dimensions(line_item))
   end
 

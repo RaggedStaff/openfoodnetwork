@@ -3,14 +3,22 @@
 module OpenFoodNetwork
   class ScopeVariantToHub
     def initialize(hub, variant_overrides = nil)
+      @variant_overrides = variant_overrides || VariantOverride.indexed(hub)
       @hub = hub
-      @variant_overrides = variant_overrides || VariantOverride.indexed(@hub)
     end
 
     def scope(variant)
+      return unless inventory_enabled?
+
       variant.extend(OpenFoodNetwork::ScopeVariantToHub::ScopeVariantToHub)
-      variant.instance_variable_set :@hub, @hub
       variant.instance_variable_set :@variant_override, @variant_overrides[variant]
+    end
+
+    private
+
+    def inventory_enabled?
+      OpenFoodNetwork::FeatureToggle.enabled?(:inventory, @hub) &&
+        !OpenFoodNetwork::FeatureToggle.enabled?(:variant_tag, @hub)
     end
 
     module ScopeVariantToHub
@@ -41,13 +49,8 @@ module OpenFoodNetwork
 
       # If it is an variant override with a count_on_hand value:
       #   - updates variant_override.count_on_hand
-      #   - does not create stock_movement
       #   - does not update stock_item.count_on_hand
-      # If it is a variant override with on_demand:
-      #   - don't change stock or call super (super would change the variant's stock)
-      def move(quantity, originator = nil)
-        return if @variant_override&.on_demand
-
+      def move(quantity)
         if @variant_override&.stock_overridden?
           @variant_override.move_stock! quantity
         else

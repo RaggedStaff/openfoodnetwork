@@ -1,13 +1,11 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe ExtraFields do
+RSpec.describe ExtraFields do
   let(:dummy_controller) { Api::V1::BaseController.new.extend ExtraFields }
 
   describe "#invalid_query_param" do
     it "renders error" do
-      allow(dummy_controller).to receive(:render) {}
+      allow(dummy_controller).to receive(:render)
       dummy_controller.invalid_query_param("param", :unprocessable_entity, "error message")
       expect(dummy_controller).to have_received(:render).with(
         json:
@@ -44,7 +42,7 @@ describe ExtraFields do
 
     context "when fields not in available fields" do
       it "calls invalid_query_param" do
-        allow(dummy_controller).to receive(:invalid_query_param) {}
+        allow(dummy_controller).to receive(:invalid_query_param)
         allow(dummy_controller).to receive(:params).
           and_return({ extra_fields: { customer: "unknown" } })
         dummy_controller.extra_fields(:customer, [:balance])

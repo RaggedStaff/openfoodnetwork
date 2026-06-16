@@ -1,13 +1,11 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 # This is used to test non implemented methods
 module Vouchers
   class TestVoucher < Voucher; end
 end
 
-describe Voucher do
+RSpec.describe Voucher do
   let(:enterprise) { build(:enterprise) }
 
   describe 'associations' do
@@ -27,7 +25,6 @@ describe Voucher do
     subject { build(:voucher_flat_rate, code: 'new_code', enterprise:) }
 
     it { is_expected.to validate_presence_of(:code) }
-    it { is_expected.to validate_uniqueness_of(:code).scoped_to(:enterprise_id) }
   end
 
   describe '#display_value' do

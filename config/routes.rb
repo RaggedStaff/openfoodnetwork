@@ -11,15 +11,11 @@ Openfoodnetwork::Application.routes.draw do
   get "/login", to: redirect("/#/login")
   get '/unauthorized', :to => 'home#unauthorized', :as => :unauthorized
 
-  get "/discourse/login", to: "discourse_sso#login"
-  get "/discourse/sso", to: "discourse_sso#sso"
-
   get "/map", to: "map#index", as: :map
   get "/sell", to: "home#sell", as: :sell
 
   get "/register", to: "registration#index", as: :registration
   get "/register/auth", to: "registration#authenticate", as: :registration_auth
-  post "/user/registered_email", to: "spree/users#registered_email"
   resources :locales, only: [:show]
 
   # Redirects to global website
@@ -31,6 +27,9 @@ Openfoodnetwork::Application.routes.draw do
   put "/cart/empty", :to => 'spree/orders#empty', :as => :empty_cart
   get '/orders/:id/token/:token' => 'spree/orders#show', :as => :token_order
   get '/payments/:id/authorize' => 'payments#redirect_to_authorize', as: "authorize_payment"
+
+  # Well known paths
+  get "/.well-known/dfc/", to: "well_known#dfc"
 
   resource :cart, controller: "cart" do
     post :populate
@@ -82,6 +81,8 @@ Openfoodnetwork::Application.routes.draw do
 
     get "/stripe/confirm", to: "stripe#confirm", as: :confirm_stripe
     get "/stripe/authorize/:order_number", to: "stripe#authorize", as: :authorize_stripe
+
+    get "/taler/:payment_id", to: "taler#confirm", as: :confirm_taler
   end
 
   get '/checkout', to: 'checkout#edit'

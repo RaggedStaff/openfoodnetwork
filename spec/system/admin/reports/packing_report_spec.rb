@@ -2,16 +2,33 @@
 
 require "system_helper"
 
-describe "Packing Reports" do
+RSpec.describe "Packing Reports" do
   include AuthenticationHelper
   include WebHelper
 
-  around do |example|
-    Timecop.freeze(Time.zone.now.strftime("%Y-%m-%d 00:00")) { example.run }
+  before do
+    travel_to(Time.zone.now.strftime("%Y-%m-%d 00:00"))
   end
 
   let!(:open_datetime) { 1.month.ago.strftime("%Y-%m-%d 00:00") }
   let!(:close_datetime) { Time.zone.now.strftime("%Y-%m-%d 00:00") }
+
+  shared_examples "shipment state and shipping method specs" do |report_name|
+    it "makes shipping method and shipment state visible in #{report_name}" do
+      find('.ofn-drop-down').click
+      within ".menu" do
+        page.find("span", text: "Shipment State").click
+        page.find("span", text: "Shipping Method").click
+      end
+
+      run_report
+
+      within "table.report__table" do
+        expect(page).to have_selector("th", text: "Shipment State")
+        expect(page).to have_selector("th", text: "Shipping Method")
+      end
+    end
+  end
 
   describe "Packing reports" do
     before do
@@ -34,10 +51,10 @@ describe "Packing Reports" do
                                            bill_address: bill_address2)
     }
     let(:supplier) { create(:supplier_enterprise, name: "Supplier") }
-    let(:product1) { create(:simple_product, name: "Product 1", supplier: ) }
-    let(:variant1) { create(:variant, product: product1, unit_description: "Big") }
-    let(:variant2) { create(:variant, product: product1, unit_description: "Small") }
-    let(:product2) { create(:simple_product, name: "Product 2", supplier:) }
+    let(:product1) { create(:simple_product, name: "Product 1", supplier_id: supplier.id ) }
+    let(:variant1) { create(:variant, product: product1, unit_description: "Big", supplier: ) }
+    let(:variant2) { create(:variant, product: product1, unit_description: "Small", supplier: ) }
+    let(:product2) { create(:simple_product, name: "Product 2", supplier_id: supplier.id) }
 
     before do
       order1.finalize!
@@ -49,9 +66,9 @@ describe "Packing Reports" do
     end
 
     describe "Pack By Customer" do
-      it "displays the report" do
-        click_link "Pack By Customer"
+      before { click_link "Pack By Customer" }
 
+      it "displays the report" do
         # pre-fills with dates
         check_prefilled_dates
 
@@ -62,7 +79,7 @@ describe "Packing Reports" do
         expect(table).to eq([
                               ["Hub", "Customer Code", "First Name", "Last Name", "Supplier",
                                "Product", "Variant", "Weight", "Height", "Width", "Depth",
-                               "Quantity", "TempControlled?"].map(&:upcase)
+                               "Quantity", "TempControlled?"]
                             ])
         expect(page).to have_selector 'table.report__table tbody tr', count: 5 # Totals row/order
 
@@ -71,8 +88,6 @@ describe "Packing Reports" do
       end
 
       it "sorts alphabetically" do
-        click_link "Pack By Customer"
-
         # pre-fills with dates
         check_prefilled_dates
 
@@ -80,7 +95,7 @@ describe "Packing Reports" do
         rows = find("table.report__table").all("tr")
         table = rows.map { |r| r.all("th,td").map { |c| c.text.strip }[3] }
         expect(table).to eq([
-                              "LAST NAME",
+                              "Last Name",
                               order1.bill_address.lastname,
                               order1.bill_address.lastname,
                               "",
@@ -91,12 +106,14 @@ describe "Packing Reports" do
         # date range is kept after form submission
         check_prefilled_dates
       end
+
+      it_behaves_like "shipment state and shipping method specs", "Pack By Customer"
     end
 
     describe "Pack By Supplier" do
-      it "displays the report" do
-        click_link "Pack By Supplier"
+      before { click_link "Pack By Supplier" }
 
+      it "displays the report" do
         # pre-fills with dates
         check_prefilled_dates
 
@@ -108,7 +125,7 @@ describe "Packing Reports" do
         table = rows.map { |r| r.all("th").map { |c| c.text.strip } }
         expect(table).to eq([
                               ["Hub", "Supplier", "Customer Code", "First Name", "Last Name",
-                               "Product", "Variant", "Quantity", "TempControlled?"].map(&:upcase)
+                               "Product", "Variant", "Quantity", "TempControlled?"]
                             ])
 
         expect(all('table.report__table tbody tr').count).to eq(3) # Totals row per supplier
@@ -116,6 +133,8 @@ describe "Packing Reports" do
         # date range is kept after form submission
         check_prefilled_dates
       end
+
+      it_behaves_like "shipment state and shipping method specs", "Pack By Supplier"
     end
   end
 
@@ -157,12 +176,12 @@ describe "Packing Reports" do
           # date range is kept after form submission
           check_prefilled_dates
         end
+
+        it_behaves_like "shipment state and shipping method specs", "Pack By Product"
       end
     end
   end
 end
-
-private
 
 def check_prefilled_dates
   expect(page).to have_input "q[order_completed_at_gt]", value: open_datetime, visible: false

@@ -1,5 +1,8 @@
 // Customisations for the new Bulk Edit Products page only
-.products_v3_page {
+// Scoped to containing div, because Turbo messes with body classes
+@import "pages/unit_popout";
+
+#products_v3_page {
   #content > .row:first-child > .container:first-child {
     // Allow table to extend to full width of available screen space
     // TODO: move this to a generic rule, eg body.full-width{}. Then it can be included on any page.
@@ -42,7 +45,6 @@
     padding-top: 0; // Hide border because .form-actions is there. It is added with th padding instead.
     border-collapse: separate; // This is needed for the outer padding. Also should be helpful to give more flexibility of borders between rows.
 
-    // Additional horizontal padding to align with input contents
     thead {
       position: sticky;
       top: 0;
@@ -56,6 +58,7 @@
         overflow: visible;
         background-color: white;
       }
+
       .form-actions-wrapper2 {
         position: relative;
         // Stretch to cover table side borders
@@ -65,15 +68,10 @@
 
         padding: 4px 0;
       }
-
-      th.with-input {
-        padding-left: $padding-tbl-cell + $hpadding-txt;
-        padding-right: $padding-tbl-cell + $hpadding-txt;
-      }
     }
 
     // Row hover
-    tr:hover {
+    tbody tr:hover {
       td {
         background-color: $light-grey;
         position: relative;
@@ -86,6 +84,14 @@
           left: -4px;
           border-left: 4px solid $teal;
           height: 100%;
+        }
+      }
+
+      // "Naked" inputs. Row hover helps reveal them.
+      .naked_inputs {
+        input:not([type="checkbox"]),
+        .ts-control {
+          background-color: $color-tbl-cell-bg;
         }
       }
 
@@ -103,7 +109,7 @@
 
       .content {
         // Plain content fields need help to align with text in inputs (due to vertical-align)
-        margin: $vpadding-txt + 1px 0;
+        margin: ($vpadding-txt + 1px) ($hpadding-txt + 2px);
 
         @extend .line-clamp-1;
       }
@@ -135,13 +141,14 @@
         border-bottom: 2px solid $color-tbl-bg;
 
         &.with-image {
-          padding: 8px;
+          padding: 4px 2px;
         }
       }
 
       tr:first-child td {
         border-top: 4px solid $color-tbl-bg;
       }
+
       tr:last-child td {
         border-bottom: 1px solid $color-tbl-cell-shadow;
       }
@@ -157,25 +164,26 @@
 
     .field {
       padding: 0;
-      margin-bottom: 0.75em;
     }
 
-    label {
-      margin: 0;
+    .fullwidth + .field {
+      // Assume wrap, so add small gap
+      margin-top: 3px;
     }
 
-    // "Naked" inputs. Row hover helps reveal them.
-    tbody {
-      input:not([type="checkbox"]) {
-        background-color: $color-tbl-cell-bg;
-        height: auto;
-        font-size: inherit;
-        font-weight: inherit;
-      }
+    .ts-control {
+      z-index: 0; // Avoid hovering over thead
+    }
 
-      :not(.field_with_errors) > {
-        input:not([type="checkbox"]):not(:focus):not(.changed):not([disabled]) {
-          border-color: transparent;
+    // Hide columns
+    $columns:
+      "image", "name", "sku", "unit_scale", "unit", "price", "on_hand", "producer", "category",
+      "tax_category", "tags", "inherits_properties";
+
+    @each $col in $columns {
+      &.hide-#{$col} {
+        .col-#{$col} {
+          display: none;
         }
       }
     }
@@ -207,11 +215,13 @@
     justify-content: space-between;
     align-items: center;
 
-    line-height: $btn-relaxed-height;
-    height: $btn-relaxed-height;
-
     &.disabled-section {
       display: none;
+    }
+
+    .pagination-description {
+      flex-grow: 1; // Grow to fill space
+      margin-right: 1em; // TODO: cleanup and use flex gap
     }
 
     .with-dropdown {
@@ -220,8 +230,13 @@
       align-items: center;
       gap: 10px;
     }
+
     .per-page {
-      width: 10em;
+      width: 9em;
+    }
+
+    .column-preferences .ofn-drop-down-label {
+      width: 13em;
     }
   }
 
@@ -236,31 +251,20 @@
       min-width: 15em;
 
       .search-input {
-        width: 100%;
         position: relative;
-        background-color: $lighter-grey;
-        border: 1px solid $lighter-grey;
-        border-radius: 4px;
-        height: $btn-relaxed-height;
-        line-height: $btn-relaxed-height;
-
-        &:has(input:focus),
-        &:has(input:active) {
-          border: 1px solid $dark-blue;
-        }
 
         > input {
-          // Totally hide the input from its container
-          background-color: transparent;
-          border: none;
-          width: calc(100% - 30px); // 30px is the width of the search icon + padding
+          padding-left: 33px;
+          width: 100%;
         }
 
         &:before {
+          position: absolute;
           font-family: FontAwesome;
           content: "\f002";
           color: $near-black;
           font-size: 16px;
+          margin-top: 0.7rem;
           margin-left: 10px;
         }
       }
@@ -276,6 +280,7 @@
 
       .search-button {
         position: relative;
+
         > input {
           padding-left: 30px;
         }
@@ -285,6 +290,7 @@
 
   // Blurred and non-clickable
   $disabled-blur: 1.5px;
+
   .disabled-section {
     position: relative;
 
@@ -301,82 +307,9 @@
     }
   }
 
-  // Stock popout widget
-  .on-hand {
-    &__wrapper {
-      position: relative;
-    }
-
-    &__button {
-      // override button styles
-      &.on-hand__button {
-        background: $color-tbl-cell-bg;
-        color: $color-txt-text;
-        white-space: nowrap;
-        border-color: transparent;
-        font-weight: normal;
-        padding-left: $border-radius; // Super compact
-        padding-right: 1rem; // Retain space for arrow
-        height: auto;
-
-        &:hover,
-        &:active,
-        &:focus {
-          background: $color-tbl-cell-bg;
-          color: $color-txt-text;
-          position: relative;
-        }
-
-        &.changed {
-          border-color: $color-txt-changed-brd;
-        }
-      }
-
-      &:hover:not(:active):not(:focus):not(.changed) {
-        border-color: transparent;
-      }
-
-      &:hover,
-      &:active,
-      &:focus {
-        // for some reason, sass ignores &:active, &:focus here. we could make this a mixin and include it in multiple rules instead
-        &:before {
-          // for some reason, sass seems to extends the selector to include every other :before selector in the app! probably causing the above, and potentially breaking other styles.
-          // extending .icon-chevron-down causes infinite loop in compilation. does @include work for classes?
-          font-family: FontAwesome;
-          text-decoration: inherit;
-          display: inline-block;
-          speak: none;
-          content: "\f078";
-
-          position: absolute;
-          right: $border-radius;
-          font-size: 0.67em;
-        }
-      }
-    }
-
-    &__popout {
-      position: absolute;
-      top: -0.6em;
-      left: -0.2em;
-      z-index: 1; // Cover below row when hover
-      width: 9em;
-
-      padding: $padding-tbl-cell;
-
-      background: $color-tbl-cell-bg;
-      border-radius: $border-radius;
-      box-shadow: 0px 0px 8px 0px rgba($near-black, 0.25);
-
-      .field:last-child {
-        margin-bottom: 0;
-      }
-
-      input[disabled] {
-        color: transparent; // hide value completely
-      }
-    }
+  // Popout widget (todo: move to separate fiel)
+  .popout {
+    @include unit_popout;
   }
 
   a.image-field {
@@ -403,5 +336,35 @@
         border-color: $color-btn-hover-border;
       }
     }
+  }
+
+  @keyframes slideOutTop {
+    from {
+      transform: scaleY(1);
+    }
+
+    to {
+      transform: scaleY(0);
+    }
+  }
+
+  .slide-out {
+    transform-origin: top;
+    animation: slideOutTop 0.5s forwards;
+  }
+
+  @keyframes slideInTop {
+    from {
+      transform: scaleY(0);
+    }
+
+    to {
+      transform: scaleY(1);
+    }
+  }
+
+  .slide-in {
+    transform-origin: top;
+    animation: slideInTop 0.5s;
   }
 }

@@ -1,9 +1,7 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 # Devise calls OmniauthCallbacksController for OpenID Connect callbacks.
-describe '/user/spree_user/auth/openid_connect/callback', type: :request do
+RSpec.describe '/user/spree_user/auth/openid_connect/callback' do
   include AuthenticationHelper
 
   let(:user) { create(:user) }
@@ -33,7 +31,21 @@ describe '/user/spree_user/auth/openid_connect/callback', type: :request do
       account = OidcAccount.last
       expect(account.provider).to eq "openid_connect"
       expect(account.uid).to eq "ofn@example.com"
-      expect(response.status).to eq(302)
+      expect(response).to have_http_status(:found)
+    end
+
+    context 'when OIDC account already linked with a different user' do
+      before do
+        create(:user, email: "ofn@elsewhere.com")
+          .create_oidc_account!(uid: "ofn@example.com")
+      end
+
+      it 'fails with error message' do
+        expect { request! }.not_to change { OidcAccount.count }
+
+        expect(response).to have_http_status(:found)
+        expect(flash[:error]).to match "ofn@example.com is already associated with another account"
+      end
     end
   end
 
@@ -43,9 +55,10 @@ describe '/user/spree_user/auth/openid_connect/callback', type: :request do
     end
 
     it 'fails with bad auth data' do
-      expect { request! }.to_not change { OidcAccount.count }
+      expect { request! }.not_to change { OidcAccount.count }
 
-      expect(response.status).to eq(302)
+      expect(response).to have_http_status(:found)
+      expect(flash[:error]).to match "Could not sign in"
     end
   end
 end

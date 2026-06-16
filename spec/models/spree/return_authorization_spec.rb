@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Spree::ReturnAuthorization do
+RSpec.describe Spree::ReturnAuthorization do
   let(:order) { create(:shipped_order) }
   let(:variant) { order.shipments.first.inventory_units.first.variant }
   let(:return_authorization) { Spree::ReturnAuthorization.new(order:) }
@@ -49,7 +47,7 @@ describe Spree::ReturnAuthorization do
       end
 
       it "should not update order state" do
-        expect{ return_authorization.add_variant(variant.id, 1) }.to_not change{ order.state }
+        expect{ return_authorization.add_variant(variant.id, 1) }.not_to change{ order.state }
       end
     end
   end
@@ -104,7 +102,7 @@ describe Spree::ReturnAuthorization do
   context "force_positive_amount" do
     it "should ensure the amount is always positive" do
       return_authorization.amount = -10
-      return_authorization.send :force_positive_amount
+      return_authorization.__send__ :force_positive_amount
       expect(return_authorization.amount).to eq 10
     end
   end

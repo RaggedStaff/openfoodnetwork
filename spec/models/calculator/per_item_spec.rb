@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Calculator::PerItem do
+RSpec.describe Calculator::PerItem do
   let(:calculator) { Calculator::PerItem.new(preferred_amount: 10) }
   let(:shipping_calculable) { double(:calculable) }
   let(:line_item) { build_stubbed(:line_item, quantity: 5) }

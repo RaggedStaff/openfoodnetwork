@@ -1,9 +1,7 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 module Api
-  describe V0::StatesController do
+  RSpec.describe V0::StatesController do
     render_views
 
     let!(:state) { create(:state, name: "Victoria") }
@@ -17,7 +15,7 @@ module Api
     it "gets all states" do
       api_get :index
       expect(json_response.first.symbolize_keys.keys).to include(*attributes)
-      expect(json_response.map { |state| state[:name] }).to include(state.name)
+      expect(json_response.pluck(:name)).to include(state.name)
     end
 
     context "pagination" do

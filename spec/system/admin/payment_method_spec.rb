@@ -2,7 +2,7 @@
 
 require "system_helper"
 
-describe '
+RSpec.describe '
     As a Super Admin
     I want to be able to set a distributor on each payment method
 ' do
@@ -20,7 +20,11 @@ describe '
       click_link 'Payment Methods'
       click_link 'New Payment Method'
 
+      expect(page).to have_select2 "payment_method_type", selected: "Choose..."
+
       fill_in 'payment_method_name', with: 'Cheque payment method'
+      cash_name = "Cash/EFT/etc. (payments for which automatic validation is not required)"
+      select2_select cash_name, from: "payment_method_type"
 
       check "payment_method_distributor_ids_#{@distributors[0].id}"
       click_button 'Create'
@@ -73,10 +77,24 @@ describe '
         select2_select "Missing", from: "payment_method_preferred_enterprise_id"
         expect(page).to have_selector "#stripe-account-status .alert-box.error",
                                       text: 'No Stripe account exists for this enterprise.'
-        connect_one = 'Connect One'
-        expect(page).to have_link connect_one,
-                                  href: edit_admin_enterprise_path(missing_account_enterprise,
-                                                                   anchor: "/payment_methods")
+        click_link 'Connect One' # opens in new tab
+
+        new_window = windows.last
+        page.within_window new_window do
+          expect(page).to have_content "Settings: Missing"
+          # we should be on the Payment Methods tab already
+          expect(page).to have_content "Use the button to the right to get started."
+          page.find("a", text: "Connect with Stripe").click # it's not a proper link without href
+
+          expect(page).to have_content "connect your Stripe account to the OFN."
+          href = connect_admin_stripe_accounts_path(enterprise_id: missing_account_enterprise)
+          expect(page).to have_link "I Agree", href:
+
+          # Blocked by capybara. probably don't need to test this.
+          # click_link "I Agree"
+          # expect(page).to have_current_path("https://connect.stripe.com/", url: true)
+        end
+        new_window.close
 
         select2_select "Revoked", from: "payment_method_preferred_enterprise_id"
         expect(page).to have_selector "#stripe-account-status .alert-box.error",
@@ -95,7 +113,10 @@ describe '
     end
 
     it "checking a single distributor is checked by default" do
-      2.times.each { Enterprise.last.destroy }
+      2.times.each do
+        enterprise = Enterprise.last
+        enterprise.destroy!
+      end
       login_as_admin
       visit spree.new_admin_payment_method_path
       expect(page).to have_field "payment_method_distributor_ids_#{@distributors[0].id}",
@@ -229,6 +250,9 @@ describe '
     it "creates payment methods" do
       visit spree.new_admin_payment_method_path
       fill_in 'payment_method_name', with: 'Cheque payment method'
+      cash_name = "Cash/EFT/etc. (payments for which automatic validation is not required)"
+      select2_select cash_name, from: "payment_method_type"
+
       expect(page).to have_field 'payment_method_description'
       expect(page).to have_select 'payment_method_display_on'
 
@@ -317,6 +341,8 @@ describe '
       it "inserts values which persist" do
         expect(page).to have_content("you must save first before")
         click_button 'Update'
+        click_on "Dismiss"
+
         fill_in "Flat Percent", with: '2.5'
         click_button 'Update'
         expect(page).to have_content("Payment Method has been successfully updated!")
@@ -330,6 +356,8 @@ describe '
       it "inserts values which persist" do
         expect(page).to have_content("you must save first before")
         click_button 'Update'
+        click_on "Dismiss"
+
         fill_in "Amount", with: 2.2
         click_button 'Update'
         expect(page).to have_content("Payment Method has been successfully updated!")
@@ -343,6 +371,8 @@ describe '
       it "inserts values which persist" do
         expect(page).to have_content("you must save first before")
         click_button 'Update'
+        click_on "Dismiss"
+
         fill_in "First Item Cost", with: 2
         fill_in "Additional Item Cost", with: 1.1
         fill_in "Max Items", with: 10
@@ -360,6 +390,8 @@ describe '
       it "inserts values which persist" do
         expect(page).to have_content("you must save first before")
         click_button 'Update'
+        click_on "Dismiss"
+
         fill_in "Amount", with: 2.2
         click_button 'Update'
         expect(page).to have_content("Payment Method has been successfully updated!")

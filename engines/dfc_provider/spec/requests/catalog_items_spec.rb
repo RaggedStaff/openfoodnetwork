@@ -2,8 +2,8 @@
 
 require_relative "../swagger_helper"
 
-describe "CatalogItems", type: :request, swagger_doc: "dfc.yaml",
-                         rswag_autodoc: true do
+RSpec.describe "CatalogItems", swagger_doc: "dfc.yaml" do
+  let(:Authorization) { nil }
   let(:user) { create(:oidc_user, id: 12_345) }
   let(:enterprise) {
     create(
@@ -15,7 +15,7 @@ describe "CatalogItems", type: :request, swagger_doc: "dfc.yaml",
   let(:product) {
     create(
       :base_product,
-      id: 90_000, supplier: enterprise, name: "Apple", description: "Red",
+      id: 90_000, name: "Apple", description: "Red",
       variants: [variant],
       primary_taxon: non_local_vegetable
     )
@@ -27,7 +27,7 @@ describe "CatalogItems", type: :request, swagger_doc: "dfc.yaml",
       dfc_id: "https://github.com/datafoodconsortium/taxonomies/releases/latest/download/productTypes.rdf#non-local-vegetable"
     )
   }
-  let(:variant) { build(:base_variant, id: 10_001, unit_value: 1, sku: "AR") }
+  let(:variant) { build(:base_variant, id: 10_001, unit_value: 1, sku: "AR", supplier: enterprise) }
 
   before { login_as user }
 
@@ -36,8 +36,15 @@ describe "CatalogItems", type: :request, swagger_doc: "dfc.yaml",
 
     get "List CatalogItems" do
       produces "application/json"
+      security [{ oidc_token: [] }]
 
       response "404", "not found" do
+        context "as platform user" do
+          include_context "authenticated as platform"
+          let(:enterprise_id) { 10_000 }
+          run_test!
+        end
+
         context "without enterprises" do
           let(:enterprise_id) { "default" }
 
@@ -53,6 +60,42 @@ describe "CatalogItems", type: :request, swagger_doc: "dfc.yaml",
 
       response "200", "success" do
         before { product }
+
+        context "as platform user" do
+          include_context "authenticated as platform"
+
+          let(:enterprise_id) { 10_000 }
+
+          before {
+            DfcPermission.create!(
+              user:, enterprise_id:,
+              scope: "ReadEnterprise", grantee: "cqcm-dev",
+            )
+            DfcPermission.create!(
+              user:, enterprise_id:,
+              scope: "ReadProducts", grantee: "cqcm-dev",
+            )
+          }
+
+          run_test!
+        end
+
+        context "with a second enterprise" do
+          let(:enterprise_id) { 10_000 }
+
+          before do
+            create(
+              :distributor_enterprise,
+              id: 10_001, owner: user, name: "Fred's Icecream", description: "Yum",
+              address: build(:address, id: 40_001),
+            )
+          end
+
+          run_test! do
+            expect(response.body).to include "Apple"
+            expect(response.body).not_to include "Icecream"
+          end
+        end
 
         context "with default enterprise id" do
           let(:enterprise_id) { "default" }
@@ -76,11 +119,31 @@ describe "CatalogItems", type: :request, swagger_doc: "dfc.yaml",
       end
 
       response "401", "unauthorized" do
-        let(:enterprise_id) { "default" }
+        context "as platform user" do
+          include_context "authenticated as platform"
 
-        before { login_as nil }
+          let(:enterprise_id) { 10_000 }
 
-        run_test!
+          before {
+            product
+
+            DfcPermission.create!(
+              user:, enterprise_id:,
+              scope: "ReadEnterprise", grantee: "cqcm-dev",
+            )
+            # But no ReadProducts permission.
+          }
+
+          run_test!
+        end
+
+        context "without authorisation" do
+          let(:enterprise_id) { "default" }
+
+          before { login_as nil }
+
+          run_test!
+        end
       end
     end
   end

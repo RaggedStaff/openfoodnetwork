@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 RSpec.configure do |config|
   config.include Devise::Test::IntegrationHelpers, type: :request
   config.include OpenFoodNetwork::ApiHelper, type: :request
@@ -29,7 +27,9 @@ RSpec.configure do |config|
           error_response: ErrorsSchema.schema,
           # only customer#show is with extra_fields: {name: :balance, required: true}
           customer: CustomerSchema.schema(require_all: true),
-          customers_collection: CustomerSchema.collection(require_all: true, extra_fields: :balance)
+          customers_collection: CustomerSchema.collection(require_all: true,
+                                                          extra_fields: :balance),
+          customer_account_transaction: CustomerAccountTransactionSchema.schema(require_all: true)
         },
         securitySchemes: {
           api_key_header: {
@@ -71,11 +71,33 @@ RSpec.configure do |config|
   # the key, this may want to be changed to avoid putting yaml in json files.
   # Defaults to json. Accepts ':json' and ':yaml'.
   config.openapi_format = :yaml
-end
 
-module RswagExtension
-  def param(args, &)
-    public_send(:let, args) { instance_eval(&) }
+  # Take example responses from Rswag specs for API documentation.
+  # https://github.com/rswag/rswag#enable-auto-generation-examples-from-responses
+  config.after(:each, swagger_doc: "dfc.yaml") do |example|
+    # Categories and group operations of the same API endpoint.
+    example.metadata[:operation][:tags] ||= [self.class.top_level_description]
+
+    next if response&.body.blank?
+
+    # Replace random values from generated strings for a deterministic documentation.
+    response.body.gsub!(
+      %r{/rails/active_storage/[0-9A-Za-z/=-]*/([^/.]+).png},
+      '/rails/active_storage/url/\1.png',
+    )
+
+    # Include response as example in the documentation.
+    example.metadata[:response][:content] ||= {}
+    example.metadata[:response][:content].deep_merge!(
+      {
+        response.headers["Content-Type"] => {
+          examples: {
+            self.class.description => {
+              value: JSON.parse(response.body, symbolize_names: true)
+            }
+          }
+        }
+      }
+    )
   end
 end
-Rswag::Specs::ExampleGroupHelpers.prepend RswagExtension

@@ -2,7 +2,7 @@
 
 require "system_helper"
 
-describe "Managing enterprise images" do
+RSpec.describe "Managing enterprise images" do
   include WebHelper
   include FileHelper
   include AuthenticationHelper
@@ -63,12 +63,17 @@ describe "Managing enterprise images" do
 
         # Removing image
         within ".page-admin-enterprises-form__logo-field-group" do
-          accept_alert(alert_text_logo) do
-            click_on "Remove Image"
-          end
+          click_button "Remove Image"
         end
 
-        expect(page).to have_content("Logo removed successfully")
+        within ".reveal-modal" do
+          expect(page).to have_content(alert_text_logo)
+          click_button "Confirm"
+        end
+
+        # There's a race condition.
+        # Either of these messages can be observed.
+        expect(flash_message).to match /(Logo removed)|(Enterprise .* updated)/
 
         within ".page-admin-enterprises-form__logo-field-group" do
           expect_no_preview_image
@@ -104,12 +109,15 @@ describe "Managing enterprise images" do
 
         # Removing image
         within ".page-admin-enterprises-form__promo-image-field-group" do
-          accept_alert(alert_text_promo) do
-            click_on "Remove Image"
-          end
+          click_on "Remove Image"
         end
 
-        expect(page).to have_content("Promo image removed successfully")
+        within ".reveal-modal" do
+          expect(page).to have_content(alert_text_promo)
+          click_button "Confirm"
+        end
+
+        expect(page).to have_content("Promo image removed")
 
         within ".page-admin-enterprises-form__promo-image-field-group" do
           expect_no_preview_image
@@ -123,6 +131,6 @@ describe "Managing enterprise images" do
   end
 
   def expect_no_preview_image
-    expect(page).to have_no_selector(".image-field-group__preview-image")
+    expect(page).not_to have_selector(".image-field-group__preview-image")
   end
 end

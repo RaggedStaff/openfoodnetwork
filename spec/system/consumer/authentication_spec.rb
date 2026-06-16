@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe "Authentication" do
+RSpec.describe "Authentication" do
   include AuthenticationHelper
   include UIComponentHelper
 
@@ -139,7 +139,7 @@ describe "Authentication" do
             end
 
             it "succeeding after time threshold" do
-              Timecop.travel(30.seconds.from_now) do
+              travel(30.seconds) do
                 fill_in "Your email", with: "test@foo.com"
                 fill_in "Choose a password", with: "test12345"
                 fill_in "Confirm password", with: "test12345"
@@ -273,7 +273,7 @@ describe "Authentication" do
           expect_logged_in
 
           expect(page).to have_content 'SHOP NOW'
-          expect(user.reload.locale).to eq "en"
+          expect(user.reload.locale).to eq "en_TST"
         end
       end
 

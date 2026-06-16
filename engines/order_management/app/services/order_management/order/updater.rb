@@ -161,6 +161,11 @@ module OrderManagement
         persist_totals
       end
 
+      def update_voucher
+        VoucherAdjustmentsService.new(order).update
+        update_totals_and_states
+      end
+
       private
 
       def cancel_payments_requiring_auth
@@ -240,7 +245,37 @@ module OrderManagement
         return unless order.state.in? ["payment", "confirmation", "complete"]
         return unless order.pending_payments.any?
 
-        order.pending_payments.first.update_attribute :amount, order.total
+        # Customer credit payment should not be updated, as they are based on the available credit
+        # at the time the order was started
+        @payment = order.pending_payments.reject { |p|
+          p.payment_method_id == Spree::PaymentMethod.customer_credit.id
+        }.first
+
+        return if @payment.nil?
+
+        return update_payment if @payment.adjustment.nil?
+
+        # Update payment tax fees if needed
+        new_amount = @payment.payment_method.compute_amount(@payment)
+        if new_amount != @payment.adjustment.amount
+          update_payment_adjustment(new_amount)
+        end
+
+        update_payment
+      end
+
+      def update_payment
+        # Update payment with correct amount
+        @payment.update_attribute :amount, order.outstanding_balance.amount
+      end
+
+      def update_payment_adjustment(amount)
+        @payment.adjustment.update_attribute(:amount, amount)
+
+        # Update order total to take into account updated payment fees
+        update_adjustment_total
+        update_order_total
+        persist_totals
       end
     end
   end

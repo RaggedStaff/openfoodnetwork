@@ -8,6 +8,14 @@ export default class extends Controller {
     this.toggleCheckbox();
   }
 
+  allTargetConnected(allTarget) {
+    allTarget.addEventListener("change", this.toggleAll.bind(this));
+  }
+
+  checkboxTargetConnected(checkboxTarget) {
+    checkboxTarget.addEventListener("change", this.toggleCheckbox.bind(this));
+  }
+
   toggleAll() {
     this.checkboxTargets.forEach((checkbox) => {
       checkbox.checked = this.allTarget.checked;
@@ -27,7 +35,7 @@ export default class extends Controller {
 
   countValueChanged() {
     window.dispatchEvent(
-      new CustomEvent("checked:updated", { detail: { count: this.countValue } })
+      new CustomEvent("checked:updated", { detail: { count: this.countValue } }),
     );
   }
 
@@ -42,11 +50,10 @@ export default class extends Controller {
   }
 
   #closeDetails(elmnt) {
-    if (elmnt.getElementsByTagName('details').length == 0)
-      return;
+    if (elmnt.getElementsByTagName("details").length == 0) return;
 
-   Array.from(elmnt.getElementsByTagName('details')).forEach((element) => element.open = false);
- }
+    Array.from(elmnt.getElementsByTagName("details")).forEach((element) => (element.open = false));
+  }
 
   #toggleDisabled() {
     if (!this.hasDisableTarget) {

@@ -1,22 +1,20 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 module Reporting
   module Reports
     module Bananas
-      class Base; end
-      class Green; end
-      class Yellow; end
+      const_set "Base", Class.new
+      const_set "Green", Class.new
+      const_set "Yellow", Class.new
     end
 
     module Orange
-      class OrangeReport; end
+      const_set "OrangeReport", Class.new
     end
   end
 end
 
-describe Reporting::ReportLoader do
+RSpec.describe Reporting::ReportLoader do
   let(:service) { Reporting::ReportLoader.new(*arguments) }
   let(:report_base_class) { Reporting::Reports::Bananas::Base }
   let(:report_subtypes) { ["green", "yellow"] }

@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe "Registration" do
+RSpec.describe "Registration" do
   include AuthenticationHelper
   include WebHelper
 
@@ -101,8 +101,8 @@ describe "Registration" do
       # Images
       # Upload logo image
       attach_file "image-select", Rails.root.join("spec/fixtures/files/logo.png"), visible: false
-      expect(page).to have_no_css('#image-placeholder .loading')
-      expect(page.find('#image-placeholder img')['src']).to_not be_empty
+      expect(page).not_to have_css('#image-placeholder .loading')
+      expect(page.find('#image-placeholder img')['src']).not_to be_empty
 
       # Move from logo page
       click_button "Continue"
@@ -110,8 +110,8 @@ describe "Registration" do
 
       # Upload promo image
       attach_file "image-select", Rails.root.join("spec/fixtures/files/promo.png"), visible: false
-      expect(page).to have_no_css('#image-placeholder .loading')
-      expect(page.find('#image-placeholder img')['src']).to_not be_empty
+      expect(page).not_to have_css('#image-placeholder .loading')
+      expect(page.find('#image-placeholder img')['src']).not_to be_empty
 
       # Move from promo page
       click_button "Continue"
@@ -165,11 +165,7 @@ describe "Registration" do
       end
 
       before do
-        address = Spree::Address.create!(firstname: 'John', lastname: 'Doe',
-                                         address1: '1400 Sesame street', zipcode: '3070',
-                                         city: 'Southcote', phone: '12 3456 7890',
-                                         country_id: 1, state_id: 1, company: 'unused')
-        Enterprise.create(name: 'My Awesome Enterprise', address:, owner:)
+        Enterprise.create(name: 'My Awesome Enterprise', address: create(:address), owner:)
       end
 
       it "checks that button after failure is still enabled" do
@@ -255,7 +251,7 @@ describe "Registration" do
         expect(page).to have_selector "input.button.primary[disabled]"
 
         check "accept_terms"
-        expect(page).to have_no_selector "input.button.primary[disabled]"
+        expect(page).not_to have_selector "input.button.primary[disabled]"
 
         click_button "Let's get started!"
         expect(find("div#progress-bar")).to be_visible

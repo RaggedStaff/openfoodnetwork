@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe ContentConfiguration do
+RSpec.describe ContentConfiguration do
   describe "default logos and home_hero" do
     it "sets a default url with existing image" do
       expect(image_exist?(ContentConfig.url_for(:logo))).to be true

@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe '
+RSpec.describe '
     As an administrator
     I want to list and filter order cycles
 ' do
@@ -10,24 +10,32 @@ describe '
   include AuthenticationHelper
   include WebHelper
 
+  let(:hub) { create(:distributor_enterprise, with_payment_and_shipping: true) }
+
   it "listing and filtering order cycles" do
     # Given some order cycles (created in an arbitrary order)
     oc4 = create(:simple_order_cycle, name: 'oc4',
                                       orders_open_at: 2.days.from_now,
-                                      orders_close_at: 1.month.from_now)
-    oc2 = create(:simple_order_cycle, name: 'oc2', orders_close_at: 1.month.from_now)
+                                      orders_close_at: 1.month.from_now, distributors: [hub])
+    oc2 = create(:simple_order_cycle, name: 'oc2',
+                                      orders_close_at: 1.month.from_now, distributors: [hub])
     oc6 = create(:simple_order_cycle, name: 'oc6',
-                                      orders_open_at: 1.month.ago, orders_close_at: 3.weeks.ago)
+                                      orders_open_at: 1.month.ago, orders_close_at: 3.weeks.ago,
+                                      distributors: [hub])
     oc3 = create(:simple_order_cycle, name: 'oc3',
                                       orders_open_at: 1.day.from_now,
-                                      orders_close_at: 1.month.from_now)
+                                      orders_close_at: 1.month.from_now,
+                                      distributors: [hub])
     oc5 = create(:simple_order_cycle, name: 'oc5',
-                                      orders_open_at: 1.month.ago, orders_close_at: 2.weeks.ago)
-    oc1 = create(:order_cycle, name: 'oc1')
+                                      orders_open_at: 1.month.ago, orders_close_at: 2.weeks.ago,
+                                      distributors: [hub])
+    oc1 = create(:order_cycle, name: 'oc1', distributors: [hub])
     oc0 = create(:simple_order_cycle, name: 'oc0',
-                                      orders_open_at: nil, orders_close_at: nil)
+                                      orders_open_at: nil, orders_close_at: nil,
+                                      distributors: [hub])
     oc7 = create(:simple_order_cycle, name: 'oc7',
-                                      orders_open_at: 2.months.ago, orders_close_at: 5.weeks.ago)
+                                      orders_open_at: 2.months.ago, orders_close_at: 5.weeks.ago,
+                                      distributors: [hub])
     schedule1 = create(:schedule, name: 'Schedule1', order_cycles: [oc1, oc3])
     create(:proxy_order, subscription: create(:subscription, schedule: schedule1), order_cycle: oc1)
 
@@ -72,8 +80,9 @@ describe '
     end
 
     # I can load more order_cycles
-    expect(page).to have_no_selector "#listing_order_cycles tr.order-cycle-#{oc7.id}"
+    expect(page).not_to have_selector "#listing_order_cycles tr.order-cycle-#{oc7.id}"
     click_button "Show 30 more days"
+
     expect(page).to have_selector "#listing_order_cycles tr.order-cycle-#{oc7.id}"
 
     # I can filter order cycle by involved enterprises
@@ -81,9 +90,9 @@ describe '
     expect(page).to have_selector "#listing_order_cycles tr.order-cycle-#{oc1.id}"
     expect(page).to have_selector "#listing_order_cycles tr.order-cycle-#{oc2.id}"
     select2_select oc1.suppliers.first.name, from: "involving_filter"
-    expect(page).to have_no_selector "#listing_order_cycles tr.order-cycle-#{oc0.id}"
+    expect(page).not_to have_selector "#listing_order_cycles tr.order-cycle-#{oc0.id}"
     expect(page).to have_selector "#listing_order_cycles tr.order-cycle-#{oc1.id}"
-    expect(page).to have_no_selector "#listing_order_cycles tr.order-cycle-#{oc2.id}"
+    expect(page).not_to have_selector "#listing_order_cycles tr.order-cycle-#{oc2.id}"
     select2_select "Any Enterprise", from: "involving_filter"
     expect(page).to have_selector "#listing_order_cycles tr.order-cycle-#{oc0.id}"
     expect(page).to have_selector "#listing_order_cycles tr.order-cycle-#{oc1.id}"
@@ -95,8 +104,8 @@ describe '
     expect(page).to have_selector "#listing_order_cycles tr.order-cycle-#{oc2.id}"
     fill_in "query", with: oc0.name
     expect(page).to have_selector "#listing_order_cycles tr.order-cycle-#{oc0.id}"
-    expect(page).to have_no_selector "#listing_order_cycles tr.order-cycle-#{oc1.id}"
-    expect(page).to have_no_selector "#listing_order_cycles tr.order-cycle-#{oc2.id}"
+    expect(page).not_to have_selector "#listing_order_cycles tr.order-cycle-#{oc1.id}"
+    expect(page).not_to have_selector "#listing_order_cycles tr.order-cycle-#{oc2.id}"
     fill_in "query", with: ''
     expect(page).to have_selector "#listing_order_cycles tr.order-cycle-#{oc0.id}"
     expect(page).to have_selector "#listing_order_cycles tr.order-cycle-#{oc1.id}"
@@ -108,9 +117,9 @@ describe '
     expect(page).to have_selector "#listing_order_cycles tr.order-cycle-#{oc2.id}"
     expect(page).to have_selector "#listing_order_cycles tr.order-cycle-#{oc3.id}"
     select2_select schedule1.name, from: "schedule_filter"
-    expect(page).to have_no_selector "#listing_order_cycles tr.order-cycle-#{oc0.id}"
+    expect(page).not_to have_selector "#listing_order_cycles tr.order-cycle-#{oc0.id}"
     expect(page).to have_selector "#listing_order_cycles tr.order-cycle-#{oc1.id}"
-    expect(page).to have_no_selector "#listing_order_cycles tr.order-cycle-#{oc2.id}"
+    expect(page).not_to have_selector "#listing_order_cycles tr.order-cycle-#{oc2.id}"
     expect(page).to have_selector "#listing_order_cycles tr.order-cycle-#{oc3.id}"
     select2_select 'Any Schedule', from: "schedule_filter"
     expect(page).to have_selector "#listing_order_cycles tr.order-cycle-#{oc0.id}"
@@ -133,9 +142,9 @@ describe '
     }
 
     around(:each) do |spec|
-      I18n.locale = :pt
-      spec.run
-      I18n.locale = :en
+      I18n.with_locale(:pt) do
+        spec.run
+      end
     end
 
     context 'using datetimepickers' do
@@ -173,12 +182,8 @@ describe '
           find('input.datetimepicker', match: :first).click
         end
 
-        # Sets the value to test_value then looks for the close button and click it
-        within(".flatpickr-calendar.open") do
-          expect(page).to have_selector '.shortcut-buttons-flatpickr-buttons'
-          select_datetime_from_datepicker test_value
-          find("button", text: "CLOSE").click
-        end
+        select_datetime_from_datepicker test_value
+        close_datepicker
 
         # Should no more have opened flatpickr
         expect(page).not_to have_selector '.flatpickr-calendar.open'
@@ -191,17 +196,52 @@ describe '
       end
     end
   end
+  describe 'updating order cycles' do
+    let!(:order_cycle) { create(:simple_order_cycle) }
+    before(:each) do
+      login_as_admin
+      visit admin_order_cycles_path
+    end
+
+    context 'with attached order cycles' do
+      let!(:order) { create(:order, order_cycle: ) }
+      it('renders warning modal with datetime value changed') do
+        within("tr.order-cycle-#{order_cycle.id}") do
+          find('input.datetimepicker', match: :first).click
+        end
+        select_datetime_from_datepicker Time.zone.parse("2024-03-30 00:00")
+        close_datepicker
+        expect(page).to have_content('You have unsaved changes')
+
+        # click save to open warning modal
+        click_button('Save')
+        expect(page).to have_content('You have unsaved changes')
+        expect(page).to have_content "Orders are linked to this order cycle."
+
+        # confirm to close modal and update order cycle changed fields
+        click_button('Proceed anyway')
+        expect(page).not_to have_content "Orders are linked to this cycle"
+        expect(page).to have_content('Order cycles have been updated.')
+      end
+    end
+
+    context 'with no attached order cycles' do
+      it('renders warnig modal with datetime value changed') do
+        within("tr.order-cycle-#{order_cycle.id}") do
+          find('input.datetimepicker', match: :first).click
+        end
+        select_datetime_from_datepicker Time.zone.parse("2024-03-30 00:00")
+        close_datepicker
+        expect(page).to have_content('You have unsaved changes')
+
+        click_button('Save')
+        expect(page).not_to have_content "Orders are linked to this order cycle."
+        expect(page).to have_content('Order cycles have been updated.')
+      end
+    end
+  end
 
   private
-
-  def wait_for_edit_form_to_load_order_cycle(order_cycle)
-    expect(page).to have_field "order_cycle_name", with: order_cycle.name
-  end
-
-  def select_incoming_variant(supplier, exchange_no, variant)
-    page.find("table.exchanges tr.supplier-#{supplier.id} td.products").click
-    check "order_cycle_incoming_exchange_#{exchange_no}_variants_#{variant.id}"
-  end
 
   def date_warning_msg(nbr = 1)
     "This order cycle is linked to %d open subscription orders. Changing this date now will not " \

@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe '
+RSpec.describe '
     As a consumer
     I want to view my order history with each hub
     and view any outstanding balance.
@@ -45,7 +45,7 @@ describe '
         visit "/account"
 
         # No distributors allow changes to orders
-        expect(page).to have_no_content 'Open Orders'
+        expect(page).not_to have_content 'Open Orders'
 
         expect(page).to have_content 'Past Orders'
 
@@ -109,6 +109,21 @@ describe '
       it "displays an appropriate message" do
         visit "/account"
         expect(page).to have_content 'You have no orders yet'
+      end
+    end
+
+    context "with Stripe setup" do
+      include StripeHelper
+
+      around do |example|
+        with_stripe_setup { example.call }
+      end
+
+      it "does not cause js errors even if Stripe connect is disabled" do
+        allow(Spree::Config).to receive(:stripe_connect_enabled).and_return(false)
+
+        visit "/account"
+        expect(page).to have_content "My account"
       end
     end
 

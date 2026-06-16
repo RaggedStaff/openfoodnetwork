@@ -1,25 +1,211 @@
 # frozen_string_literal: false
 
-require 'spec_helper'
 require 'spree/localized_number'
 
-describe Spree::Variant do
+RSpec.describe Spree::Variant do
   subject(:variant) { build(:variant) }
 
-  context "validations" do
-    it "should validate price is greater than 0" do
-      variant.price = -1
-      expect(variant).to be_invalid
-    end
+  it { is_expected.to have_many :semantic_links }
+  it { is_expected.to belong_to(:product).required }
+  it { is_expected.to belong_to(:supplier).required }
+  # it's currently optional until data migration has completed, just in case.
+  it { pending "removal of supplier"; is_expected.to belong_to(:enterprise).required }
+  it { is_expected.to belong_to(:hub).optional }
+  it { is_expected.to have_many(:inventory_units) }
+  it { is_expected.to have_many(:line_items) }
+  it { is_expected.to have_many(:stock_items) }
+  it { is_expected.to have_many(:images) }
+  it { is_expected.to have_one(:default_price) }
+  it { is_expected.to have_many(:prices) }
+  it { is_expected.to have_many(:exchange_variants) }
+  it { is_expected.to have_many(:exchanges).through(:exchange_variants) }
+  it { is_expected.to have_many(:variant_overrides) }
+  it { is_expected.to have_many(:inventory_items) }
+  it { is_expected.to have_many(:supplier_properties).through(:supplier) }
 
-    it "should validate price is 0" do
-      variant.price = 0
+  it { is_expected.to have_many(:source_variants).through(:variant_links_as_target) }
+  it { is_expected.to have_many(:target_variants).through(:variant_links_as_source) }
+
+  describe "shipping category" do
+    it "sets a shipping category if none provided" do
+      variant = build(:variant, shipping_category: nil)
+
       expect(variant).to be_valid
+      expect(variant.shipping_category).not_to be_nil
+    end
+  end
+
+  describe "supplier properties" do
+    subject { create(:variant) }
+
+    it "has no supplier properties to start with" do
+      expect(subject.supplier_properties).to eq []
     end
 
-    it "should validate unit_value is greater than 0" do
-      variant.unit_value = 0
-      expect(variant).to be_invalid
+    it "includes the supplier's properties" do
+      subject.supplier.set_producer_property("certified", "yes")
+      expect(subject.supplier_properties.map(&:presentation)).to eq ["certified"]
+    end
+  end
+
+  describe "validations" do
+    describe "variant_unit" do
+      subject(:variant) { build(:variant) }
+
+      it { is_expected.to validate_presence_of :variant_unit }
+
+      context "when the unit is items" do
+        subject(:variant) { build(:variant, variant_unit: "items", variant_unit_name: "box") }
+
+        it "is valid with only unit value set" do
+          variant.unit_value = 1
+          variant.unit_description = nil
+          expect(variant).to be_valid
+        end
+
+        it "is valid with only unit description set" do
+          variant.unit_value = nil
+          variant.unit_description = 'Medium'
+          expect(variant).to be_valid
+        end
+
+        it "sets unit_value to 1.0 before validation if it's nil" do
+          variant.unit_value = nil
+          variant.unit_description = nil
+          expect(variant).to be_valid
+          expect(variant.unit_value).to eq 1.0
+        end
+      end
+
+      context "when the product's unit is non-weight" do
+        subject(:variant) { build(:variant, variant_unit: "volume") }
+
+        it "sets weight to decimal before save if it's integer" do
+          variant.weight = 1
+          variant.save!
+          expect(variant.weight).to eq 1.0
+        end
+
+        it "sets weight to 0.0 before save if it's nil" do
+          variant.weight = nil
+          variant.save!
+          expect(variant.weight).to eq 0.0
+        end
+
+        it "sets weight to 0.0 if input is a non numerical string" do
+          variant.weight = "BANANAS!"
+          variant.save!
+          expect(variant.weight).to eq 0.0
+        end
+
+        it "sets weight to correct decimal value if input is numerical string" do
+          variant.weight = "2"
+          variant.save!
+          expect(variant.weight).to eq 2.0
+        end
+      end
+    end
+
+    describe "price" do
+      it { is_expected.to validate_presence_of :price }
+
+      it "should validate price is greater than 0" do
+        variant.price = -1
+        expect(variant).not_to be_valid
+      end
+
+      it "should validate price is 0" do
+        variant.price = 0
+        expect(variant).to be_valid
+      end
+
+      it "should validate unit_value is greater than 0" do
+        variant.unit_value = 0
+
+        expect(variant).not_to be_valid
+      end
+    end
+
+    describe "unit_value" do
+      subject(:variant) { build(:variant, variant_unit: "item", unit_value: "") }
+
+      it { is_expected.not_to validate_presence_of(:unit_value) }
+
+      %w(weight volume).each do |unit|
+        context "when variant_unit is #{unit}" do
+          subject(:variant) { build(:variant, variant_unit: unit) }
+
+          it { is_expected.to validate_presence_of(:unit_value) }
+          it { is_expected.to validate_numericality_of(:unit_value).is_greater_than(0) }
+        end
+      end
+    end
+
+    describe "unit_description" do
+      subject(:variant) { build(:variant) }
+
+      it { expect(variant).to be_valid }
+      it { is_expected.not_to validate_presence_of(:unit_description) }
+
+      context "when variant_unit is set and unit_value is nil" do
+        subject(:variant) {
+          build(:variant, variant_unit: "item", unit_value: nil, unit_description: "box")
+        }
+
+        it { is_expected.to validate_presence_of(:unit_description) }
+      end
+    end
+
+    describe "variant_unit_scale" do
+      subject(:variant) { build(:variant, variant_unit: "box") }
+
+      it { is_expected.not_to validate_presence_of :variant_unit_scale }
+
+      %w(weight volume).each do |unit|
+        context "when variant_unit is #{unit}" do
+          subject(:variant) { build(:variant, variant_unit: unit, variant_unit_scale: 1.0) }
+
+          it { is_expected.to validate_presence_of :variant_unit_scale }
+        end
+      end
+    end
+
+    describe "variant_unit_name" do
+      subject(:variant) { build(:variant) }
+
+      it { is_expected.not_to validate_presence_of :variant_unit_name }
+
+      context "when variant_unit is items" do
+        subject(:variant) { build(:variant, variant_unit: "items") }
+
+        it { is_expected.to validate_presence_of :variant_unit_name }
+      end
+    end
+
+    describe "variant_unit_scale" do
+      subject(:variant) { build(:variant, variant_unit: "box") }
+
+      it { is_expected.not_to validate_presence_of :variant_unit_scale }
+
+      %w(weight volume).each do |unit|
+        context "when variant_unit is #{unit}" do
+          subject(:variant) { build(:variant, variant_unit: unit, variant_unit_scale: 1.0) }
+
+          it { is_expected.to validate_presence_of :variant_unit_scale }
+        end
+      end
+    end
+
+    describe "variant_unit_name" do
+      subject(:variant) { build(:variant) }
+
+      it { is_expected.not_to validate_presence_of :variant_unit_name }
+
+      context "when variant_unit is items" do
+        subject(:variant) { build(:variant, variant_unit: "items") }
+
+        it { is_expected.to validate_presence_of :variant_unit_name }
+      end
     end
 
     describe "tax category" do
@@ -37,7 +223,7 @@ describe Spree::Variant do
         expect(variant.tax_category).to eq default
         expect {
           variant.tax_category = nil
-        }.to_not change {
+        }.not_to change {
           variant.tax_category
         }
         expect(variant).to be_valid
@@ -56,18 +242,29 @@ describe Spree::Variant do
     end
   end
 
+  describe "#changed?" do
+    subject(:variant) { create(:variant) }
+
+    it { is_expected.not_to be_changed }
+
+    it "is changed when basic fields are changed" do
+      subject.display_name = "blah"
+      expect(subject).to be_changed
+    end
+
+    describe "default_price" do
+      it "price" do
+        subject.price = 100
+        expect(subject).to be_changed
+      end
+      it "currency" do
+        subject.currency = "USD"
+        expect(subject).to be_changed
+      end
+    end
+  end
+
   context "price parsing" do
-    before(:each) do
-      I18n.locale = I18n.default_locale
-      I18n.backend.store_translations(:de,
-                                      { number: { currency: { format: { delimiter: '.',
-                                                                        separator: ',' } } } })
-    end
-
-    after do
-      I18n.locale = I18n.default_locale
-    end
-
     context "price=" do
       context "with decimal point" do
         it "captures the proper amount for a formatted price" do
@@ -78,17 +275,19 @@ describe Spree::Variant do
 
       context "with decimal comma" do
         it "captures the proper amount for a formatted price" do
-          I18n.locale = :es
-          variant.price = '1.599,99'
-          expect(variant.price).to eq 1599.99
+          I18n.with_locale(:es) do
+            variant.price = '1.599,99'
+            expect(variant.price).to eq 1599.99
+          end
         end
       end
 
       context "with a numeric price" do
         it "uses the price as is" do
-          I18n.locale = :es
-          variant.price = 1599.99
-          expect(variant.price).to eq 1599.99
+          I18n.with_locale(:es) do
+            variant.price = 1599.99
+            expect(variant.price).to eq 1599.99
+          end
         end
       end
     end
@@ -97,7 +296,7 @@ describe Spree::Variant do
   context "#currency" do
     it "returns the globally configured currency" do
       variant.save!
-      expect(variant.currency).to eq Spree::Config[:currency]
+      expect(variant.currency).to eq "AUD"
     end
   end
 
@@ -114,7 +313,7 @@ describe Spree::Variant do
 
       it "populates cost currency with the default value on save" do
         variant.save!
-        expect(variant.cost_currency).to eq Spree::Config[:currency]
+        expect(variant.cost_currency).to eq "AUD"
       end
     end
   end
@@ -251,6 +450,7 @@ describe Spree::Variant do
   end
 
   describe "scopes" do
+    # TODO rename describer below with scope names
     describe "finding variants in a distributor" do
       let!(:d1) { create(:distributor_enterprise) }
       let!(:d2) { create(:distributor_enterprise) }
@@ -358,7 +558,7 @@ describe Spree::Variant do
 
           it "lists any variants that are not listed as visible=false" do
             expect(variants).to include new_variant, visible_variant
-            expect(variants).to_not include hidden_variant
+            expect(variants).not_to include hidden_variant
           end
 
           context "when inventory items exist for other enterprises" do
@@ -379,7 +579,7 @@ describe Spree::Variant do
 
             it "lists any variants not listed as visible=false only for the relevant enterprise" do
               expect(variants).to include new_variant, visible_variant
-              expect(variants).to_not include hidden_variant
+              expect(variants).not_to include hidden_variant
             end
           end
         end
@@ -390,32 +590,35 @@ describe Spree::Variant do
 
         it "lists any variants that are listed as visible=true" do
           expect(variants).to include visible_variant
-          expect(variants).to_not include new_variant, hidden_variant
+          expect(variants).not_to include new_variant, hidden_variant
         end
       end
     end
 
-    describe 'stockable_by' do
-      let(:shop) { create(:distributor_enterprise) }
-      let(:add_to_oc_producer) { create(:supplier_enterprise) }
-      let(:other_producer) { create(:supplier_enterprise) }
-      let!(:v1) { create(:variant, product: create(:simple_product, supplier: shop ) ) }
-      let!(:v2) {
-        create(:variant, product: create(:simple_product, supplier: add_to_oc_producer ) )
+    describe ".with_properties" do
+      let!(:variant_without_wanted_property_on_supplier) {
+        create(:variant, supplier: supplier_without_wanted_property)
       }
-      let!(:v3) { create(:variant, product: create(:simple_product, supplier: other_producer ) ) }
+      let!(:variant_with_wanted_property_on_supplier) {
+        create(:variant, supplier: supplier_with_wanted_property)
+      }
+      let(:supplier_with_wanted_property) {
+        create(:supplier_enterprise, properties: [wanted_property])
+      }
+      let(:supplier_without_wanted_property) {
+        create(:supplier_enterprise, properties: [unwanted_property])
+      }
+      let(:wanted_property) { create(:property, presentation: 'Certified Organic') }
+      let(:unwanted_property) { create(:property, presentation: 'Latest Hype') }
 
-      before do
-        create(:enterprise_relationship, parent: add_to_oc_producer, child: shop,
-                                         permissions_list: [:add_to_order_cycle])
-        create(:enterprise_relationship, parent: other_producer, child: shop,
-                                         permissions_list: [:manage_products])
+      it "returns no products without a property id" do
+        expect(Spree::Variant.with_properties([])).to eq []
       end
 
-      it 'shows variants produced by the enterprise and any producers granting P-OC' do
-        stockable_variants = Spree::Variant.stockable_by(shop)
-        expect(stockable_variants).to include v1, v2
-        expect(stockable_variants).to_not include v3
+      it "returns only variants with the wanted property set on supplier" do
+        expect(
+          Spree::Variant.with_properties([wanted_property.id])
+        ).to match_array [variant_with_wanted_property_on_supplier]
       end
     end
   end
@@ -429,6 +632,19 @@ describe Spree::Variant do
       expect(Spree::Variant.where(id: [v1, v2, v3]).indexed).to eq(
         v1.id => v1, v2.id => v2, v3.id => v3
       )
+    end
+  end
+
+  describe ".linked_to" do
+    let!(:variant_unlinked) { create(:variant) }
+    let!(:variant_linked) { create(:variant, semantic_links: [link]) }
+    let!(:variant_linked_unrelated) { create(:variant, semantic_links: [unrelated_link]) }
+    let(:link) { SemanticLink.new(semantic_id: "#my_precious") }
+    let(:unrelated_link) { SemanticLink.new(semantic_id: "#other") }
+
+    it "finds a variant by link" do
+      expect(Spree::Variant.linked_to("#my_precious"))
+        .to eq variant_linked
     end
   end
 
@@ -460,8 +676,8 @@ describe Spree::Variant do
     context "handling nil values for related naming attributes" do
       it "returns empty string or product name" do
         product.name = "Apple"
-        product.variant_unit = "items"
         product.display_as = nil
+        variant.variant_unit = "items"
         variant.display_as = nil
         variant.display_name = nil
 
@@ -471,8 +687,8 @@ describe Spree::Variant do
 
       it "uses the display name correctly" do
         product.name = "Apple"
-        product.variant_unit = "items"
         product.display_as = nil
+        variant.variant_unit = "items"
         variant.display_as = nil
         variant.unit_presentation = nil
         variant.display_name = "Green"
@@ -485,8 +701,8 @@ describe Spree::Variant do
 
   describe "calculating the price with enterprise fees" do
     it "returns the price plus the fees" do
-      distributor = double(:distributor)
-      order_cycle = double(:order_cycle)
+      distributor = instance_double(Enterprise)
+      order_cycle = instance_double(OrderCycle)
 
       variant = Spree::Variant.new price: 100
       expect(variant).to receive(:fees_for).with(distributor, order_cycle) { 23 }
@@ -496,8 +712,8 @@ describe Spree::Variant do
 
   describe "calculating the fees" do
     it "delegates to EnterpriseFeeCalculator" do
-      distributor = double(:distributor)
-      order_cycle = double(:order_cycle)
+      distributor = instance_double(Enterprise)
+      order_cycle = instance_double(OrderCycle)
       variant = Spree::Variant.new
 
       expect_any_instance_of(OpenFoodNetwork::EnterpriseFeeCalculator)
@@ -509,99 +725,15 @@ describe Spree::Variant do
 
   describe "calculating fees broken down by fee type" do
     it "delegates to EnterpriseFeeCalculator" do
-      distributor = double(:distributor)
-      order_cycle = double(:order_cycle)
+      distributor = instance_double(Enterprise)
+      order_cycle = instance_double(OrderCycle)
       variant = Spree::Variant.new
-      fees = double(:fees)
+      fees = instance_double(EnterpriseFee)
 
       expect_any_instance_of(OpenFoodNetwork::EnterpriseFeeCalculator)
         .to receive(:fees_by_type_for).with(variant) { fees }
 
       expect(variant.fees_by_type_for(distributor, order_cycle)).to eq(fees)
-    end
-  end
-
-  context "when the product has variants" do
-    let!(:product) { create(:simple_product) }
-    let!(:variant) { create(:variant, product:) }
-
-    %w(weight volume).each do |unit|
-      context "when the product's unit is #{unit}" do
-        before do
-          product.update_attribute :variant_unit, unit
-          product.reload
-        end
-
-        it "is valid when unit value is set and unit description is not" do
-          variant.unit_value = 1
-          variant.unit_description = nil
-          expect(variant).to be_valid
-        end
-
-        it "is invalid when unit value is not set" do
-          variant.unit_value = nil
-          expect(variant).not_to be_valid
-        end
-      end
-    end
-
-    context "when the product's unit is items" do
-      before do
-        product.update_attribute :variant_unit, 'items'
-        product.reload
-        variant.reload
-      end
-
-      it "is valid with only unit value set" do
-        variant.unit_value = 1
-        variant.unit_description = nil
-        expect(variant).to be_valid
-      end
-
-      it "is valid with only unit description set" do
-        variant.unit_value = nil
-        variant.unit_description = 'Medium'
-        expect(variant).to be_valid
-      end
-
-      it "sets unit_value to 1.0 before validation if it's nil" do
-        variant.unit_value = nil
-        variant.unit_description = nil
-        expect(variant).to be_valid
-        expect(variant.unit_value).to eq 1.0
-      end
-    end
-
-    context "when the product's unit is non-weight" do
-      before do
-        product.update_attribute :variant_unit, 'volume'
-        product.reload
-        variant.reload
-      end
-
-      it "sets weight to decimal before save if it's integer" do
-        variant.weight = 1
-        variant.save!
-        expect(variant.weight).to eq 1.0
-      end
-
-      it "sets weight to 0.0 before save if it's nil" do
-        variant.weight = nil
-        variant.save!
-        expect(variant.weight).to eq 0.0
-      end
-
-      it "sets weight to 0.0 if input is a non numerical string" do
-        variant.weight = "BANANAS!"
-        variant.save!
-        expect(variant.weight).to eq 0.0
-      end
-
-      it "sets weight to correct decimal value if input is numerical string" do
-        variant.weight = "2"
-        variant.save!
-        expect(variant.weight).to eq 2.0
-      end
     end
   end
 
@@ -670,42 +802,41 @@ describe Spree::Variant do
 
     describe "setting the variant's weight from the unit value" do
       it "sets the variant's weight when unit is weight" do
-        p = create(:simple_product, variant_unit: 'volume')
-        v = create(:variant, product: p, weight: 0)
-
-        p.update! variant_unit: 'weight', variant_unit_scale: 1
-        v.update! unit_value: 10, unit_description: 'foo'
+        v = create(:variant, weight: 0)
+        v.update!(
+          variant_unit: 'weight', variant_unit_scale: 1, unit_value: 10, unit_description: 'foo'
+        )
 
         expect(v.reload.weight).to eq(0.01)
       end
 
       it "does nothing when unit is not weight" do
-        p = create(:simple_product, variant_unit: 'volume')
-        v = create(:variant, product: p, weight: 123)
-
-        p.update! variant_unit: 'volume', variant_unit_scale: 1
-        v.update! unit_value: 10, unit_description: 'foo'
+        v = create(:variant, weight: 123, variant_unit: 'volume')
+        v.update! variant_unit: 'volume', variant_unit_scale: 1, unit_value: 10,
+                  unit_description: 'foo'
 
         expect(v.reload.weight).to eq(123)
       end
 
       it "does nothing when unit_value is not set" do
-        p = create(:simple_product, variant_unit: 'volume')
-        v = create(:variant, product: p, weight: 123)
-
-        p.update! variant_unit: 'weight', variant_unit_scale: 1
+        v = create(:variant, weight: 123, variant_unit: 'volume')
 
         # Although invalid, this calls the before_validation callback, which would
         # error if not handling unit_value == nil case
-        expect(v.update(unit_value: nil, unit_description: 'foo')).to be false
+        expect(
+          v.update(variant_unit: "weight", variant_unit_scale: 1, unit_value: nil,
+                   unit_description: "foo")
+        ).to be false
 
         expect(v.reload.weight).to eq(123)
       end
     end
 
     context "when the variant already has a value set" do
-      let!(:p) { create(:simple_product, variant_unit: 'weight', variant_unit_scale: 1) }
-      let!(:v) { create(:variant, product: p, unit_value: 5, unit_description: 'bar') }
+      let!(:v) {
+        create(:variant, variant_unit: 'weight', variant_unit_scale: 1, unit_value: 5,
+                         unit_description: 'bar')
+      }
 
       it "assigns the new option value" do
         expect(v.unit_presentation).to eq "5g bar"
@@ -717,28 +848,30 @@ describe Spree::Variant do
     end
 
     context "when the variant does not have a display_as value set" do
-      let!(:p) { create(:simple_product, variant_unit: 'weight', variant_unit_scale: 1) }
       let!(:v) {
-        create(:variant, product: p, unit_value: 5, unit_description: 'bar', display_as: '')
+        create(:variant, variant_unit: 'weight', variant_unit_scale: 1, unit_value: 5,
+                         unit_description: 'bar', display_as: '')
       }
 
       it "requests the new value from OptionValueName" do
         expect_any_instance_of(VariantUnits::OptionValueNamer)
           .to receive(:name).exactly(1).times.and_call_original
         v.update(unit_value: 10, unit_description: 'foo')
+
         expect(v.unit_presentation).to eq "10g foo"
       end
     end
 
     context "when the variant has a display_as value set" do
-      let!(:p) { create(:simple_product, variant_unit: 'weight', variant_unit_scale: 1) }
       let!(:v) {
-        create(:variant, product: p, unit_value: 5, unit_description: 'bar', display_as: 'FOOS!')
+        create(:variant, variant_unit: 'weight', variant_unit_scale: 1, unit_value: 5,
+                         unit_description: 'bar', display_as: 'FOOS!')
       }
 
       it "does not request the new value from OptionValueName" do
         expect_any_instance_of(VariantUnits::OptionValueNamer).not_to receive(:name)
         v.update!(unit_value: 10, unit_description: 'foo')
+
         expect(v.unit_presentation).to eq("FOOS!")
       end
     end
@@ -756,8 +889,8 @@ describe Spree::Variant do
     let(:variant1) { create(:variant) }
     let(:variant2) { create(:variant) }
     let!(:order_cycle) do
-      enterprise1.supplied_products << variant1.product
-      enterprise2.supplied_products << variant2.product
+      enterprise1.supplied_variants << variant1
+      enterprise2.supplied_variants << variant2
       create(
         :simple_order_cycle,
         coordinator: enterprise1,
@@ -774,21 +907,41 @@ describe Spree::Variant do
 
   describe "destruction" do
     it "destroys exchange variants" do
-      v = create(:variant)
-      e = create(:exchange, variants: [v])
+      variant = create(:variant)
+      exchange = create(:exchange, variants: [variant])
 
-      v.destroy
-      expect(e.reload.variant_ids).to be_empty
+      variant.destroy
+      expect(exchange.reload.variant_ids).to be_empty
+    end
+
+    it "touches the supplier" do
+      supplier = create(:supplier_enterprise, updated_at: 1.hour.ago)
+      variant = create(:variant, supplier:)
+
+      expect { variant.destroy }.to change { supplier.reload.updated_at }
+    end
+
+    it "touches distributors" do
+      variant = create(:variant)
+      updated_at = 1.hour.ago
+      distributor1 = create(:distributor_enterprise, updated_at:)
+      distributor2 = create(:distributor_enterprise, updated_at:)
+
+      create(:simple_order_cycle, distributors: [distributor1], variants: [variant])
+      create(:simple_order_cycle, distributors: [distributor2], variants: [variant])
+
+      expect { variant.destroy }
+        .to change { distributor1.reload.updated_at }
+        .and change { distributor2.reload.updated_at }
     end
   end
 
   describe "#ensure_unit_value" do
-    let(:product) { create(:product, variant_unit: "weight") }
-    let(:variant) { create(:variant, product_id: product.id) }
+    let(:variant) { create(:variant, variant_unit: "weight") }
 
-    context "when a product's variant_unit value is changed from weight to items" do
+    context "when  variant_unit value is changed from weight to items" do
       it "sets the variant's unit_value to 1" do
-        product.update(variant_unit: "items")
+        variant.update(variant_unit: "items")
 
         expect(variant.unit_value).to eq 1
       end
@@ -815,6 +968,90 @@ describe Spree::Variant do
 
         expect(variant.reload.default_price).to be_a Spree::Price
         expect(variant.default_price.id).to eq price_id
+      end
+    end
+  end
+
+  describe "after save callback" do
+    let(:variant) { create(:variant) }
+
+    it "updates units and unit_presenation when saved change to variant unit" do
+      variant.variant_unit = 'items'
+      variant.variant_unit_scale = nil
+      variant.variant_unit_name = 'loaf'
+      variant.save!
+
+      expect(variant.variant_unit_name).to eq 'loaf'
+      expect(variant.unit_presentation).to eq "1 loaf"
+
+      variant.update(variant_unit_name: 'bag')
+
+      expect(variant.variant_unit_name).to eq 'bag'
+      expect(variant.unit_presentation).to eq "1 bag"
+
+      variant.variant_unit = 'weight'
+      variant.variant_unit_scale = 1
+      variant.save!
+
+      expect(variant.variant_unit).to eq 'weight'
+      expect(variant.unit_presentation).to eq "1g"
+      expect(variant.variant_unit_name).to eq('')
+
+      variant.update(variant_unit: 'volume')
+
+      expect(variant.variant_unit).to eq 'volume'
+      expect(variant.unit_presentation).to eq "1L"
+
+      variant.update(display_as: 'My display')
+
+      expect(variant.unit_presentation).to eq "My display"
+    end
+  end
+
+  describe "#create_linked_variant" do
+    let(:user) { create(:user, enterprises: [enterprise]) }
+    let(:supplier) { variant.supplier }
+    let(:enterprise) { create(:enterprise) }
+
+    context "with create_linked_variants permissions on supplier" do
+      let!(:enterprise_relationship) {
+        create(:enterprise_relationship,
+               parent: supplier,
+               child: enterprise,
+               permissions_list: [:create_linked_variants])
+      }
+      let(:variant) { create(:variant, price: 10.95, on_demand: false, on_hand: 5) }
+
+      it "clones the variant, retaining a link to the source" do
+        linked_variant = variant.create_linked_variant(user)
+
+        expect(linked_variant.source_variants).to eq [variant]
+        expect(linked_variant.hub).to eq enterprise
+        expect(linked_variant.price).to eq 10.95
+        expect(linked_variant.on_demand).to eq false
+        expect(linked_variant.on_hand).to eq 5
+      end
+    end
+  end
+
+  describe "updating supplier/enterprise during transition period" do
+    it "updates enterprise when updating supplier" do
+      new_supplier = create(:supplier_enterprise)
+      variant.supplier = new_supplier
+      variant.save!
+
+      expect(variant.reload.enterprise).to eq new_supplier
+    end
+
+    context "variant doesn't have enterprise set yet" do
+      let(:variant) { create(:variant).tap{ |v| v.update_columns enterprise_id: nil } }
+
+      it "updates enterprise on validation, if not yet set" do
+        variant.display_name = "updated"
+        expect(variant).to be_valid
+
+        variant.save!
+        expect(variant.reload.enterprise).to eq variant.supplier
       end
     end
   end

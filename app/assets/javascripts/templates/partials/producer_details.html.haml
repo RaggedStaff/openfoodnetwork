@@ -7,12 +7,12 @@
       .columns.small-12.fat
         %div{"ng-if" => "::enterprise.name"}
           %label{"ng-bind-html" => "::'shop_for_products_html' | t:{enterprise: enterprise.name}"}
-        %div.show-for-medium-up{"ng-if" => "::!enterprise.name"}
+        .show-for-medium-up{"ng-if" => "::!enterprise.name"}
           &nbsp;
     .row
       .columns.small-12
         %a.cta-hub{"ng-repeat" => "hub in enterprise.hubs | filter:{id: '!'+enterprise.id} | orderBy:'-active'",
-        "ng-href" => "{{::hub.path}}#/shop_panel", "ofn-empties-cart" => "hub",
+        "ng-href" => "{{::hub.path}}#/shop_panel",
         "ng-class" => "::{primary: hub.active, secondary: !hub.active}",
         "ng-click" => "$close()",
         "ofn-change-hub" => "hub"}

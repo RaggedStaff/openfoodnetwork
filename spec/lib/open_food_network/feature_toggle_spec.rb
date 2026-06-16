@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe OpenFoodNetwork::FeatureToggle do
+RSpec.describe OpenFoodNetwork::FeatureToggle do
   subject(:feature_toggle) { OpenFoodNetwork::FeatureToggle }
 
   describe ".enabled?" do

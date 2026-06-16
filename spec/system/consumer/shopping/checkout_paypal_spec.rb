@@ -2,15 +2,15 @@
 
 require "system_helper"
 
-describe "Check out with Paypal" do
+RSpec.describe "Check out with Paypal" do
   include ShopWorkflow
-  include CheckoutRequestsHelper
   include AuthenticationHelper
   include PaypalHelper
+  include CheckoutHelper
 
   let(:distributor) { create(:distributor_enterprise) }
   let(:supplier) { create(:supplier_enterprise) }
-  let(:product) { create(:simple_product, supplier:) }
+  let(:product) { create(:simple_product, supplier_id: supplier.id) }
   let(:variant) { product.variants.first }
   let(:order_cycle) {
     create(
@@ -42,15 +42,17 @@ describe "Check out with Paypal" do
 
   before do
     distributor.shipping_methods << free_shipping
-    set_order order
+    pick_order order
     add_product_to_cart order, product
   end
 
   shared_examples "checking out with paypal" do |user_type|
-    pending user_type.to_s do
+    context user_type.to_s do
       before do
         fill_out_details
-        fill_out_form(free_shipping.name, paypal.name, save_default_addresses: false)
+        fill_out_billing_address
+        proceed_to_payment
+        proceed_to_summary
       end
 
       it "completes the checkout after successful Paypal payment" do
@@ -65,8 +67,9 @@ describe "Check out with Paypal" do
         )
         stub_paypal_confirm
 
-        place_order
+        click_on "Complete order"
         expect(page).to have_content "Your order has been processed successfully"
+        expect(page.find("#amount-paid").text).to have_content "$19.99"
 
         expect(order.reload.state).to eq "complete"
         expect(order.payments.count).to eq 1
@@ -75,14 +78,14 @@ describe "Check out with Paypal" do
       it "fails with an error message" do
         stub_paypal_response success: false
 
-        place_order
+        click_on "Complete order"
         expect(page).to have_content "PayPal failed."
       end
     end
   end
 
   describe "shared_examples" do
-    pending "as a guest user" do
+    context "as a guest user" do
       before do
         visit checkout_path
         checkout_as_guest
@@ -90,7 +93,7 @@ describe "Check out with Paypal" do
       it_behaves_like "checking out with paypal", "as guest"
     end
 
-    pending "as a logged in user" do
+    context "as a logged in user" do
       before do
         login_as user
         visit checkout_path

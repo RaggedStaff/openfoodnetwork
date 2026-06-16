@@ -31,39 +31,53 @@ class Enterprise < ApplicationRecord
 
   has_many :relationships_as_parent, class_name: 'EnterpriseRelationship',
                                      foreign_key: 'parent_id',
+                                     inverse_of: :parent,
                                      dependent: :destroy
   has_many :relationships_as_child, class_name: 'EnterpriseRelationship',
                                     foreign_key: 'child_id',
+                                    inverse_of: :child,
                                     dependent: :destroy
   has_and_belongs_to_many :groups, join_table: 'enterprise_groups_enterprises',
                                    class_name: 'EnterpriseGroup'
-  has_many :producer_properties, foreign_key: 'producer_id', dependent: :destroy
+  has_many :producer_properties, foreign_key: 'producer_id',
+                                 inverse_of: :producer,
+                                 dependent: :destroy
   has_many :properties, through: :producer_properties
-  has_many :supplied_products, class_name: 'Spree::Product',
-                               foreign_key: 'supplier_id',
-                               dependent: :destroy
-  has_many :supplied_variants, through: :supplied_products, source: :variants
-  has_many :distributed_orders, class_name: 'Spree::Order', foreign_key: 'distributor_id'
+  has_many :supplied_variants,
+           class_name: 'Spree::Variant', foreign_key: 'supplier_id',
+           inverse_of: :supplier, dependent: :destroy
+  has_many :supplied_products, through: :supplied_variants, source: :product
+  has_many :distributed_orders, class_name: 'Spree::Order',
+                                foreign_key: 'distributor_id',
+                                inverse_of: :distributor,
+                                dependent: :restrict_with_error
+
   belongs_to :address, class_name: 'Spree::Address'
   belongs_to :business_address, optional: true, class_name: 'Spree::Address', dependent: :destroy
-  has_many :enterprise_fees
+  has_many :enterprise_fees, dependent: :restrict_with_error
   has_many :enterprise_roles, dependent: :destroy
   has_many :users, through: :enterprise_roles
   belongs_to :owner, class_name: 'Spree::User',
                      inverse_of: :owned_enterprises
   has_many :distributor_payment_methods,
-           inverse_of: :distributor, foreign_key: :distributor_id
+           inverse_of: :distributor,
+           foreign_key: :distributor_id,
+           dependent: :restrict_with_error
   has_many :distributor_shipping_methods,
-           inverse_of: :distributor, foreign_key: :distributor_id
+           inverse_of: :distributor,
+           foreign_key: :distributor_id,
+           dependent: :restrict_with_error
   has_many :payment_methods, through: :distributor_payment_methods
   has_many :shipping_methods, through: :distributor_shipping_methods
   has_many :customers, dependent: :destroy
   has_many :inventory_items, dependent: :destroy
   has_many :tag_rules, dependent: :destroy
   has_one :stripe_account, dependent: :destroy
-  has_many :vouchers
+  has_many :vouchers, dependent: :restrict_with_error
   has_many :connected_apps, dependent: :destroy
+  has_many :dfc_permissions, dependent: :destroy
   has_one :custom_tab, dependent: :destroy
+  has_one :semantic_link, as: :subject, dependent: :delete
 
   delegate :latitude, :longitude, :city, :state_name, to: :address
 
@@ -97,11 +111,14 @@ class Enterprise < ApplicationRecord
   end
 
   validates :logo,
-            processable_image: true,
-            content_type: %r{\Aimage/(png|jpeg|gif|jpg|svg\+xml|webp)\Z}
+            processable_file: true,
+            content_type: ::Spree::Image::ACCEPTED_CONTENT_TYPES
   validates :promo_image,
-            processable_image: true,
-            content_type: %r{\Aimage/(png|jpeg|gif|jpg|svg\+xml|webp)\Z}
+            processable_file: true,
+            content_type: ::Spree::Image::ACCEPTED_CONTENT_TYPES
+  validates :white_label_logo,
+            processable_file: true,
+            content_type: ::Spree::Image::ACCEPTED_CONTENT_TYPES
   validates :terms_and_conditions, content_type: {
     in: "application/pdf",
     message: I18n.t(:enterprise_terms_and_conditions_type_error),
@@ -121,6 +138,9 @@ class Enterprise < ApplicationRecord
               message: Spree.t('errors.messages.invalid_instagram_url')
             }, allow_blank: true
   validate :validate_white_label_logo_link
+  validates :external_billing_id,
+            format: { with: /\A\S+\z/ },
+            allow_blank: true
 
   before_validation :initialize_permalink, if: lambda { permalink.nil? }
   before_validation :set_unused_address_fields
@@ -128,6 +148,7 @@ class Enterprise < ApplicationRecord
 
   after_create :set_default_contact
   after_create :relate_to_owners_enterprises
+
   after_rollback :restore_permalink
   after_touch :touch_distributors
   after_create_commit :send_welcome_email
@@ -160,8 +181,8 @@ class Enterprise < ApplicationRecord
   scope :is_distributor, -> { where.not(sells: 'none') }
   scope :is_hub, -> { where(sells: 'any') }
   scope :supplying_variant_in, lambda { |variants|
-    joins(supplied_products: :variants).
-      where('spree_variants.id IN (?)', variants).
+    joins(:supplied_variants).
+      where(spree_variants: { id: variants }).
       select('DISTINCT enterprises.*')
   }
 
@@ -198,23 +219,23 @@ class Enterprise < ApplicationRecord
       select('DISTINCT enterprises.*')
   }
 
-  scope :distributing_products, lambda { |product_ids|
+  scope :distributing_variants, lambda { |variants_ids|
     exchanges = joins("
         INNER JOIN exchanges
-          ON (exchanges.receiver_id = enterprises.id AND exchanges.incoming = 'f')
+          ON (exchanges.receiver_id = enterprises.id AND exchanges.incoming = false)
       ").
       joins('INNER JOIN exchange_variants ON (exchange_variants.exchange_id = exchanges.id)').
       joins('INNER JOIN spree_variants ON (spree_variants.id = exchange_variants.variant_id)').
-      where('spree_variants.product_id IN (?)', product_ids).select('DISTINCT enterprises.id')
+      where(spree_variants: { id: variants_ids }).select('DISTINCT enterprises.id')
 
     where(id: exchanges)
   }
 
   scope :managed_by, lambda { |user|
-    if user.has_spree_role?('admin')
+    if user.admin?
       where(nil)
     else
-      joins(:enterprise_roles).where('enterprise_roles.user_id = ?', user.id)
+      joins(:enterprise_roles).where(enterprise_roles: { user_id: user.id })
     end
   }
 
@@ -240,12 +261,46 @@ class Enterprise < ApplicationRecord
     count(distinct: true)
   end
 
+  def long_description=(html)
+    super(HtmlSanitizer.sanitize_and_enforce_link_target_blank(html))
+  end
+
+  def preferred_shopfront_message=(html)
+    self.prefers_shopfront_message = HtmlSanitizer.sanitize_and_enforce_link_target_blank(html)
+  end
+
+  def preferred_shopfront_closed_message=(html)
+    self.prefers_shopfront_closed_message =
+      HtmlSanitizer.sanitize_and_enforce_link_target_blank(html)
+  end
+
+  def remove_logo=(value)
+    self.logo = nil if value == "1"
+  end
+
+  def remove_promo_image=(value)
+    self.promo_image = nil if value == "1"
+  end
+
+  def remove_white_label_logo=(value)
+    return unless value == "1"
+
+    self.white_label_logo = nil
+    self.white_label_logo_link = nil # Link not needed if there's no logo
+  end
+
   def contact
     contact = users.where(enterprise_roles: { receives_notifications: true }).first
     contact || owner
   end
 
-  def update_contact(user_id)
+  def contact_id
+    contact&.id
+  end
+
+  def contact_id=(user_id)
+    return unless user_id.to_i.positive? && users.confirmed.exists?(user_id.to_i)
+
     enterprise_roles.update_all(["receives_notifications=(user_id=?)", user_id])
   end
 
@@ -355,11 +410,15 @@ class Enterprise < ApplicationRecord
     sells == 'any'
   end
 
+  def is_producer_only
+    is_primary_producer && sells == 'none'
+  end
+
   # Simplify enterprise categories for frontend logic and icons, and maybe other things.
   def category
     # Make this crazy logic human readable so we can argue about it sanely.
     cat = is_primary_producer ? "producer_" : "non_producer_"
-    cat << ("sells_" + sells)
+    cat << "sells_#{sells}"
 
     # Map backend cases to front end cases.
     case cat
@@ -369,10 +428,10 @@ class Enterprise < ApplicationRecord
       :producer_shop # Producer with shopfront and supplies other hubs.
     when "producer_sells_none"
       :producer # Producer only supplies through others.
-    when "non_producer_sells_any"
-      :hub # Hub selling others products in order cycles.
-    when "non_producer_sells_own"
-      :hub # Wholesaler selling through own shopfront? Does this need a separate name or even exist?
+    when "non_producer_sells_any", "non_producer_sells_own"
+      # Hub selling others products in order cycles
+      # Or Wholesaler selling through own shopfront? Does this need a separate name or even exist?
+      :hub
     when "non_producer_sells_none"
       :hub_profile # Hub selling outside the system.
     end
@@ -382,7 +441,7 @@ class Enterprise < ApplicationRecord
   def distributed_taxons
     Spree::Taxon.
       joins(:products).
-      where('spree_products.id IN (?)', Spree::Product.in_distributor(self).select(&:id)).
+      where(spree_products: { id: Spree::Product.in_distributor(self).select(&:id) }).
       select('DISTINCT spree_taxons.*')
   end
 
@@ -398,7 +457,7 @@ class Enterprise < ApplicationRecord
   def supplied_taxons
     Spree::Taxon.
       joins(:products).
-      where('spree_products.id IN (?)', Spree::Product.in_supplier(self).select(&:id)).
+      where(spree_products: { id: Spree::Product.in_supplier(self).select(&:id) }).
       select('DISTINCT spree_taxons.*')
   end
 
@@ -410,10 +469,9 @@ class Enterprise < ApplicationRecord
     test_permalink = UrlGenerator.to_url(test_permalink)
     test_permalink = "my-enterprise" if test_permalink.blank?
     existing = Enterprise.
-      select(:permalink).
       order(:permalink).
       where("permalink LIKE ?", "#{test_permalink}%").
-      map(&:permalink)
+      pluck(:permalink)
 
     if existing.include?(test_permalink)
       used_indices = existing.map do |p|
@@ -461,8 +519,8 @@ class Enterprise < ApplicationRecord
     return unless image.variable?
 
     image_variant_url_for(image.variant(name))
-  rescue ActiveStorage::Error, MiniMagick::Error, ActionView::Template::Error => e
-    Bugsnag.notify "Enterprise ##{id} #{image.try(:name)} error: #{e.message}"
+  rescue StandardError => e
+    Alert.raise "Enterprise ##{id} #{image.try(:name)} error: #{e.message}"
     Rails.logger.error(e.message)
 
     nil
@@ -472,7 +530,7 @@ class Enterprise < ApplicationRecord
     ExchangeVariant.joins(exchange: :order_cycle)
       .merge(Exchange.outgoing)
       .select("DISTINCT exchange_variants.variant_id, exchanges.receiver_id AS enterprise_id")
-      .where("exchanges.receiver_id = ?", id)
+      .where(exchanges: { receiver_id: id })
       .merge(OrderCycle.active.with_distributor(id))
   end
 
@@ -493,7 +551,7 @@ class Enterprise < ApplicationRecord
   end
 
   def correct_whatsapp_url(phone_number)
-    phone_number && ("https://wa.me/" + phone_number.tr('+ ', ''))
+    phone_number && "https://wa.me/#{phone_number.tr('+ ', '')}"
   end
 
   def correct_instagram_url(url)
@@ -524,7 +582,7 @@ class Enterprise < ApplicationRecord
   end
 
   def set_default_contact
-    update_contact owner_id
+    self.contact_id = owner_id
   end
 
   def relate_to_owners_enterprises
@@ -581,7 +639,7 @@ class Enterprise < ApplicationRecord
   # Touch distributors without them touching their distributors.
   # We avoid an infinite loop and don't need to touch the whole distributor tree.
   def touch_distributors
-    Enterprise.distributing_products(supplied_products.select(:id)).
+    Enterprise.distributing_variants(supplied_variants.select(:id)).
       where.not(enterprises: { id: }).
       update_all(updated_at: Time.zone.now)
   end

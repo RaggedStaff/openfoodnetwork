@@ -9,11 +9,7 @@ module Api
         "Api::Admin::#{object.class}Serializer".constantize.new(object)
       end
     end
-  end
-end
 
-module Api
-  module Admin
     module TagRule
       class BaseSerializer < ActiveModel::Serializer
         attributes :id, :enterprise_id, :type, :is_default, :preferred_customer_tags

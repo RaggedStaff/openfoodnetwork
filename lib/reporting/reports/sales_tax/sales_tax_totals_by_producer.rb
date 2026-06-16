@@ -24,9 +24,9 @@ module Reporting
           # [tax_rate, supplier_id, distributor_id and order_cycle_id]
           report_line_items.list
             .flat_map do |line_item|
-              line_item.tax_rates.map do |tax_rate|
+              line_item.adjustments.eligible.tax.map do |tax_rate|
                 {
-                  tax_rate_id: tax_rate.id,
+                  tax_rate_id: tax_rate.originator_id,
                   line_item:
                 }
               end
@@ -37,7 +37,7 @@ module Reporting
               hash[:line_item].order.distributor_id,
               hash[:line_item].order.order_cycle_id
             ]
-          end.each do |_, v|
+          end.each_value do |v|
             v.map!{ |item| item[:line_item] }
           end
         end
@@ -76,10 +76,12 @@ module Reporting
               group_by: :order_cycle,
               summary_row: proc do |_key, items, _rows|
                 line_items = items.flat_map(&:second).flatten.uniq
-                total_excl_tax = line_items.sum(&:amount) - line_items.sum(&:included_tax)
+                total_excl_tax =
+                  line_items.map(&:amount).compact.sum -
+                  line_items.map(&:included_tax).compact.sum
                 tax = line_items.map do |line_item|
-                  line_item.adjustments.eligible.tax.sum(&:amount)
-                end.sum
+                  line_item.adjustments.eligible.tax.map(&:amount).sum(&:to_f)
+                end.compact.sum
                 {
                   total_excl_tax:,
                   tax:,
@@ -125,16 +127,17 @@ module Reporting
         end
 
         def total_excl_tax(query_result_row)
-          line_items(query_result_row).sum(&:amount) -
-            line_items(query_result_row).sum(&:included_tax)
+          line_items(query_result_row).map(&:amount).compact.sum -
+            line_items(query_result_row).map(&:included_tax).compact.sum
         end
 
         def tax(query_result_row)
-          line_items(query_result_row)&.map do |line_item|
+          line_items(query_result_row).to_a.map do |line_item|
             line_item.adjustments.eligible.tax
               .where(originator_id: tax_rate_id(query_result_row))
-              .sum(&:amount)
-          end&.sum
+              .map(&:amount)
+              .sum(&:to_f)
+          end.compact.sum
         end
 
         def total_incl_tax(query_result_row)

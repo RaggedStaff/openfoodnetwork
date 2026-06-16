@@ -1,11 +1,9 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 module Reporting
   module Reports
     module SalesTax
-      describe TaxTypes do
+      RSpec.describe TaxTypes do
         let(:user) { create(:user) }
         let(:report) { TaxTypes.new(user, {}) }
 

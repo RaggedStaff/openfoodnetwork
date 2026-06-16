@@ -3,7 +3,7 @@
   %tr.line-item{class: "variant-#{variant.id}"}
     %td.cart-item-description
 
-      %div.item-thumb-image
+      .item-thumb-image
         = render 'spree/shared/variant_thumbnail', variant: variant
 
       = render 'spree/shared/line_item_name', line_item: line_item
@@ -18,11 +18,11 @@
           = t(".unavailable_item")
           %br/
 
-    %td.text-right.cart-item-price
+    %td.cart-item-price
       = line_item.single_display_amount_with_adjustments.to_html
       %br
       %span.unit-price
-        = line_item.unit_price_price_and_unit
+        = format_unit_price(line_item.unit_price)
     %td.text-center.cart-item-quantity
       - finalized_quantity = @order.completed? ? line_item.quantity : 0
       = item_form.number_field :quantity,

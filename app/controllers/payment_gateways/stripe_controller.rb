@@ -7,10 +7,13 @@ module PaymentGateways
 
     before_action :load_checkout_order, only: :confirm
     before_action :validate_payment_intent, only: :confirm
-    before_action :check_order_cycle_expiry, only: :confirm
-    before_action :validate_stock, only: :confirm
+    before_action -> { check_order_cycle_expiry(should_empty_order: false) }, only: :confirm
 
     def confirm
+      validate_stock
+
+      return redirect_to order_failed_route if @any_out_of_stock == true
+
       process_payment_completion!
     end
 
@@ -21,7 +24,7 @@ module PaymentGateways
 
       result = ProcessPaymentIntent.new(params["payment_intent"], @order).call!
 
-      unless result.ok?
+      unless result.success?
         flash.now[:error] = "#{I18n.t('payment_could_not_process')}. #{result.error}"
       end
 
@@ -65,11 +68,8 @@ module PaymentGateways
     end
 
     def valid_payment_intent?
-      @valid_payment_intent ||= begin
-        return false unless params["payment_intent"]&.starts_with?("pi_")
-
-        order_and_payment_valid?
-      end
+      @valid_payment_intent ||= params["payment_intent"]&.starts_with?("pi_") &&
+                                order_and_payment_valid?
     end
 
     def order_and_payment_valid?
@@ -79,7 +79,7 @@ module PaymentGateways
     end
 
     def last_payment
-      @last_payment ||= OrderPaymentFinder.new(@order).last_payment
+      @last_payment ||= Orders::FindPaymentService.new(@order).last_payment
     end
 
     def cancel_incomplete_payments

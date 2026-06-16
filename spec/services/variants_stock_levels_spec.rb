@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe VariantsStockLevels do
+RSpec.describe VariantsStockLevels do
   let(:order) { create(:order) }
 
   let!(:line_item) do
@@ -53,7 +51,7 @@ describe VariantsStockLevels do
 
   describe "when the variant has an override" do
     let!(:distributor) { create(:distributor_enterprise) }
-    let(:supplier) { variant_in_the_order.product.supplier }
+    let(:supplier) { variant_in_the_order.supplier }
     let!(:order_cycle) {
       create(:simple_order_cycle, suppliers: [supplier], distributors: [distributor],
                                   variants: [variant_in_the_order, variant_not_in_the_order])
@@ -76,7 +74,7 @@ describe VariantsStockLevels do
     end
 
     context "when the variant is in the order" do
-      it "returns the on_hand value of the override" do
+      it "returns the on_hand value of the override", feature: :inventory do
         expect(variant_stock_levels.call(order, [variant_in_the_order.id])).to eq(
           variant_in_the_order.id => {
             quantity: 2, max_quantity: 3, on_hand: 200, on_demand: false
@@ -86,7 +84,7 @@ describe VariantsStockLevels do
     end
 
     context "with variants that are not in the order" do
-      it "returns the on_hand value of the override" do
+      it "returns the on_hand value of the override", feature: :inventory do
         variant_ids = [variant_in_the_order.id, variant_not_in_the_order.id]
         expect(variant_stock_levels.call(order, variant_ids)).to eq(
           variant_in_the_order.id => {

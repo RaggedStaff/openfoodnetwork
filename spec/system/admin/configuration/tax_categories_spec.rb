@@ -2,7 +2,7 @@
 
 require 'system_helper'
 
-describe "Tax Categories" do
+RSpec.describe "Tax Categories" do
   include AuthenticationHelper
   include WebHelper
 
@@ -53,6 +53,17 @@ describe "Tax Categories" do
       click_button "Update"
       expect(page).to have_content("successfully updated!")
       expect(page).to have_content("desc 99")
+    end
+  end
+
+  context "admin deleting a tax category" do
+    it "should be able to delete an existing tax category" do
+      create(:tax_category, name: "To be removed")
+      click_link "Tax Categories"
+      accept_confirm('Are you sure?') do
+        within_row(1) { find(".icon-trash").click }
+      end
+      expect(page).not_to have_content("To be removed")
     end
   end
 end

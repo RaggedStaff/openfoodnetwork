@@ -1,17 +1,63 @@
-version: 2
-updates:
+# Dependabot configuration
+#
+# The `directory` and `schedule.interval` options are mandatory.
+# Most of the configuration here is not used for security updates though.
 
+version: 2
+
+multi-ecosystem-groups:
+  turbo_power:
+    schedule:
+      interval: "daily"
+    cooldown:
+      default-days: 7
+  shakapacker:
+    schedule:
+      interval: "daily"
+    cooldown:
+      default-days: 7
+
+
+updates:
+  # turbo_power: ensure gem and package are updated together
+  - package-ecosystem: "bundler"
+    directory: "/"
+    patterns: ["turbo_power"]
+    multi-ecosystem-group: "turbo_power"
+    versioning-strategy: lockfile-only
+  - package-ecosystem: "npm"
+    directory: "/"
+    patterns: ["turbo_power"]
+    multi-ecosystem-group: "turbo_power"
+    versioning-strategy: lockfile-only
+  # shakapacker: ensure gem and package are updated together
+  - package-ecosystem: "bundler"
+    directory: "/"
+    patterns: ["shakapacker"]
+    multi-ecosystem-group: "shakapacker"
+    versioning-strategy: lockfile-only
+  - package-ecosystem: "npm"
+    directory: "/"
+    patterns: ["shakapacker"]
+    multi-ecosystem-group: "shakapacker"
+    versioning-strategy: lockfile-only
+
+
+  # All others
   - package-ecosystem: "bundler"
     directory: "/"
     schedule:
       interval: "daily"
-    open-pull-requests-limit: 10
-    # Only specific requirements are specified in Gemfile, so don't touch it.
+    cooldown:
+      default-days: 7
+    # Only specific requirements are specified in Gemfile, so don't let Dependabot touch it.
     versioning-strategy: lockfile-only
 
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "daily"
-    # All versions are specified in package.json, so please update them.
-    versioning-strategy: increase
+    cooldown:
+      default-days: 7
+    # Only specific requirements are specified in package.json, so don't let Dependabot touch it.
+    versioning-strategy: lockfile-only

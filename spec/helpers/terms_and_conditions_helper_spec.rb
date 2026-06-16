@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe TermsAndConditionsHelper, type: :helper do
+RSpec.describe TermsAndConditionsHelper do
   describe "#platform_terms_required?" do
     context 'when ToS file is present' do
       before do

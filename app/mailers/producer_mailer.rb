@@ -37,7 +37,7 @@ class ProducerMailer < ApplicationMailer
     @receival_instructions = @order_cycle.receival_instructions_for(@producer)
     @total = total_from_line_items(line_items)
     @tax_total = tax_total_from_line_items(line_items)
-    @customer_line_items = set_customer_data(line_items)
+    @customer_line_items = customer_data(line_items)
   end
 
   def subject
@@ -52,19 +52,20 @@ class ProducerMailer < ApplicationMailer
   def distributors_pickup_times_for(line_items)
     @order_cycle.distributors.
       joins(:distributed_orders).
-      where("spree_orders.id IN (?)", line_items.map(&:order_id).uniq).
+      where(spree_orders: { id: line_items.map(&:order_id).uniq }).
       map do |distributor|
       [distributor.name, @order_cycle.pickup_time_for(distributor)]
     end
   end
 
   def line_items_from(order_cycle, producer)
-    @line_items ||= Spree::LineItem.
-      includes(variant: [:product]).
+    @line_items_from ||= Spree::LineItem.
+      includes(variant: :product).
+      joins(variant: :product).
       from_order_cycle(order_cycle).
-      sorted_by_name_and_unit_value.
-      merge(Spree::Product.with_deleted.in_supplier(producer)).
-      merge(Spree::Order.by_state(["complete", "resumed"]))
+      merge(Spree::Variant.with_deleted.where(supplier: producer)).
+      merge(Spree::Order.by_state(["complete", "resumed"])).
+      sorted_by_name_and_unit_value
   end
 
   def total_from_line_items(line_items)
@@ -75,17 +76,26 @@ class ProducerMailer < ApplicationMailer
     Spree::Money.new line_items.to_a.sum(&:included_tax)
   end
 
-  def set_customer_data(line_items)
-    return unless @coordinator.show_customer_names_to_suppliers?
+  def customer_data(line_items)
+    @display_customer_names = @coordinator.show_customer_names_to_suppliers?
+    @display_business_name = false
 
     line_items.map do |line_item|
+      order = line_item.order
+      customer_code = order.customer&.code
+      @display_business_name = true if customer_code.present?
+
       {
         sku: line_item.variant.sku,
-        supplier_name: line_item.product.supplier.name,
+        supplier_name: line_item.variant.supplier.name,
         product_and_full_name: line_item.product_and_full_name,
         quantity: line_item.quantity,
-        first_name: line_item.order.billing_address.first_name,
-        last_name: line_item.order.billing_address.last_name
+        first_name: order.billing_address.first_name,
+        last_name: order.billing_address.last_name,
+        phone: order.billing_address.phone,
+        email: order.customer&.email,
+        business_name: customer_code,
+        order_number: order.number
       }
     end.sort_by { |line_item| [line_item[:last_name].downcase, line_item[:first_name].downcase] }
   end

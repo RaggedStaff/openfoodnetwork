@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 module OrderManagement
   module Subscriptions
-    describe StripePaymentSetup do
+    RSpec.describe StripePaymentSetup do
       let(:order) { create(:order) }
       let(:payment_setup) { OrderManagement::Subscriptions::StripePaymentSetup.new(order) }
 
@@ -28,7 +26,7 @@ module OrderManagement
             let(:payment_method) { create(:payment_method) }
 
             it "returns the pending payment with no change" do
-              expect(payment).to_not receive(:update)
+              expect(payment).not_to receive(:update)
               expect(payment_setup.call!).to eq payment
             end
           end
@@ -38,7 +36,7 @@ module OrderManagement
 
             context "and the card is already set (the payment source is a credit card)" do
               it "returns the pending payment with no change" do
-                expect(payment).to_not receive(:update)
+                expect(payment).not_to receive(:update)
                 expect(payment_setup.call!).to eq payment
               end
             end
@@ -54,7 +52,7 @@ module OrderManagement
                 it "adds an error to the order and does not update the payment" do
                   payment_setup.call!
 
-                  expect(payment).to_not receive(:update)
+                  expect(payment).not_to receive(:update)
                   expect(payment_setup.call!).to eq payment
                   expect(order.errors[:base].first).to eq "There are no authorised " \
                                                           "credit cards available to charge"
@@ -80,7 +78,7 @@ module OrderManagement
                   it "adds an error to the order and does not update the payment" do
                     payment_setup.call!
 
-                    expect(payment).to_not receive(:update)
+                    expect(payment).not_to receive(:update)
                     expect(payment_setup.call!).to eq payment
                     expect(order.errors[:base].first).to eq "There are no authorised " \
                                                             "credit cards available to charge"

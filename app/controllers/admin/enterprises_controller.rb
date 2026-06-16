@@ -14,7 +14,8 @@ module Admin
     prepend_before_action :override_owner, only: :create
     prepend_before_action :override_sells, only: :create
 
-    before_action :load_countries, except: [:index, :register, :check_permalink]
+    before_action :load_countries, except: [:index, :register]
+    before_action :require_enterprise, only: [:edit, :update]
     before_action :load_methods_and_fees, only: [:edit, :update]
     before_action :load_groups, only: [:new, :edit, :update, :create]
     before_action :load_taxons, only: [:new, :edit, :update, :create]
@@ -47,6 +48,10 @@ module Admin
       @object = Enterprise.where(permalink: params[:id]).
         includes(users: [:ship_address, :bill_address]).first
       @object.build_custom_tab if @object.custom_tab.nil?
+
+      load_tag_rule_types
+
+      load_tag_rules
       return unless params[:stimulus]
 
       @enterprise.is_primary_producer = params[:is_primary_producer]
@@ -62,21 +67,24 @@ module Admin
     def update
       tag_rules_attributes = params[object_name].delete :tag_rules_attributes
       update_tag_rules(tag_rules_attributes) if tag_rules_attributes.present?
-      update_enterprise_notifications
       update_vouchers
 
       delete_custom_tab if params[:custom_tab] == 'false'
 
       if @object.update(enterprise_params)
-        flash[:success] = flash_message_for(@object, :successfully_updated)
+        flash[:success] = flash_success_message
+
         respond_with(@object) do |format|
           format.html { redirect_to location_after_save }
           format.js   { render layout: false }
           format.json {
             render_as_json @object, ams_prefix: 'index', spree_current_user:
           }
+          format.turbo_stream
         end
       else
+        load_tag_rule_types
+        load_tag_rules
         respond_with(@object) do |format|
           format.json {
             render json: { errors: @object.errors.messages }, status: :unprocessable_entity
@@ -120,13 +128,17 @@ module Admin
     end
 
     def for_order_cycle
+      inventory_enabled = helpers.feature?(:inventory, @order_cycle&.coordinator) &&
+                          !helpers.feature?(:variant_tag, @order_cycle&.coordinator)
+
       respond_to do |format|
         format.json do
           render(
             json: @collection,
             each_serializer: Api::Admin::ForOrderCycle::EnterpriseSerializer,
             order_cycle: @order_cycle,
-            spree_current_user:
+            spree_current_user:,
+            inventory_enabled:
           )
         end
       end
@@ -141,10 +153,36 @@ module Admin
       end
     end
 
+    def new_tag_rule_group
+      load_tag_rule_types
+
+      @index = params[:index]
+      @customer_rule_index = params[:customer_rule_index].to_i
+      @group = { tags: [], rules: [] }
+
+      respond_to do |format|
+        format.turbo_stream
+      end
+    end
+
+    def destroy
+      @object.transaction do
+        @object.destroy!
+        flash.now[:success] = flash_message_for(@object, :successfully_removed)
+      rescue StandardError
+        Rails.logger.error @object.errors.full_messages.to_sentence
+        flash.now[:error] = @object.errors.full_messages.to_sentence
+      end
+
+      respond_to do |format|
+        format.turbo_stream { render :destroy, status: :ok }
+      end
+    end
+
     protected
 
     def delete_custom_tab
-      @object.custom_tab.destroy if @object.custom_tab.present?
+      @object.custom_tab.presence&.destroy
       enterprise_params.delete(:custom_tab_attributes)
     end
 
@@ -162,6 +200,25 @@ module Admin
     end
 
     private
+
+    def flash_success_message
+      if attachment_removal?
+        I18n.t("admin.controllers.enterprises.#{attachment_removal_parameter}_success")
+      else
+        flash_message_for(@object, :successfully_updated)
+      end
+    end
+
+    def attachment_removal?
+      attachment_removal_parameter.present?
+    end
+
+    def attachment_removal_parameter
+      if enterprise_params.keys.one? && enterprise_params.keys.first.to_s.start_with?("remove_")
+        enterprise_params.keys.first
+      end
+    end
+    helper_method :attachment_removal_parameter
 
     def load_enterprise_set_on_index
       return unless spree_current_user.admin?
@@ -188,12 +245,7 @@ module Admin
         enterprises = OpenFoodNetwork::OrderCyclePermissions.new(spree_current_user, @order_cycle)
           .visible_enterprises
 
-        if enterprises.present?
-          enterprises.includes(
-            supplied_products:
-              [:supplier, :variants, :image]
-          )
-        end
+        enterprises.presence&.includes(supplied_products: [:variants, :image])
       when :index
         if spree_current_user.admin?
           OpenFoodNetwork::Permissions.new(spree_current_user).
@@ -217,6 +269,10 @@ module Admin
 
     def collection_actions
       [:index, :for_order_cycle, :visible, :bulk_update]
+    end
+
+    def require_enterprise
+      raise ActiveRecord::RecordNotFound if @enterprise.blank?
     end
 
     def load_methods_and_fees
@@ -252,21 +308,13 @@ module Admin
       # methods that are specific to each class do not become available until after the
       # record is persisted. This problem is compounded by the use of calculators.
       @object.transaction do
-        tag_rules_attributes.select{ |_i, attrs| attrs[:type].present? }.each do |_i, attrs|
+        tag_rules_attributes.select{ |_i, attrs| attrs[:type].present? }.each_value do |attrs|
           rule = @object.tag_rules.find_by(id: attrs.delete(:id)) ||
                  attrs[:type].constantize.new(enterprise: @object)
 
           rule.update(attrs.permit(PermittedAttributes::TagRules.attributes))
         end
       end
-    end
-
-    def update_enterprise_notifications
-      user_id = params[:receives_notifications].to_i
-
-      return unless user_id.positive? && @enterprise.user_ids.include?(user_id)
-
-      @enterprise.update_contact(user_id)
     end
 
     def update_vouchers
@@ -291,7 +339,7 @@ module Admin
     def check_can_change_bulk_sells
       return if spree_current_user.admin?
 
-      params[:sets_enterprise_set][:collection_attributes].each do |_i, enterprise_params|
+      params[:sets_enterprise_set][:collection_attributes].each_value do |enterprise_params|
         unless spree_current_user == Enterprise.find_by(id: enterprise_params[:id]).owner
           enterprise_params.delete :sells
         end
@@ -325,7 +373,7 @@ module Admin
     def check_can_change_bulk_owner
       return if spree_current_user.admin?
 
-      bulk_params[:collection_attributes].each do |_i, enterprise_params|
+      bulk_params[:collection_attributes].each_value do |enterprise_params|
         enterprise_params.delete :owner_id
       end
     end
@@ -350,6 +398,35 @@ module Admin
 
     def load_properties
       @properties = Spree::Property.pluck(:name)
+    end
+
+    def load_tag_rule_types
+      @tag_rule_types = [
+        [t(".form.tag_rules.show_hide_shipping"), "FilterShippingMethods"],
+        [t(".form.tag_rules.show_hide_payment"), "FilterPaymentMethods"],
+        [t(".form.tag_rules.show_hide_order_cycles"), "FilterOrderCycles"]
+      ]
+
+      if helpers.feature?(:variant_tag, @object)
+        @tag_rule_types.prepend([t(".form.tag_rules.show_hide_variants"), "FilterVariants"])
+      elsif helpers.feature?(:inventory, @object)
+        @tag_rule_types.prepend([t(".form.tag_rules.show_hide_variants"), "FilterProducts"])
+      end
+    end
+
+    def load_tag_rules
+      if helpers.feature?(:variant_tag, @object)
+        @default_rules = @enterprise.tag_rules.exclude_inventory.select(&:is_default)
+        @rules = @enterprise.tag_rules.exclude_inventory.prioritised.reject(&:is_default)
+      elsif helpers.feature?(:inventory, @object)
+        @default_rules = @enterprise.tag_rules.exclude_variant.select(&:is_default)
+        @rules = @enterprise.tag_rules.exclude_variant.prioritised.reject(&:is_default)
+      else
+        @default_rules =
+          @enterprise.tag_rules.exclude_inventory.exclude_variant.select(&:is_default)
+        @rules =
+          @enterprise.tag_rules.exclude_inventory.exclude_variant.prioritised.reject(&:is_default)
+      end
     end
 
     def setup_property

@@ -2,15 +2,18 @@
 
 require_relative "../spec_helper"
 
-describe SuppliedProductBuilder do
+RSpec.describe SuppliedProductBuilder do
   include FileHelper
 
   subject(:builder) { described_class }
   let(:variant) {
-    build(:variant, id: 5).tap do |v|
-      v.product.supplier_id = 7
-      v.product.primary_taxon = taxon
-    end
+    create(:variant, id: 5, product: spree_product, primary_taxon: taxon, supplier:)
+  }
+  let(:spree_product) {
+    create(:product, id: 6)
+  }
+  let(:supplier) {
+    create(:supplier_enterprise, id: 7)
   }
   let(:taxon) {
     build(
@@ -40,7 +43,7 @@ describe SuppliedProductBuilder do
       variant.product.name = "Apple"
       product = builder.supplied_product(variant)
 
-      expect(product.name).to eq "Apple"
+      expect(product.name).to match /Apple/
     end
 
     it "assigns the variant name if present" do
@@ -48,7 +51,7 @@ describe SuppliedProductBuilder do
       variant.display_name = "Granny Smith"
       product = builder.supplied_product(variant)
 
-      expect(product.name).to eq "Apple - Granny Smith"
+      expect(product.name).to match /Apple - Granny Smith/
     end
 
     context "product_type mapping" do
@@ -58,14 +61,6 @@ describe SuppliedProductBuilder do
         soft_drink = DfcLoader.connector.PRODUCT_TYPES.DRINK.SOFT_DRINK
 
         expect(product.productType).to eq soft_drink
-      end
-
-      context "when no taxon set" do
-        let(:taxon) { nil }
-
-        it "returns nil" do
-          expect(product.productType).to be_nil
-        end
       end
     end
 
@@ -79,55 +74,13 @@ describe SuppliedProductBuilder do
 
       expect(product.image).to eq variant.product.image.url(:product)
     end
-  end
 
-  describe ".import_product" do
-    let(:supplied_product) do
-      DataFoodConsortium::Connector::SuppliedProduct.new(
-        "https://example.net/tomato",
-        name: "Tomato",
-        description: "Awesome tomato",
-        quantity: DataFoodConsortium::Connector::QuantitativeValue.new(
-          unit: DfcLoader.connector.MEASURES.KILOGRAM,
-          value: 2,
-        ),
-        productType: product_type,
+    it "assigns the product uri" do
+      product = builder.supplied_product(variant)
+
+      expect(product.spree_product_uri).to eq(
+        "http://test.host/api/dfc/enterprises/7?spree_product_id=6"
       )
-    end
-    let(:product_type) { DfcLoader.connector.PRODUCT_TYPES.VEGETABLE.NON_LOCAL_VEGETABLE }
-    let!(:taxon) {
-      create(
-        :taxon,
-        name: "Non local vegetable",
-        dfc_id: "https://github.com/datafoodconsortium/taxonomies/releases/latest/download/productTypes.rdf#non-local-vegetable"
-      )
-    }
-
-    it "creates a new Spree::Product" do
-      product = builder.import_product(supplied_product)
-
-      expect(product).to be_a(Spree::Product)
-      expect(product.name).to eq("Tomato")
-      expect(product.description).to eq("Awesome tomato")
-      expect(product.variant_unit).to eq("weight")
-    end
-
-    describe "taxon" do
-      it "assigns the taxon matching the DFC product type" do
-        product = builder.import_product(supplied_product)
-
-        expect(product.primary_taxon).to eq(taxon)
-      end
-
-      describe "when no matching taxon" do
-        let(:product_type) { DfcLoader.connector.PRODUCT_TYPES.DRINK }
-
-        it "set the taxon to nil" do
-          product = builder.import_product(supplied_product)
-
-          expect(product.primary_taxon).to be_nil
-        end
-      end
     end
   end
 end

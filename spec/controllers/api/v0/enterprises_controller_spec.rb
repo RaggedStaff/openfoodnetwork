@@ -1,11 +1,33 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Api::V0::EnterprisesController, type: :controller do
+RSpec.describe Api::V0::EnterprisesController do
   render_views
 
   let(:enterprise) { create(:distributor_enterprise) }
+
+  context "as an admin user" do
+    let(:admin) { create(:admin_user) }
+    let!(:enterprise) { create(:distributor_enterprise) }
+
+    before do
+      allow(controller).to receive(:spree_current_user) { admin }
+    end
+
+    describe "updating an enterprise" do
+      let(:enterprise_params) do
+        {
+          external_billing_id: 'INV123456'
+        }
+      end
+
+      it "changes the external_billing_id field" do
+        api_put :update, id: enterprise.id, enterprise: enterprise_params
+        expect(response).to have_http_status :ok
+
+        expect(enterprise.reload.external_billing_id).to eq('INV123456')
+      end
+    end
+  end
 
   context "as an enterprise owner" do
     let(:enterprise_owner) { create(:user) }
@@ -31,7 +53,7 @@ describe Api::V0::EnterprisesController, type: :controller do
 
       it "creates as sells=any when it is not a producer" do
         api_post :create, { enterprise: new_enterprise_params }
-        expect(response.status).to eq 201
+        expect(response).to have_http_status :created
 
         enterprise = Enterprise.last
         expect(enterprise.sells).to eq('any')
@@ -39,7 +61,7 @@ describe Api::V0::EnterprisesController, type: :controller do
 
       it "creates a visible=hidden enterprise" do
         api_post :create, { enterprise: new_enterprise_params }
-        expect(response.status).to eq 201
+        expect(response).to have_http_status :created
 
         enterprise = Enterprise.last
         expect(enterprise.visible).to eq("only_through_links")
@@ -52,7 +74,7 @@ describe Api::V0::EnterprisesController, type: :controller do
           enterprise: new_enterprise_params.
             merge({ user_ids: [enterprise_owner.id, manager1.id, manager2.id] })
         }
-        expect(response.status).to eq 201
+        expect(response).to have_http_status :created
 
         enterprise = Enterprise.last
         expect(enterprise.user_ids).to match_array([enterprise_owner.id, manager1.id, manager2.id])
@@ -69,6 +91,32 @@ describe Api::V0::EnterprisesController, type: :controller do
           expect_any_instance_of(AddressGeocoder).not_to receive(:geocode)
 
           api_post :create, { enterprise: new_enterprise_params, use_geocoder: "0" }
+        end
+      end
+
+      context "when Terms of Service acceptance is required" do
+        before { allow(Spree::Config).to receive(:enterprises_require_tos).and_return(true) }
+
+        it "records ToS acceptance on the owner when the enterprise is created" do
+          expect {
+            api_post :create, { enterprise: new_enterprise_params }
+            enterprise_owner.reload
+          }.to change { enterprise_owner.terms_of_service_accepted_at }
+
+          expect(response).to have_http_status :created
+        end
+      end
+
+      context "when Terms of Service acceptance is not required" do
+        before { allow(Spree::Config).to receive(:enterprises_require_tos).and_return(false) }
+
+        it "does not update terms_of_service_accepted_at" do
+          expect {
+            api_post :create, { enterprise: new_enterprise_params }
+            enterprise_owner.reload
+          }.not_to change { enterprise_owner.terms_of_service_accepted_at }
+
+          expect(response).to have_http_status :created
         end
       end
     end
@@ -91,14 +139,14 @@ describe Api::V0::EnterprisesController, type: :controller do
 
       it "I can update enterprise logo image" do
         api_post :update_image, logo:, id: enterprise.id
-        expect(response.status).to eq 200
+        expect(response).to have_http_status :ok
         expect(response.content_type).to eq "text/html"
         expect(response.body).to match /logo\.png$/
       end
 
       it "I can update enterprise promo image" do
         api_post :update_image, promo: logo, id: enterprise.id
-        expect(response.status).to eq 200
+        expect(response).to have_http_status :ok
         expect(response.content_type).to eq "text/html"
         expect(response.body).to match /logo\.png$/
       end

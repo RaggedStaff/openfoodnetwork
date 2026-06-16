@@ -1,27 +1,42 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe EnterpriseMailer do
-  let!(:enterprise) { create(:enterprise) }
-  let!(:user) { create(:user) }
+RSpec.describe EnterpriseMailer do
+  let(:enterprise) { build(:enterprise, name: "Fred's Farm") }
+  let(:order) { build(:order_with_distributor) }
 
   describe "#welcome" do
-    it "sends a welcome email when given an enterprise" do
-      EnterpriseMailer.welcome(enterprise).deliver_now
+    subject(:mail) { described_class.welcome(enterprise) }
 
-      mail = ActionMailer::Base.deliveries.first
+    it "sends a welcome email when given an enterprise" do
       expect(mail.subject)
-        .to eq "#{enterprise.name} is now on #{Spree::Config[:site_name]}"
+        .to eq "Fred's Farm is now on OFN Demo Site"
+    end
+
+    it "does not set a reply-to email" do
+      expect(mail.reply_to).to eq nil
+    end
+
+    context "white labelling" do
+      it_behaves_like 'email with inactive white labelling', :mail
+      it_behaves_like 'non-customer facing email with active white labelling', :mail
     end
   end
 
   describe "#manager_invitation" do
+    subject(:mail) { described_class.manager_invitation(enterprise, user) }
+    let(:user) { build(:user) }
+
     it "should send a manager invitation email when given an enterprise and user" do
-      EnterpriseMailer.manager_invitation(enterprise, user).deliver_now
-      expect(ActionMailer::Base.deliveries.count).to eq 1
-      mail = ActionMailer::Base.deliveries.first
-      expect(mail.subject).to eq "#{enterprise.name} has invited you to be a manager"
+      expect(mail.subject).to eq "Fred's Farm has invited you to be a manager"
+    end
+
+    it "sets a reply-to of the enterprise email" do
+      expect(mail.reply_to).to eq([enterprise.contact.email])
+    end
+
+    context "white labelling" do
+      it_behaves_like 'email with inactive white labelling', :mail
+      it_behaves_like 'non-customer facing email with active white labelling', :mail
     end
   end
 end

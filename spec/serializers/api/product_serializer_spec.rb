@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
 require 'open_food_network/enterprise_fee_calculator'
 
-describe Api::ProductSerializer do
+RSpec.describe Api::ProductSerializer do
   include ShopWorkflow
 
   let!(:distributor) { create(:distributor_enterprise) }
@@ -28,7 +27,7 @@ describe Api::ProductSerializer do
   it "serializes various attributes" do
     expect(serializer.serializable_hash.keys).to eq [
       :id, :name, :meta_keywords, :group_buy, :notes, :description, :description_html,
-      :properties_with_values, :variants, :primary_taxon, :image, :supplier
+      :properties_with_values, :variants, :image
     ]
   end
 

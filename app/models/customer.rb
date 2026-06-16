@@ -10,6 +10,8 @@
 class Customer < ApplicationRecord
   include SetUnusedAddressFields
 
+  self.ignored_columns += ['name']
+
   acts_as_taggable
 
   searchable_attributes :first_name, :last_name, :email, :code
@@ -17,17 +19,20 @@ class Customer < ApplicationRecord
   belongs_to :enterprise
   belongs_to :user, class_name: "Spree::User", optional: true
   has_many :orders, class_name: "Spree::Order", dependent: :nullify
+  has_many :customer_account_transactions, dependent: :restrict_with_error
   before_validation :downcase_email
   before_validation :empty_code
   before_create :associate_user
   before_destroy :update_orders_and_delete_canceled_subscriptions
 
   belongs_to :bill_address, class_name: "Spree::Address", optional: true
-  alias_attribute :billing_address, :bill_address
+  alias_method :billing_address, :bill_address
+  alias_method :billing_address=, :bill_address=
   accepts_nested_attributes_for :bill_address
 
   belongs_to :ship_address, class_name: "Spree::Address", optional: true
-  alias_attribute :shipping_address, :ship_address
+  alias_method :shipping_address, :ship_address
+  alias_method :shipping_address=, :ship_address=
   accepts_nested_attributes_for :ship_address
 
   validates :code, uniqueness: { scope: :enterprise_id, allow_nil: true }
@@ -48,6 +53,10 @@ class Customer < ApplicationRecord
 
   def full_name
     "#{first_name} #{last_name}".strip
+  end
+
+  def credit_balance
+    customer_account_transactions.order(:id).last&.balance || 0.00
   end
 
   private

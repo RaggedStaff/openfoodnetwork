@@ -5,10 +5,10 @@ require 'ostruct'
 module Spree
   class Shipment < ApplicationRecord
     self.belongs_to_required_by_default = false
+    self.ignored_columns += [:stock_location_id]
 
     belongs_to :order, class_name: 'Spree::Order'
     belongs_to :address, class_name: 'Spree::Address'
-    belongs_to :stock_location, class_name: 'Spree::StockLocation'
 
     has_many :shipping_rates, dependent: :delete_all
     has_many :shipping_methods, through: :shipping_rates
@@ -163,7 +163,7 @@ module Spree
     end
 
     def currency
-      order ? order.currency : Spree::Config[:currency]
+      order ? order.currency : CurrentConfig.get(:currency)
     end
 
     def display_cost
@@ -194,7 +194,9 @@ module Spree
       inventory_units.group_by(&:variant).map do |variant, units|
         states = {}
         units.group_by(&:state).each { |state, iu| states[state] = iu.count }
+
         scoper.scope(variant)
+
         OpenStruct.new(variant:, quantity: units.length, states:)
       end
     end
@@ -257,7 +259,7 @@ module Spree
     end
 
     def to_package
-      package = OrderManagement::Stock::Package.new(stock_location, order)
+      package = OrderManagement::Stock::Package.new(order)
       grouped_inventory_units = inventory_units.includes(:variant).group_by do |iu|
         [iu.variant, iu.state_name]
       end
@@ -313,11 +315,11 @@ module Spree
     end
 
     def manifest_unstock(item)
-      stock_location.unstock item.variant, item.quantity, self
+      item.variant.move(-1 * item.quantity)
     end
 
     def manifest_restock(item)
-      stock_location.restock item.variant, item.quantity, self
+      item.variant.move(item.quantity)
     end
 
     def generate_shipment_number

@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe AddressGeocoder do
+RSpec.describe AddressGeocoder do
   let(:australia) { Spree::Country.find_or_create_by!(name: "Australia") }
   let(:victoria) { Spree::State.find_or_create_by(name: "Victoria", country: australia) }
   let(:address) do

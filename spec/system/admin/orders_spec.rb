@@ -2,7 +2,7 @@
 
 require "system_helper"
 
-describe '
+RSpec.describe '
     As an administrator
     I want to manage orders
 ' do
@@ -37,12 +37,12 @@ describe '
   }
   let(:distributor5) { create(:distributor_enterprise, owner: owner2, charges_sales_tax: true) }
   let!(:shipping_method) {
-    create(:shipping_method_with, :pickup, name: "pick_up",
+    create(:shipping_method_with, :pickup, name: "Pick up at the farm",
                                            distributors: [distributor, distributor2, distributor3])
   }
   let!(:shipping_method2) {
-    create(:shipping_method_with, :pickup, name: "delivery",
-                                           distributors: [distributor4, distributor5])
+    create(:shipping_method_with, :delivery, name: "Home delivery to your convenience",
+                                             distributors: [distributor4, distributor5])
   }
   let(:order_cycle) do
     create(:simple_order_cycle, name: 'One', distributors: [distributor, distributor2,
@@ -100,33 +100,37 @@ describe '
       end
 
       it "order cycles appear in descending order by close date on orders page" do
-        tomselect_open('q_order_cycle_id_in').click
-
-        expect(find('#q_order_cycle_id_in',
-                    visible: :all)[:innerHTML]).to have_content(/.*Four.*Three.*Two.*Five/m)
+        open_tomselect_to_validate!(page, 'q_order_cycle_id_in') do
+          oc_html = find('#q_order_cycle_id_in', visible: :all)[:innerHTML]
+          expect(oc_html).to have_content(/.*Four.*Three.*Two.*Five/m)
+        end
       end
 
       it "filter by multiple order cycles" do
         tomselect_multiselect 'Two', from: 'q[order_cycle_id_in][]'
         tomselect_multiselect 'Three', from: 'q[order_cycle_id_in][]'
 
+        # Close filter by payment state dropdown that became open for some reason
+        page.find("body").click
         page.find('.filter-actions .button[type=submit]').click
 
         # Order 2 and 3 should show, but not 4
         expect(page).to have_content order2.number
         expect(page).to have_content order3.number
-        expect(page).to_not have_content order4.number
+        expect(page).not_to have_content order4.number
       end
 
       it "filter by distributors" do
         tomselect_multiselect distributor2.name.to_s, from: 'q[distributor_id_in][]'
         tomselect_multiselect distributor4.name.to_s, from: 'q[distributor_id_in][]'
 
+        # Close filter by payment state dropdown that became open for some reason
+        page.find("body").click
         page.find('.filter-actions .button[type=submit]').click
 
         # Order 2 and 4 should show, but not 3
         expect(page).to have_content order2.number
-        expect(page).to_not have_content order3.number
+        expect(page).not_to have_content order3.number
         expect(page).to have_content order4.number
       end
 
@@ -138,7 +142,7 @@ describe '
         page.find('.filter-actions .button[type=submit]').click
 
         # Order 3 and 4 should show, but not 2
-        expect(page).to_not have_content order2.number
+        expect(page).not_to have_content order2.number
         expect(page).to have_content order3.number
         expect(page).to have_content order4.number
       end
@@ -149,9 +153,9 @@ describe '
         page.find('.filter-actions .button[type=submit]').click
 
         # Order 3 should show, but not 2 and 4
-        expect(page).to_not have_content order2.number
+        expect(page).not_to have_content order2.number
         expect(page).to have_content order3.number
-        expect(page).to_not have_content order4.number
+        expect(page).not_to have_content order4.number
       end
 
       it "filter by customer first and last names" do
@@ -161,8 +165,8 @@ describe '
         page.find('.filter-actions .button[type=submit]').click
         # Order 2 should show, but not 3 and 4
         expect(page).to have_content order2.number
-        expect(page).to_not have_content order3.number
-        expect(page).to_not have_content order4.number
+        expect(page).not_to have_content order3.number
+        expect(page).not_to have_content order4.number
 
         find("#clear_filters_button").click
         # filtering by last name
@@ -170,8 +174,8 @@ describe '
         fill_in "Last name begins with", with: billing_address4.lastname
         page.find('.filter-actions .button[type=submit]').click
         # Order 4 should show, but not 2 and 3
-        expect(page).to_not have_content order2.number
-        expect(page).to_not have_content order3.number
+        expect(page).not_to have_content order2.number
+        expect(page).not_to have_content order3.number
         expect(page).to have_content order4.number
 
         find("#clear_filters_button").click
@@ -190,20 +194,20 @@ describe '
         order2.select_shipping_method(shipping_method.id)
         order4.select_shipping_method(shipping_method2.id)
 
-        tomselect_search_and_select "Pick-up at the farm", from: 'shipping_method_id'
+        tomselect_search_and_select "Pick up at the farm", from: 'shipping_method_id'
         page.find('.filter-actions .button[type=submit]').click
         # Order 2 should show, but not 3 and 5
         expect(page).to have_content order2.number
-        expect(page).to_not have_content order3.number
-        expect(page).to_not have_content order4.number
+        expect(page).not_to have_content order3.number
+        expect(page).not_to have_content order4.number
 
         find("#clear_filters_button").click
 
-        tomselect_search_and_select "Signed, sealed, delivered", from: 'shipping_method_id'
+        tomselect_search_and_select "Home delivery to your convenience", from: 'shipping_method_id'
         page.find('.filter-actions .button[type=submit]').click
         # Order 4 should show, but not 2 and 3
-        expect(page).to_not have_content order2.number
-        expect(page).to_not have_content order3.number
+        expect(page).not_to have_content order2.number
+        expect(page).not_to have_content order3.number
         expect(page).to have_content order4.number
       end
 
@@ -214,8 +218,8 @@ describe '
 
         # Order 2 should show, but not 3 and 4
         expect(page).to have_content order2.number
-        expect(page).to_not have_content order3.number
-        expect(page).to_not have_content order4.number
+        expect(page).not_to have_content order3.number
+        expect(page).not_to have_content order4.number
       end
 
       it "filter by order state" do
@@ -236,10 +240,23 @@ describe '
 
         # Order 2 should show, but not 3 and 4
         expect(page).to have_content order.number
-        expect(page).to_not have_content order2.number
-        expect(page).to_not have_content order3.number
-        expect(page).to_not have_content order4.number
-        expect(page).to_not have_content order5.number
+        expect(page).not_to have_content order2.number
+        expect(page).not_to have_content order3.number
+        expect(page).not_to have_content order4.number
+        expect(page).not_to have_content order5.number
+      end
+
+      it "filter by payment state" do
+        tomselect_multiselect "paid", from: 'q[payment_state_in][]'
+        tomselect_multiselect "credit owed", from: 'q[payment_state_in][]'
+
+        page.find('.filter-actions .button[type=submit]').click
+
+        expect(page).not_to have_content order.number
+        expect(page).to have_content order2.number
+        expect(page).to have_content order3.number
+        expect(page).to have_content order4.number
+        expect(page).to have_content order5.number
       end
     end
 
@@ -279,9 +296,9 @@ describe '
         expect(page).to have_content order_not_empty_no_address.number
 
         # And the same orders are displayed when sorting by name:
-        find("th a", text: "NAME").click
+        find("th a", text: "Name").click
 
-        expect(page).to have_no_content order_empty.number
+        expect(page).not_to have_content order_empty.number
         expect(page).to have_content order_not_empty.number
         expect(page).to have_content order_not_empty_no_address.number
       end
@@ -298,11 +315,11 @@ describe '
           visit spree.admin_orders_path
         end
         it "orders by completion date" do
-          find("a", text: 'COMPLETED AT').click # sets ascending ordering
+          find("a", text: 'Completed At').click # sets ascending ordering
           expect(page).to have_content(
             /#{order5.number}.*#{order4.number}.*#{order3.number}.*#{order2.number}/m
           )
-          find("a", text: 'COMPLETED AT').click # sets descending ordering
+          find("a", text: 'Completed At').click # sets descending ordering
           expect(page).to have_content(
             /#{order2.number}.*#{order3.number}.*#{order4.number}.*#{order5.number}/m
           )
@@ -320,11 +337,11 @@ describe '
         end
 
         it "orders by order number" do
-          find("a", text: 'NUMBER').click # sets ascending ordering
+          find("a", text: 'Number').click # sets ascending ordering
           expect(page).to have_content(
             /#{order5.number}.*#{order4.number}.*#{order3.number}.*#{order2.number}/m
           )
-          find("a", text: 'NUMBER').click # sets descending ordering
+          find("a", text: 'Number').click # sets descending ordering
           expect(page).to have_content(
             /#{order2.number}.*#{order3.number}.*#{order4.number}.*#{order5.number}/m
           )
@@ -344,11 +361,11 @@ describe '
         end
 
         it "orders by order state" do
-          find("a", text: 'STATE').click # sets ascending ordering
+          find("a", text: 'State').click # sets ascending ordering
           expect(page).to have_content(
             /#{order5.number}.*#{order4.number}.*#{order3.number}.*#{order2.number}/m
           )
-          find("a", text: 'STATE').click # sets descending ordering
+          find("a", text: 'State').click # sets descending ordering
           expect(page).to have_content(
             /#{order2.number}.*#{order3.number}.*#{order4.number}.*#{order5.number}/m
           )
@@ -365,9 +382,9 @@ describe '
         end
 
         it "orders by payment state" do
-          find("a", text: 'PAYMENT STATE').click # sets ascending ordering
+          find("a", text: 'Payment State').click # sets ascending ordering
           expect(page).to have_content(/#{order4.number}.*#{order3.number}.*#{order2.number}/m)
-          find("a", text: 'PAYMENT STATE').click # sets descending ordering
+          find("a", text: 'Payment State').click # sets descending ordering
           expect(page).to have_content(/#{order2.number}.*#{order3.number}.*#{order4.number}/m)
         end
       end
@@ -383,9 +400,9 @@ describe '
         end
 
         it "orders by shipment state" do
-          find("a", text: 'SHIPMENT STATE').click # sets ascending ordering
+          find("a", text: 'Shipment State').click # sets ascending ordering
           expect(page).to have_content(/#{order4.number}.*#{order3.number}.*#{order2.number}/m)
-          find("a", text: 'SHIPMENT STATE').click # sets descending ordering
+          find("a", text: 'Shipment State').click # sets descending ordering
           expect(page).to have_content(/#{order2.number}.*#{order3.number}.*#{order4.number}/m)
         end
       end
@@ -401,11 +418,11 @@ describe '
         end
 
         it "orders by customer email" do
-          find("a", text: 'EMAIL').click # sets ascending ordering
+          find("a", text: 'Email').click # sets ascending ordering
           expect(page).to have_content(
             /#{order5.number}.*#{order4.number}.*#{order3.number}.*#{order2.number}/m
           )
-          find("a", text: 'EMAIL').click # sets descending ordering
+          find("a", text: 'Email').click # sets descending ordering
           expect(page).to have_content(
             /#{order2.number}.*#{order3.number}.*#{order4.number}.*#{order5.number}/m
           )
@@ -423,11 +440,11 @@ describe '
         end
 
         it "orders by last name then first name" do
-          find("a", text: 'NAME').click # sets ascending ordering
+          find("a", text: 'Name').click # sets ascending ordering
           expect(page).to have_content(
             /#{order4.number}.*#{order2.number}.*#{order3.number}.*#{order5.number}/m
           )
-          find("a", text: 'NAME').click # sets descending ordering
+          find("a", text: 'Name').click # sets descending ordering
           expect(page).to have_content(
             /#{order5.number}.*#{order3.number}.*#{order2.number}.*#{order4.number}/m
           )
@@ -445,31 +462,28 @@ describe '
           within "tr#order_#{order3.id}" do
             expect(page).to have_content "Note"
             find(".icon-warning-sign").hover
-            expect(page).to have_content /#{order3.special_instructions}/i
+            expect(page).to have_content(/#{order3.special_instructions}/i)
           end
         end
       end
 
       context "orders with different order totals" do
         before do
-          Spree::LineItem.where(order_id: order2.id).first.update!(quantity: 5)
-          Spree::LineItem.where(order_id: order3.id).first.update!(quantity: 4)
-          Spree::LineItem.where(order_id: order4.id).first.update!(quantity: 3)
-          Spree::LineItem.where(order_id: order5.id).first.update!(quantity: 2)
-          order2.save
-          order3.save
-          order4.save
-          order5.save
+          order2.contents.update_item(Spree::LineItem.find_by(order_id: order2.id), { quantity: 5 })
+          order3.contents.update_item(Spree::LineItem.find_by(order_id: order3.id), { quantity: 4 })
+          order4.contents.update_item(Spree::LineItem.find_by(order_id: order4.id), { quantity: 3 })
+          order5.contents.update_item(Spree::LineItem.find_by(order_id: order5.id), { quantity: 2 })
+
           login_as_admin
           visit spree.admin_orders_path
         end
 
         it "orders by order total" do
-          find("a", text: 'TOTAL').click # sets ascending ordering
+          find("a", text: 'Total').click # sets ascending ordering
           expect(page).to have_content(
             /#{order5.number}.*#{order4.number}.*#{order3.number}.*#{order2.number}/m
           )
-          find("a", text: 'TOTAL').click # sets descending ordering
+          find("a", text: 'Total').click # sets descending ordering
           expect(page).to have_content(
             /#{order2.number}.*#{order3.number}.*#{order4.number}.*#{order5.number}/m
           )
@@ -490,236 +504,56 @@ describe '
                  "#listing_orders tbody tr td:first-child input[type=checkbox]"
                )).to be_checked
         # enables print invoices button
-        page.find("span.icon-reorder", text: "ACTIONS").click
+        page.find("span.icon-reorder", text: "Actions").click
         expect(page).to have_content "Print Invoices"
         # unselect all orders
         page.find("#listing_orders thead th:first-child input[type=checkbox]").trigger("click")
         expect(page.find(
                  "#listing_orders tbody tr td:first-child input[type=checkbox]"
-               )).to_not be_checked
+               )).not_to be_checked
         # disables print invoices button not clickable
-        expect { find("span.icon-reorder", text: "ACTIONS").click }
+        expect { find("span.icon-reorder", text: "Actions").click }
           .to raise_error(Capybara::Cuprite::MouseEventFailed)
-        expect(page).to_not have_content "Print Invoices"
-      end
-    end
-
-    context "bulk actions" do
-      context "as a super admin" do
-        before do
-          login_as_admin
-          visit spree.admin_orders_path
-        end
-
-        context "can bulk send invoices per email" do
-          before do
-            Spree::Config[:enable_invoices?] = true
-            Spree::Config[:enterprise_number_required_on_invoices?] = false
-          end
-
-          context "with multiple orders with differents states" do
-            before do
-              order2.update(state: "complete")
-              order3.update(state: "resumed")
-              order4.update(state: "canceled")
-              order5.update(state: "payment")
-            end
-
-            it "can bulk send invoices per email, but only for the 'complete' or 'resumed' ones" do
-              within "#listing_orders" do
-                page.find("input[name='bulk_ids[]'][value='#{order2.id}']").click
-                page.find("input[name='bulk_ids[]'][value='#{order3.id}']").click
-                page.find("input[name='bulk_ids[]'][value='#{order4.id}']").click
-                page.find("input[name='bulk_ids[]'][value='#{order5.id}']").click
-              end
-
-              page.find("span.icon-reorder", text: "ACTIONS").click
-              within ".ofn-drop-down .menu" do
-                page.find("span", text: "Send Invoices").click
-              end
-
-              expect(page).to have_content "This will email customer invoices " \
-                                           "for all selected complete orders."
-              expect(page).to have_content "Are you sure you want to proceed?"
-
-              within ".reveal-modal" do
-                expect {
-                  find_button("Confirm").click
-                }.to enqueue_job(ActionMailer::MailDeliveryJob).exactly(:twice)
-              end
-
-              expect(page).to have_content "Invoice emails sent for 2 orders."
-            end
-          end
-
-          it "can bulk send confirmation email from 2 orders" do
-            page.find("#listing_orders tbody tr:nth-child(1) input[name='bulk_ids[]']").click
-            page.find("#listing_orders tbody tr:nth-child(2) input[name='bulk_ids[]']").click
-
-            page.find("span.icon-reorder", text: "ACTIONS").click
-            within ".ofn-drop-down .menu" do
-              page.find("span", text: "Resend Confirmation").click
-            end
-
-            expect(page).to have_content "Are you sure you want to proceed?"
-
-            within ".reveal-modal" do
-              expect {
-                find_button("Confirm").click
-              }.to enqueue_job(ActionMailer::MailDeliveryJob).exactly(:twice)
-            end
-
-            expect(page).to have_content "Confirmation emails sent for 2 orders."
-          end
-        end
-
-        context "can bulk print invoices" do
-          def extract_pdf_content
-            # Extract last part of invoice URL
-            link = page.find(class: "button", text: "VIEW FILE")
-            filename = link[:href].match %r{/invoices/.*}
-
-            # Load invoice temp file directly instead of downloading
-            reader = PDF::Reader.new("tmp/#{filename}.pdf")
-            reader.pages.map(&:text)
-          end
-
-          shared_examples "can bulk print invoices from 2 orders" do
-            it "bulk prints invoices in pdf format" do
-              page.find("#listing_orders tbody tr:nth-child(1) input[name='bulk_ids[]']").click
-              page.find("#listing_orders tbody tr:nth-child(2) input[name='bulk_ids[]']").click
-
-              page.find("span.icon-reorder", text: "ACTIONS").click
-              within ".ofn-drop-down .menu" do
-                expect {
-                  page.find("span", text: "Print Invoices").click # Prints invoices in bulk
-                }.to enqueue_job(BulkInvoiceJob).exactly(:once)
-              end
-
-              expect(page).to have_content "Compiling Invoices"
-              expect(page).to have_content "Please wait until the PDF is ready " \
-                                           "before closing this modal."
-
-              # we don't run Sidekiq in test environment, so we need to manually run enqueued jobs
-              # to generate PDF files, and change the modal accordingly
-              perform_enqueued_jobs(only: BulkInvoiceJob)
-
-              expect(page).to have_content "Bulk Invoice created"
-
-              within ".modal-content" do
-                expect(page).to have_link(class: "button", text: "VIEW FILE", href: /invoices/)
-
-                invoice_content = extract_pdf_content
-
-                expect(invoice_content).to have_content("TAX INVOICE", count: 2)
-                expect(invoice_content).to have_content(order4.number.to_s)
-                expect(invoice_content).to have_content(order5.number.to_s)
-                expect(invoice_content).to have_content(distributor4.name.to_s)
-                expect(invoice_content).to have_content(distributor5.name.to_s)
-                expect(invoice_content).to have_content(order_cycle4.name.to_s)
-                expect(invoice_content).to have_content(order_cycle5.name.to_s)
-              end
-            end
-          end
-
-          it_behaves_like "can bulk print invoices from 2 orders"
-
-          context "with legal invoices feature", feature: :invoices do
-            it_behaves_like "can bulk print invoices from 2 orders"
-          end
-        end
-
-        it "can bulk cancel 2 orders" do
-          page.find("#listing_orders tbody tr:nth-child(1) input[name='bulk_ids[]']").click
-          page.find("#listing_orders tbody tr:nth-child(2) input[name='bulk_ids[]']").click
-
-          page.find("span.icon-reorder", text: "ACTIONS").click
-          within ".ofn-drop-down .menu" do
-            page.find("span", text: "Cancel Orders").click
-          end
-
-          expect(page).to have_content "Are you sure you want to proceed?"
-          expect(page).to have_content "This will cancel the current order."
-
-          within ".reveal-modal" do
-            uncheck "Send a cancellation email to the customer"
-            expect {
-              find_button("Cancel").click # Cancels the cancel action
-            }.to_not enqueue_job(ActionMailer::MailDeliveryJob).exactly(:twice)
-          end
-
-          page.find("span.icon-reorder", text: "ACTIONS").click
-          within ".ofn-drop-down .menu" do
-            page.find("span", text: "Cancel Orders").click
-          end
-
-          within ".reveal-modal" do
-            expect {
-              find_button("Confirm").click # Confirms the cancel action
-            }.to_not enqueue_job(ActionMailer::MailDeliveryJob).exactly(:twice)
-          end
-
-          expect(page).to have_content("CANCELLED", count: 2)
-        end
-      end
-
-      context "for a hub manager" do
-        before do
-          login_as owner2
-          visit spree.admin_orders_path
-        end
-
-        it "displays the orders for the respective distributor" do
-          expect(page).to have_content order5.number # displays the only order for distributor5
-          expect(page).not_to have_content order.number
-          expect(page).not_to have_content order2.number
-          expect(page).not_to have_content order3.number
-          expect(page).not_to have_content order4.number
-        end
-
-        it "cannot send emails to orders if permission have been revoked in the meantime" do
-          page.find("#listing_orders tbody tr:nth-child(1) input[name='bulk_ids[]']").click
-          # Find the clicked order
-          order = Spree::Order.find_by(
-            id: page.find("#listing_orders tbody tr:nth-child(1) input[name='bulk_ids[]']").value
-          )
-          # Revoke permission for the current user on that specific order by changing its owners
-          order.update_attribute(:distributor, distributor)
-          order.update_attribute(:order_cycle, order_cycle)
-
-          page.find("span.icon-reorder", text: "ACTIONS").click
-          within ".ofn-drop-down .menu" do
-            page.find("span", text: "Resend Confirmation").click
-          end
-
-          expect(page).to have_content "Are you sure you want to proceed?"
-
-          within ".reveal-modal" do
-            expect {
-              find_button("Confirm").click
-            }.to_not enqueue_job(ActionMailer::MailDeliveryJob)
-          end
-        end
+        expect(page).not_to have_content "Print Invoices"
       end
     end
 
     context "pagination" do
       before do
+        # creates 15 orders additional to the 4 orders
+        15.times { create(:order_ready_to_ship) }
         login_as_admin
         visit spree.admin_orders_path
       end
 
       it "displays pagination options" do
-        # displaying 4 orders (one order per table row)
+        # displaying 15 orders (one order per table row)
         within('tbody') do
-          expect(page).to have_css('tr', count: 4)
+          expect(page).to have_css('tr', count: 15)
         end
-        # pagination options also refer 4 order
-        expect(page).to have_content "4 Results found. Viewing 1 to 4."
+        # pagination options refers 19 orders
+        expect(page).to have_content "19 Results found. Viewing 1 to 15."
         page.find(".per-page-dropdown .ts-control .item").click # toggling the pagination dropdown
         expect(page).to have_content "15 per page"
         expect(page).to have_content "50 per page"
         expect(page).to have_content "100 per page"
+      end
+
+      it "changes pagination and displays entries" do
+        within ".pagination" do
+          expect(page).not_to have_css('a.page.prev')
+          expect(page).to have_css('a.page.next')
+          click_on "2"
+        end
+        # table displays 4 entries
+        within('tbody') do
+          expect(page).to have_css('tr', count: 4)
+        end
+        expect(page).to have_content "19 Results found. Viewing 16 to 19."
+        within ".pagination" do
+          expect(page).to have_css('a.page.prev')
+          expect(page).not_to have_css('a.page.next')
+        end
       end
     end
 
@@ -899,15 +733,15 @@ describe '
       visit spree.admin_orders_path
       expect(page).to have_content complete_order.number
       expect(page).to have_content empty_complete_order.number
-      expect(page).to have_no_content incomplete_order.number
-      expect(page).to have_no_content empty_order.number
+      expect(page).not_to have_content incomplete_order.number
+      expect(page).not_to have_content empty_order.number
 
       uncheck 'Only show complete orders'
       page.find('button[type=submit]').click
 
       expect(page).to have_content complete_order.number
       expect(page).to have_content incomplete_order.number
-      expect(page).to have_no_content empty_order.number
+      expect(page).not_to have_content empty_order.number
     end
   end
 

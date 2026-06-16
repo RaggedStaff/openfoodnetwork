@@ -2,7 +2,7 @@
 
 require "system_helper"
 
-describe '
+RSpec.describe '
     As an administrator
     I want to manage adjustments on orders
 ' do
@@ -25,7 +25,7 @@ describe '
   }
 
   let!(:tax_category_included) { create(:tax_category, name: 'TVA 20%', is_default: true) }
-  let!(:default_tax_zone) { create(:zone, default_tax: true) }
+  let!(:default_tax_zone) { create(:zone, default_tax: true, member: Spree::Country.last) }
   let!(:tax_rate2) {
     create(:tax_rate, name: "TVA 20%", amount: 0.2, zone: default_tax_zone, included_in_price: true,
                       tax_category: tax_category_included, calculator: Calculator::DefaultTax.new )
@@ -152,7 +152,7 @@ describe '
     click_link 'Adjustments'
     page.find('tr', text: 'Extra Adjustment').find('a.icon-edit').click
 
-    expect(page).to have_select2 :adjustment_tax_category_id, selected: []
+    expect(page).to have_select2 :adjustment_tax_category_id, selected: "None"
 
     # When I edit the adjustment, setting a tax rate
     select2_select 'GST', from: :adjustment_tax_category_id
@@ -178,8 +178,8 @@ describe '
     it "displays adjustments" do
       click_link 'Adjustments'
 
-      expect(page).to_not have_selector 'tr a.icon-edit'
-      expect(page).to_not have_selector 'a.icon-plus', text: 'New Adjustment'
+      expect(page).not_to have_selector 'tr a.icon-edit'
+      expect(page).not_to have_selector 'a.icon-plus', text: 'New Adjustment'
     end
   end
 end

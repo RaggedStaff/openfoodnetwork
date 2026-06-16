@@ -10,10 +10,10 @@ module Reporting
             .complete.not_state(:canceled)
             .order(:id))
             .group_by do |order|
-            {
-              customer_id: order.customer_id || order.email,
-              hub_id: order.distributor_id,
-            }
+              {
+                customer_id: order.customer_id || order.email,
+                hub_id: order.distributor_id,
+              }
           end.values
         end
 
@@ -33,7 +33,7 @@ module Reporting
                          },
             shipping_method: proc { |orders| last_completed_order(orders).shipping_method&.name },
             total_orders: proc { |orders| orders.count },
-            total_incl_tax: proc { |orders| orders.sum(&:total) },
+            total_incl_tax: proc { |orders| orders.map(&:total).compact.sum },
             last_completed_order_date: proc { |orders| last_completed_order_date(orders) },
           }
         end

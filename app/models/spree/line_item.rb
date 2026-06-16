@@ -5,9 +5,6 @@ require 'open_food_network/scope_variant_to_hub'
 module Spree
   class LineItem < ApplicationRecord
     include VariantUnits::VariantAndLineItemNaming
-    include LineItemStockChanges
-
-    self.belongs_to_required_by_default = false
 
     searchable_attributes :price, :quantity, :order_id, :variant_id, :tax_category_id
     searchable_associations :order, :order_cycle, :variant, :product, :supplier, :tax_category
@@ -16,10 +13,10 @@ module Spree
     belongs_to :order, class_name: "Spree::Order", inverse_of: :line_items
     has_one :order_cycle, through: :order
 
-    belongs_to :variant, -> { with_deleted }, class_name: "Spree::Variant"
+    belongs_to :variant, -> { with_deleted }, class_name: "Spree::Variant", inverse_of: :line_items
     has_one :product, through: :variant
-    has_one :supplier, through: :product
-    belongs_to :tax_category, class_name: "Spree::TaxCategory"
+    has_one :supplier, through: :variant
+    belongs_to :tax_category, class_name: "Spree::TaxCategory", optional: true
 
     has_many :adjustments, as: :adjustable, dependent: :destroy
 
@@ -27,8 +24,9 @@ module Spree
     before_validation :copy_price
     before_validation :copy_tax_category
     before_validation :copy_dimensions
+    before_validation :copy_product_name, on: :create
+    before_validation :copy_variant_name, on: :create
 
-    validates :variant, presence: true
     validates :quantity, numericality: {
       only_integer: true,
       greater_than: -1,
@@ -49,7 +47,8 @@ module Spree
     after_destroy :update_order
     after_save :update_order
 
-    delegate :product, :variant_unit, :unit_description, :display_name, :display_as, to: :variant
+    delegate :product, :variant_unit, :unit_description, :display_name, :display_as,
+             :variant_unit_scale, :variant_unit_name, to: :variant
 
     # Allows manual skipping of Stock::AvailabilityValidator
     attr_accessor :skip_stock_check, :target_shipment
@@ -57,19 +56,6 @@ module Spree
     attribute :restock_item, type: :boolean, default: true
 
     # -- Scopes
-    scope :managed_by, lambda { |user|
-      if user.has_spree_role?('admin')
-        where(nil)
-      else
-        # Find line items that are from orders distributed by the user or supplied by the user
-        joins(variant: :product).
-          joins(:order).
-          where('spree_orders.distributor_id IN (?) OR spree_products.supplier_id IN (?)',
-                user.enterprises, user.enterprises).
-          select('spree_line_items.*')
-      end
-    }
-
     scope :in_orders, lambda { |orders|
       where(order_id: orders)
     }
@@ -85,21 +71,19 @@ module Spree
 
     scope :from_order_cycle, lambda { |order_cycle|
       joins(order: :order_cycle).
-        where('order_cycles.id = ?', order_cycle)
+        where(order_cycles: { id: order_cycle })
     }
 
-    # Here we are simply joining the line item to its variant and product
-    # We dont use joins here to avoid the default scopes,
-    #   and with that, include deleted variants and deleted products
+    # Here we are simply joining the line item to its variant
+    # We dont use joins here to avoid the default scopes, and with that, include deleted variants
     scope :supplied_by_any, lambda { |enterprises|
-      product_ids = Spree::Product.unscoped.where(supplier_id: enterprises).select(:id)
-      variant_ids = Spree::Variant.unscoped.where(product_id: product_ids).select(:id)
-      where("spree_line_items.variant_id IN (?)", variant_ids)
+      variant_ids = Spree::Variant.unscoped.where(supplier: enterprises).select(:id)
+      where(variant_id: variant_ids)
     }
 
     scope :with_tax, -> {
       joins(:adjustments).
-        where('spree_adjustments.originator_type = ?', 'Spree::TaxRate').
+        where(spree_adjustments: { originator_type: 'Spree::TaxRate' }).
         select('DISTINCT spree_line_items.*')
     }
 
@@ -110,7 +94,14 @@ module Spree
           ON (spree_adjustments.adjustable_id=spree_line_items.id
             AND spree_adjustments.adjustable_type = 'Spree::LineItem'
             AND spree_adjustments.originator_type='Spree::TaxRate')").
-        where('spree_adjustments.id IS NULL')
+        where(spree_adjustments: { id: nil })
+    }
+
+    scope :editable_by_producers, ->(enterprises_ids) {
+      joins(variant: :supplier, order: :distributor).where(
+        distributor: { enable_producers_to_edit_orders: true },
+        spree_variants: { supplier_id: enterprises_ids }
+      )
     }
 
     def copy_price
@@ -193,6 +184,7 @@ module Spree
       adjustments.tax.additional.sum(:amount)
     end
 
+    # Some of the tax rates may not be applicable depending to the order's tax zone
     def tax_rates
       variant&.tax_category&.tax_rates || []
     end
@@ -231,10 +223,12 @@ module Spree
       final_weight_volume / quantity
     end
 
-    def unit_price_price_and_unit
+    def unit_price
       unit_price = UnitPrice.new(variant)
-      Spree::Money.new(price_with_adjustments / unit_price.denominator).to_html +
-        "&nbsp;/&nbsp;".html_safe + unit_price.unit
+      {
+        amount: price_with_adjustments / unit_price.denominator,
+        unit: unit_price.unit,
+      }
     end
 
     def scoper
@@ -243,6 +237,18 @@ module Spree
 
     def enterprise_fee_adjustments
       adjustments.enterprise_fee
+    end
+
+    def full_variant_name
+      return variant_name if variant_name.present?
+
+      variant.full_name
+    end
+
+    def full_product_name
+      return product_name if product_name.present?
+
+      variant.product.name
     end
 
     private
@@ -267,6 +273,18 @@ module Spree
 
       # update the order totals, etc.
       order.create_tax_charge!
+    end
+
+    def copy_product_name
+      return if variant.nil? || variant.product.nil?
+
+      self.product_name = variant.product.name
+    end
+
+    def copy_variant_name
+      return if variant.nil?
+
+      self.variant_name = variant.full_name
     end
 
     def update_inventory_before_destroy

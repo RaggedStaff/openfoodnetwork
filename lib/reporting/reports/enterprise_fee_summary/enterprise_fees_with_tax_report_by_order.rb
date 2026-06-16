@@ -7,7 +7,7 @@ module Reporting
         attr_accessor :parameters
 
         def initialize(user, params = {}, render: false)
-          super(user, params, render:)
+          super
         end
 
         def search
@@ -44,11 +44,11 @@ module Reporting
               .filter(&method(:filter_enterprise_fee_by_id))
               .filter(&method(:filter_enterprise_fee_by_owner))
               .map do |enterprise_fee_id, enterprise_fee_adjustment_ids|
-              {
-                enterprise_fee_id:,
-                enterprise_fee_adjustment_ids:,
-                order:
-              }
+                {
+                  enterprise_fee_id:,
+                  enterprise_fee_adjustment_ids:,
+                  order:
+                }
             end
           end
         end
@@ -66,16 +66,16 @@ module Reporting
 
           enterprise_fee_id = arg.first
 
-          EnterpriseFee.exists?(id: enterprise_fee_id,
-                                enterprise_id: ransack_params[:enterprise_fee_owner_id_in] )
+          EnterpriseFee.where(id: enterprise_fee_id,
+                              enterprise_id: ransack_params[:enterprise_fee_owner_id_in] ).exists?
         end
 
         def filter_enterprise_fee_by_id_active?
-          !ransack_params[:enterprise_fee_id_in].compact_blank.empty?
+          Array(ransack_params[:enterprise_fee_id_in]).compact_blank.any?
         end
 
         def filter_enteprise_fee_by_owner_active?
-          !ransack_params[:enterprise_fee_owner_id_in].compact_blank.empty?
+          Array(ransack_params[:enterprise_fee_owner_id_in]).compact_blank.any?
         end
 
         def join_tax_rate
@@ -158,7 +158,7 @@ module Reporting
         end
 
         def enterprise_fees_sum(order)
-          amount = enterprise_fees(order).sum(:amount)
+          amount = enterprise_fees(order).map(&:amount).compact.sum
           apply_voucher_on_amount(order, amount)
         end
 
@@ -182,7 +182,8 @@ module Reporting
           query = order.all_adjustments.tax
           query = query.inclusive if included == true
           query = query.additional if added == true
-          amount = query.where(adjustable: enterprise_fees(order)).sum(:amount)
+          amount =
+            query.where(adjustable: enterprise_fees(order)).map(&:amount).compact.sum
           apply_voucher_on_amount(order, amount)
         end
 

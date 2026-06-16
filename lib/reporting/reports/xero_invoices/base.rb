@@ -60,11 +60,6 @@ module Reporting
 
         private
 
-        def line_item_includes
-          [:bill_address, :adjustments,
-           { line_items: { variant: { product: :supplier } } }]
-        end
-
         def detail_rows_for_order(order, invoice_number, opts)
           rows = []
 
@@ -189,7 +184,7 @@ module Reporting
            '',
            '',
            '',
-           Spree::Config.currency,
+           CurrentConfig.get(:currency),
            '',
            order.paid? ? I18n.t(:y) : I18n.t(:n)]
         end
@@ -212,32 +207,37 @@ module Reporting
         end
 
         def total_untaxable_products(order)
-          order.line_items.without_tax.to_a.sum(&:amount)
+          order.line_items.without_tax.map(&:amount).compact.sum
         end
 
         def total_taxable_products(order)
-          order.line_items.with_tax.to_a.sum(&:amount)
+          order.line_items.with_tax.map(&:amount).compact.sum
         end
 
         def total_untaxable_fees(order)
-          order.all_adjustments.enterprise_fee.where(tax_category: nil).sum(:amount)
+          order.all_adjustments.enterprise_fee.where(tax_category: nil)
+            .map(&:amount).compact.sum
         end
 
         def total_taxable_fees(order)
-          order.all_adjustments.enterprise_fee.where.not(tax_category: nil).sum(:amount)
+          order.all_adjustments.enterprise_fee.where.not(tax_category: nil)
+            .map(&:amount).compact.sum
         end
 
         def total_shipping(order)
-          order.all_adjustments.shipping.sum(:amount)
+          order.all_adjustments.shipping.map(&:amount).compact.sum
         end
 
         def total_transaction(order)
-          order.all_adjustments.payment_fee.sum(:amount)
+          order.all_adjustments.payment_fee.map(&:amount).compact.sum
         end
 
         def tax_on_shipping_s(order)
           tax_on_shipping = order.shipments
-            .sum("additional_tax_total + included_tax_total").positive?
+            .map{ |shipment| shipment.additional_tax_total + shipment.included_tax_total }
+            .sum(&:to_f)
+            .round(2)
+            .positive?
           if tax_on_shipping
             I18n.t(:report_header_gst_on_income)
           else
@@ -246,11 +246,11 @@ module Reporting
         end
 
         def total_untaxable_admin_adjustments(order)
-          order.adjustments.admin.where(tax_category: nil).sum(:amount)
+          order.adjustments.admin.where(tax_category: nil).map(&:amount).compact.sum
         end
 
         def total_taxable_admin_adjustments(order)
-          order.adjustments.admin.where.not(tax_category: nil).sum(:amount)
+          order.adjustments.admin.where.not(tax_category: nil).map(&:amount).compact.sum
         end
 
         def detail?

@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe CacheService do
+RSpec.describe CacheService do
   let(:rails_cache) { Rails.cache }
 
   describe "#cache" do

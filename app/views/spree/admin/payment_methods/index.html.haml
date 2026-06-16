@@ -32,18 +32,18 @@
     %tbody
       - @payment_methods.each do |method|
         %tr{class: "#{cycle('odd', 'even')}", id: "#{spree_dom_id method}"}
-          %td.align-center= method.name
+          %td.align-center= method.display_name
           %td.align-center
             - method.distributors.each do |distributor|
               = distributor.name
               %br/
-          %td= method.class.clean_name
+          %td= payment_method_type_name(method.class.name)
           - if spree_current_user.admin?
             %td.align-center= method.environment.to_s.titleize
           %td.align-center= method.display_on.blank? ? t('.both') : t('.' + method.display_on.to_s)
           %td.align-center= method.active ? t('.active_yes') : t('.active_no')
           %td.actions
             = link_to_edit method, no_text: true
-            = link_to_delete method, no_text: true
+            = deprecated_link_to_delete method, no_text: true
 - else
   .alpha.twelve.columns.no-objects-found= t('.no_payment_methods_found')

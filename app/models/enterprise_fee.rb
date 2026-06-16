@@ -21,7 +21,6 @@ class EnterpriseFee < ApplicationRecord
 
   validates :fee_type, inclusion: { in: FEE_TYPES }
   validates :name, presence: true
-  validates :enterprise_id, presence: true
 
   before_save :ensure_valid_tax_category_settings
 
@@ -29,10 +28,10 @@ class EnterpriseFee < ApplicationRecord
   scope :for_enterprises, lambda { |enterprises| where(enterprise_id: enterprises) }
 
   scope :managed_by, lambda { |user|
-    if user.has_spree_role?('admin')
+    if user.admin?
       where(nil)
     else
-      where('enterprise_id IN (?)', user.enterprises.select(&:id))
+      where(enterprise_id: user.enterprises.select(&:id))
     end
   }
 
@@ -40,11 +39,11 @@ class EnterpriseFee < ApplicationRecord
     joins(:calculator).where.not(spree_calculators: { type: PER_ORDER_CALCULATORS })
   }
   scope :per_order, lambda {
-    joins(:calculator).where('spree_calculators.type IN (?)', PER_ORDER_CALCULATORS)
+    joins(:calculator).where(spree_calculators: { type: PER_ORDER_CALCULATORS })
   }
 
-  def self.clear_all_adjustments(order)
-    order.all_adjustments.enterprise_fee.destroy_all
+  def self.clear_order_adjustments(order)
+    order.all_adjustments.enterprise_fee.where.not(adjustable_type: "Spree::LineItem").destroy_all
   end
 
   private

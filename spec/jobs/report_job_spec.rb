@@ -1,18 +1,17 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe ReportJob do
+RSpec.describe ReportJob do
   include CableReady::Broadcaster
 
   let(:report_args) {
-    { report_class:, user:, params:, format:, filename: }
+    { report_class:, user:, params:, format:, blob: }
   }
   let(:report_class) { Reporting::Reports::UsersAndEnterprises::Base }
   let(:user) { enterprise.owner }
   let(:enterprise) { create(:enterprise) }
   let(:params) { {} }
   let(:format) { :csv }
+  let(:blob) { ReportBlob.create_for_upload_later!(filename) }
   let(:filename) { "report.csv" }
 
   it "generates a report" do
@@ -25,11 +24,12 @@ describe ReportJob do
   it "enqueues a job for async processing" do
     expect {
       ReportJob.perform_later(**report_args)
-    }.to_not change { ActiveStorage::Blob.count }
+    }.not_to change { blob.checksum }
 
     expect {
       perform_enqueued_jobs(only: ReportJob)
-    }.to change { ActiveStorage::Blob.count }
+      blob.reload
+    }.to change { blob.checksum }
 
     expect_csv_report
   end
@@ -44,7 +44,8 @@ describe ReportJob do
 
     expect {
       perform_enqueued_jobs(only: ReportJob)
-    }.to change { ActiveStorage::Blob.count }
+      blob.reload
+    }.to change { blob.checksum }
   end
 
   it "triggers an email when the report is done" do
@@ -76,7 +77,7 @@ describe ReportJob do
       # rspec-rails: https://github.com/rspec/rspec-rails/issues/2668
       ReportJob.perform_later(**report_args)
       perform_enqueued_jobs(only: ReportJob)
-    }.to_not enqueue_mail
+    }.not_to enqueue_mail
   end
 
   it "rescues errors" do
@@ -87,7 +88,7 @@ describe ReportJob do
 
     expect {
       perform_enqueued_jobs(only: ReportJob)
-    }.to_not raise_error
+    }.not_to raise_error
   end
 
   def expect_csv_report

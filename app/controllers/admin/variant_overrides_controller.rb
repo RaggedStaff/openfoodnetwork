@@ -7,7 +7,7 @@ module Admin
     include OpenFoodNetwork::SpreeApiKeyLoader
     include EnterprisesHelper
 
-    prepend_before_action :load_data
+    prepend_before_action :load_data, if: :spree_current_user
     before_action :load_collection, only: [:bulk_update]
     before_action :load_spree_api_key, only: :index
 
@@ -44,6 +44,8 @@ module Admin
     def load_data
       @hubs = OpenFoodNetwork::Permissions.new(spree_current_user).
         variant_override_hubs.by_name
+      # Only display the ones with inventory enabled
+      @hubs = @hubs.select { |p| helpers.feature?(:inventory, p) }
 
       # Used in JS to look up the name of the producer of each product
       @producers = OpenFoodNetwork::Permissions.new(spree_current_user).
@@ -70,7 +72,13 @@ module Admin
     end
 
     def load_collection
-      collection_hash = Hash[variant_overrides_params.each_with_index.map { |vo, i| [i, vo] }]
+      collection_hash = variant_overrides_params.each_with_index.to_h { |vo, i| [i, vo] }
+
+      # Reset count_on_hand when switching to producer settings:
+      collection_hash.each_value do |vo|
+        vo["count_on_hand"] = nil if vo.fetch("on_demand", :unchanged).nil?
+      end
+
       @vo_set = Sets::VariantOverrideSet.new(@variant_overrides,
                                              collection_attributes: collection_hash)
     end
@@ -88,7 +96,7 @@ module Admin
     end
 
     def modified_variant_overrides_ids
-      variant_overrides_params.map { |vo| vo[:id] }
+      variant_overrides_params.pluck(:id)
     end
 
     def collection_actions

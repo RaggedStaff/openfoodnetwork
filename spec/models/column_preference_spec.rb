@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe ColumnPreference, type: :model do
+RSpec.describe ColumnPreference do
   subject {
     ColumnPreference.new(
       user:, action_name: :customers_index, column_name: :email
@@ -71,6 +69,31 @@ describe ColumnPreference, type: :model do
         expect(preferences.all?(&:new_record?)).to be true
         expect(preferences.map(&:column_name)).to eq ["col1", "col2", "col3"]
         expect(preferences.map(&:visible)).to eq [false, true, false]
+      end
+    end
+  end
+
+  describe "validating column_name" do
+    context "when the column is only valid for users with a feature toggle" do
+      let(:user) { create(:user) }
+      let(:enterprise) { create(:distributor_enterprise, owner: user) }
+
+      it "is valid when the feature toggle is enabled for the user's enterprise",
+         feature: :variant_tag do
+        enterprise # ensure enterprise is created and associated
+
+        pref = ColumnPreference.new(user:, action_name: "products_v3_index",
+                                    column_name: "tags")
+        expect(pref).to be_valid
+      end
+
+      it "is invalid when the feature toggle is not enabled" do
+        allow(OpenFoodNetwork::FeatureToggle).to receive(:enabled?).and_return(false)
+
+        pref = ColumnPreference.new(user:, action_name: "products_v3_index",
+                                    column_name: "tags")
+        expect(pref).not_to be_valid
+        expect(pref.errors[:column_name]).to be_present
       end
     end
   end

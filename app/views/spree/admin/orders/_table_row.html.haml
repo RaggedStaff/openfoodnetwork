@@ -1,6 +1,6 @@
 %tr{ id: dom_id(order), class: "state-#{order.state}" }
   %td.align-left
-    %input{type: 'checkbox', value: order.id, name: 'bulk_ids[]', "data-checked-target": "checkbox", "data-action": "change->checked#toggleCheckbox" }
+    %input{type: 'checkbox', value: order.id, name: 'bulk_ids[]', "data-checked-target": "checkbox" }
   %td.align-left
     = order.distributor.name
   %td.align-left
@@ -34,22 +34,23 @@
       %span.state{ class: order.shipment_state.to_s}
         = t('js.admin.orders.shipment_states.' + order.shipment_state.to_s)
   %td
-    %a{ href: "mailto:#{order.email}", target: "_blank" }
-      = order.email
+    - email_value = display_value_for_producer(order, order.email)
+    %a{ href: "mailto:#{email_value}", target: "_blank" }
+      = email_value
   %td
-    = order&.bill_address&.full_name_for_sorting
+    = display_value_for_producer(order, order.bill_address&.full_name_for_sorting)
   %td.align-left
     %span
       = order.display_total
   %td.actions
-    %div.row-loading-icons
+    .row-loading-icons
       - if local_assigns[:success]
         %i.success.icon-ok-sign{"data-controller": "ephemeral"}
-    = render partial: 'admin/shared/tooltip', locals: {link_class: "icon_link with-tip icon-edit no-text" ,link: edit_admin_order_path(order), link_text: "",  tooltip_text: t('spree.admin.orders.index.edit')}
-    - if order.ready_to_ship?
+    = render AdminTooltipComponent.new(text: t('spree.admin.orders.index.edit'), link_text: "", link: edit_admin_order_path(order), link_class: "icon_link with-tip icon-edit no-text")
+    - if can?(:manage_order_sections, order) && order.ready_to_ship?
       %form
         = render ShipOrderComponent.new(order: order)
       = render partial: 'admin/shared/tooltip_button', locals: {button_class: "icon-road icon_link with-tip no-text", reflex_data_id: order.id.to_s, tooltip_text: t('spree.admin.orders.index.ship'), shipment: true}
 
-    - if order.payment_required? && order.pending_payments.reject(&:requires_authorization?).any?
+    - if can?(:manage_order_sections, order) && can?(:update, Spree::Payment) && order.payment_required? && order.pending_payments.reject(&:requires_authorization?).any?
       = render partial: 'admin/shared/tooltip_button', locals: {button_class: "icon-capture icon_link no-text", button_reflex: "click->Admin::OrdersReflex#capture", reflex_data_id: order.id.to_s,  tooltip_text: t('spree.admin.orders.index.capture')}

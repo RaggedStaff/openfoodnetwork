@@ -2,7 +2,7 @@
 
 require "system_helper"
 
-describe '
+RSpec.describe '
     As an administrator
     I want numbers, all the numbers!
 ' do
@@ -51,8 +51,32 @@ describe '
       visit admin_report_path(report_type: :customers)
       run_report
       expect(page).to have_content "Späti"
-      expect(page).to have_content "FIRST NAME LAST NAME BILLING ADDRESS EMAIL"
+      expect(page).to have_content "First Name Last Name Billing Address Email"
       expect(page).to have_content "Müller"
+    end
+
+    it "requires confirmation to display big reports" do
+      # Mock data is much faster and accurate than creating many orders:
+      allow_any_instance_of(Reporting::Reports::Customers::Base)
+        .to receive(:columns).and_return(
+          {
+            first_name: proc { |_| "Little Bobby Tables " * (10**5) }, # 2 MB
+          }
+        )
+
+      # We still need an order for the report to render a row:
+      create(:completed_order_with_totals)
+
+      login_as_admin
+      visit admin_report_path(report_type: :customers)
+      run_report
+
+      expect(page).to have_content "This report is big"
+      expect(page).not_to have_content "Little Bobby Tables"
+
+      click_on "Display anyway"
+      expect(page).to have_content "First Name"
+      expect(page).to have_content "Little Bobby Tables"
     end
 
     it "displays a friendly timeout message and offers download" do
@@ -78,13 +102,13 @@ describe '
       expect(content).to match "<th>\nFirst Name\n</th>"
 
       # Let's also check the expiry of the emailed link:
-      Timecop.travel(3.days.from_now) do
+      travel(3.days) do
         content = URI.parse(report_link).read
         expect(content).to match "<th>\nFirst Name\n</th>"
       end
 
       # The link should still expire though:
-      Timecop.travel(3.months.from_now) do
+      travel(3.months) do
         expect { URI.parse(report_link).read }
           .to raise_error OpenURI::HTTPError, "404 Not Found"
       end
@@ -108,43 +132,18 @@ describe '
 
       click_on "Go"
 
-      expect(page).to have_content "FIRST NAME LAST NAME BILLING ADDRESS EMAIL"
+      expect(page).to have_content "First Name Last Name Billing Address Email"
 
       # Now that we see the report, we need to make sure that it's not replaced
       # by the "loading" spinner when the controller action finishes.
       # Unlocking the breakpoint will continue execution of the controller.
       breakpoint.unlock
 
-      # We have to wait to be sure that the "loading" spinner won't appear
-      # within the next half second. The default wait time would wait for
-      # 10 seconds which slows down the spec.
-      using_wait_time 0.5 do
-        page.has_selector? ".loading"
-      end
-
-      expect(page).to have_no_selector ".loading"
-    end
-  end
-
-  describe "Can access Customers reports and generate customers report" do
-    before do
-      login_as_admin
-      visit admin_reports_path
-    end
-
-    it "customers report" do
-      within "table.index" do
-        click_link "Customers"
-      end
-      run_report
-
-      rows = find("table.report__table").all("thead tr")
-      table = rows.map { |r| r.all("th").map { |c| c.text.strip } }
-      expect(table.sort).to eq([
-        ["First Name", "Last Name", "Billing Address", "Email", "Phone", "Hub", "Hub Address",
-         "Shipping Method", "Total Number of Orders", "Total incl. tax ($)",
-         "Last completed order date"].map(&:upcase)
-      ].sort)
+      # Now the controller response will show the loading spinner again and
+      # the fallback mechanism will render the report later.
+      expect(page).to have_selector ".loading"
+      expect(page).to have_content "First Name Last Name Billing Address Email"
+      expect(page).not_to have_selector ".loading"
     end
   end
 
@@ -161,7 +160,7 @@ describe '
       table = rows.map { |r| r.all("th").map { |c| c.text.strip } }
       expect(table.sort).to eq([
         ["First Name", "Last Name", "Hub", "Customer Code", "Email", "Phone", "Shipping Method",
-         "Payment Method", "Amount", "Balance"].map(&:upcase)
+         "Payment Method", "Amount", "Balance"]
       ].sort)
     end
 
@@ -173,7 +172,7 @@ describe '
       expect(table.sort).to eq([
         ["First Name", "Last Name", "Hub", "Customer Code", "Delivery Address", "Delivery Postcode",
          "Phone", "Shipping Method", "Payment Method", "Amount", "Balance",
-         "Temp Controlled Items?", "Special Instructions"].map(&:upcase)
+         "Temp Controlled Items?", "Special Instructions"]
       ].sort)
     end
   end
@@ -184,44 +183,6 @@ describe '
     before do
       login_as_admin
       visit admin_reports_path
-    end
-
-    it "generates the orders and distributors report" do
-      click_link 'Orders And Distributors'
-      run_report
-
-      rows = find("table.report__table").all("thead tr")
-      table_headers = rows.map { |r| r.all("th").map { |c| c.text.strip } }
-
-      expect(table_headers).to eq([
-                                    ['Order date',
-                                     'Order Id',
-                                     'Customer Name',
-                                     'Customer Email',
-                                     'Customer Phone',
-                                     'Customer City',
-                                     'SKU',
-                                     'Item name',
-                                     'Variant',
-                                     'Quantity',
-                                     'Max Quantity',
-                                     'Cost',
-                                     'Shipping Cost',
-                                     'Payment Method',
-                                     'Distributor',
-                                     'Distributor address',
-                                     'Distributor city',
-                                     'Distributor postcode',
-                                     'Shipping Method',
-                                     'Shipping instructions']
-                                           .map(&:upcase)
-                                  ])
-
-      expect(all('table.report__table tbody tr').count).to eq(
-        Spree::LineItem.where(
-          order_id: ready_to_ship_order.id # Total rows should equal number of line items, per order
-        ).count
-      )
     end
 
     it "generates the payments reports" do
@@ -236,7 +197,6 @@ describe '
                                      'Distributor',
                                      'Payment Type',
                                      "Total (%s)" % currency_symbol]
-                                           .map(&:upcase)
                                   ])
 
       expect(all('table.report__table tbody tr').count).to eq(
@@ -297,15 +257,18 @@ describe '
 
     before do
       order1.reload
-      break unless order1.next! until order1.delivery?
+      while !order1.delivery?
+        break unless order1.next!
+      end
 
       order1.select_shipping_method(shipping_method.id)
       order1.recreate_all_fees!
-      break unless order1.next! until order1.payment?
+      order_workflow = Orders::WorkflowService.new(order1)
+      order_workflow.advance_to_payment
 
       create(:payment, state: "checkout", order: order1, amount: order1.reload.total,
                        payment_method: create(:payment_method, distributors: [distributor1]))
-      break unless order1.next! until order1.complete?
+      order_workflow.complete!
 
       login_as_admin
       visit admin_reports_path
@@ -357,16 +320,19 @@ describe '
     let(:supplier) { create(:supplier_enterprise, name: 'Supplier Name') }
     let(:taxon)    { create(:taxon, name: 'Taxon Name') }
     let(:product1) {
-      create(:simple_product, name: "Product Name", price: 100, supplier:,
-                              primary_taxon: taxon)
+      create(:simple_product, name: "Product Name", price: 100, primary_taxon_id: taxon.id,
+                              supplier_id: supplier.id)
     }
     let(:product2) {
       create(:simple_product, name: "Product 2", price: 99.0, variant_unit: 'weight',
-                              variant_unit_scale: 1, unit_value: '100', supplier:,
-                              primary_taxon: taxon, sku: "product_sku")
+                              variant_unit_scale: 1, unit_value: '100',
+                              primary_taxon_id: taxon.id, sku: "product_sku",
+                              supplier_id: supplier.id)
     }
     let(:variant1) { product1.variants.first }
-    let(:variant2) { create(:variant, product: product1, price: 80.0) }
+    let(:variant2) {
+      create(:variant, product: product1, price: 80.0, primary_taxon: taxon, supplier:)
+    }
     let(:variant3) { product2.variants.first }
 
     before do
@@ -380,33 +346,59 @@ describe '
       variant3.update!(sku: "")
     end
 
+    it "shows report error at the bottom of page" do
+      login_as_admin
+      visit admin_reports_path
+
+      click_link 'All products'
+      report = Reporting::Reports::ProductsAndInventory::AllProducts
+
+      click_on "Go"
+
+      allow(report).to receive(:new).and_raise(StandardError, 'Provoked error for testing')
+      perform_enqueued_jobs(only: ReportJob)
+
+      expect(page).not_to have_selector ".loading"
+      expect(page).to have_button "Go", disabled: false
+      expect(page).to have_content 'This report failed. It may be too big to process. ' \
+                                   'We will look into it but please let us know ' \
+                                   'if the problem persists.'
+
+      # Admin shoulb be able to make some changes and retry
+      allow(report).to receive(:new).and_call_original
+
+      run_report
+      expect(page).to have_content "Supplier"
+    end
+
     it "shows products and inventory report" do
       login_as_admin
       visit admin_reports_path
 
       expect(page).to have_content "All products"
       expect(page).to have_content "Inventory (on hand)"
+
       click_link 'All products'
       run_report
       expect(page).to have_content "Supplier"
       expect(page).to have_table_row ["Supplier", "Producer Suburb", "Product",
                                       "Product Properties", "Taxons", "Variant Value", "Price",
                                       "Group Buy Unit Quantity", "Amount", "SKU",
-                                      "On demand?", "On hand"].map(&:upcase)
-      expect(page).to have_table_row [product1.supplier.name, product1.supplier.address.city,
+                                      "On Demand?", "On Hand"]
+      expect(page).to have_table_row [supplier.name, supplier.address.city,
                                       "Product Name",
                                       product1.properties.map(&:presentation).join(", "),
-                                      product1.primary_taxon.name, "1g", "100.0",
+                                      taxon.name, "1g", "100.0",
                                       "none", "", "sku1", "No", "10"]
-      expect(page).to have_table_row [product1.supplier.name, product1.supplier.address.city,
+      expect(page).to have_table_row [supplier.name, supplier.address.city,
                                       "Product Name",
                                       product1.properties.map(&:presentation).join(", "),
-                                      product1.primary_taxon.name, "1g", "80.0",
+                                      taxon.name, "1g", "80.0",
                                       "none", "", "sku2", "No", "20"]
-      expect(page).to have_table_row [product2.supplier.name, product1.supplier.address.city,
+      expect(page).to have_table_row [supplier.name, supplier.address.city,
                                       "Product 2",
                                       product1.properties.map(&:presentation).join(", "),
-                                      product2.primary_taxon.name, "100g", "99.0",
+                                      taxon.name, "100g", "99.0",
                                       "none", "", "product_sku", "No", "9"]
     end
 
@@ -418,7 +410,7 @@ describe '
 
       expect(page).to have_table_row ['PRODUCT', 'Description', 'Qty', 'Pack Size', 'Unit',
                                       'Unit Price', 'Total', 'GST incl.',
-                                      'Grower and growing method', 'Taxon'].map(&:upcase)
+                                      'Grower and growing method', 'Taxon']
       expect(page).to have_table_row ['Product 2', '100g', '', '100', 'g', '99.0', '', '0',
                                       'Supplier Name (Organic - NASAA 12345)', 'Taxon Name']
     end
@@ -445,7 +437,7 @@ describe '
       table = rows.map { |r| r.all("th,td").map { |c| c.text.strip }[0..2] }
 
       expect(table.sort).to eq([
-        ["User", "Relationship", "Enterprise"].map(&:upcase),
+        ["User", "Relationship", "Enterprise"],
         [enterprise1.owner.email, "owns", enterprise1.name],
         [enterprise1.owner.email, "manages", enterprise1.name],
         [enterprise2.owner.email, "owns", enterprise2.name],
@@ -466,13 +458,15 @@ describe '
       table = rows.map { |r| r.all("th,td").map { |c| c.text.strip }[0..2] }
 
       expect(table.sort).to eq([
-        ["User", "Relationship", "Enterprise"].map(&:upcase),
+        ["User", "Relationship", "Enterprise"],
         [enterprise1.owner.email, "manages", enterprise3.name]
       ].sort)
     end
   end
 
   describe 'bulk coop report' do
+    let!(:order) { create(:completed_order_with_totals) }
+
     before do
       login_as_admin
       visit admin_reports_path
@@ -494,7 +488,7 @@ describe '
         "Units Required",
         "Unallocated",
         "Max Quantity Excess"
-      ].map(&:upcase)
+      ]
     end
 
     it "generating Bulk Co-op Allocation report" do
@@ -513,7 +507,7 @@ describe '
         "Total available",
         "Unallocated",
         "Max Quantity Excess"
-      ].map(&:upcase)
+      ]
     end
 
     it "generating Bulk Co-op Packing Sheets report" do
@@ -525,7 +519,7 @@ describe '
         "Product",
         "Variant",
         "Sum Total"
-      ].map(&:upcase)
+      ]
     end
 
     it "generating Bulk Co-op Customer Payments report" do
@@ -538,7 +532,7 @@ describe '
         "Total Cost",
         "Amount Owing",
         "Amount Paid"
-      ].map(&:upcase)
+      ]
     end
   end
 
@@ -627,15 +621,13 @@ describe '
         order1.update_order!
         order1.update!(email: 'customer@email.com')
         order1.shipment.update(included_tax_total: 10.06)
-        Timecop.travel(Time.zone.local(2021, 4, 25, 14, 0, 0)) { order1.finalize! }
+        travel_to(Time.zone.local(2021, 4, 25, 14, 0, 0)) { order1.finalize! }
         order1.reload
         order1.create_tax_charge!
       end
 
-      around do |example|
-        Timecop.travel(Time.zone.local(2021, 4, 26, 14, 0, 0)) do
-          example.run
-        end
+      before do
+        travel_to(Time.zone.local(2021, 4, 26, 14, 0, 0))
       end
 
       context "summary report" do
@@ -735,7 +727,7 @@ describe '
          POCity PORegion POPostalCode POCountry *InvoiceNumber Reference *InvoiceDate
          *DueDate InventoryItemCode *Description *Quantity *UnitAmount Discount *AccountCode
          *TaxType TrackingName1 TrackingOption1 TrackingName2 TrackingOption2 Currency BrandingTheme
-         Paid?).map(&:upcase)
+         Paid?)
     end
 
     def xero_invoice_summary_row(description, amount, tax_type, opts = {})
@@ -767,7 +759,7 @@ describe '
        sku,
        description,
        quantity,
-       amount.to_s, '', opts[:account_code], tax_type, '', '', '', '', Spree::Config.currency,
+       amount.to_s, '', opts[:account_code], tax_type, '', '', '', '', "AUD",
        '', 'N']
     end
   end

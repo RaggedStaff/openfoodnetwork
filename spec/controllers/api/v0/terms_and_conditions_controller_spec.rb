@@ -1,9 +1,7 @@
 # frozen_string_literal: true
 
-require "spec_helper"
-
 module Api
-  describe V0::TermsAndConditionsController, type: :controller do
+  RSpec.describe V0::TermsAndConditionsController do
     include AuthenticationHelper
     include FileHelper
 
@@ -26,10 +24,10 @@ module Api
         it "removes terms and conditions file" do
           spree_delete :destroy, enterprise_id: enterprise
 
-          expect(response.status).to eq 200
+          expect(response).to have_http_status :ok
           expect(json_response["id"]).to eq enterprise.id
           enterprise.reload
-          expect(enterprise.terms_and_conditions).to_not be_attached
+          expect(enterprise.terms_and_conditions).not_to be_attached
         end
 
         context "when terms and conditions file does not exist" do
@@ -42,7 +40,7 @@ module Api
           it "responds with error" do
             spree_delete :destroy, enterprise_id: enterprise
 
-            expect(response.status).to eq(409)
+            expect(response).to have_http_status(:conflict)
             expect(json_response['error']).to eq 'Terms and Conditions file does not exist'
           end
         end

@@ -1,20 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe CheckoutHelper, type: :helper do
-  it "generates html for validated inputs" do
-    expect(helper).to receive(:render).with(
-      "shared/validated_input",
-      name: "test",
-      path: "foo",
-      attributes: { :required => true, :type => :email, :name => "foo", :id => "foo",
-                    "ng-model" => "foo", "ng-class" => "{error: !fieldValid('foo')}" }
-    )
-
-    helper.validated_input("test", "foo", type: :email)
-  end
-
+RSpec.describe CheckoutHelper do
   describe "#display_checkout_tax_total" do
     subject(:display_checkout_tax_total) { helper.display_checkout_tax_total(order) }
 
@@ -131,16 +117,6 @@ describe CheckoutHelper, type: :helper do
     end
   end
 
-  it "knows if guests can checkout" do
-    distributor = create(:distributor_enterprise)
-    order = create(:order, distributor:)
-    allow(helper).to receive(:current_order) { order }
-    expect(helper.guest_checkout_allowed?).to be true
-
-    order.distributor.allow_guest_orders = false
-    expect(helper.guest_checkout_allowed?).to be false
-  end
-
   describe "#checkout_adjustments_for" do
     let(:order) { create(:order_with_totals_and_distribution) }
     let(:enterprise_fee) { create(:enterprise_fee, amount: 123) }
@@ -203,6 +179,27 @@ describe CheckoutHelper, type: :helper do
 
         expect(adjustments).to include return_adjustment
       end
+    end
+  end
+
+  describe "#stripe_card_options" do
+    let(:year) { Time.zone.now.year + 1 }
+    let(:card) { create(:credit_card, cc_type: 'visa', last_digits: '1111', month: 1, year:) }
+    let(:cards) { [card] }
+
+    it "formats credit cards for Stripe options" do
+      options = helper.stripe_card_options(cards)
+
+      expect(options).to eq([
+                              ["visa 1111 Exp:01/#{year}", card.id]
+                            ])
+    end
+
+    it "zero-pads the month" do
+      card.update(month: 5)
+      options = helper.stripe_card_options(cards)
+
+      expect(options.first.first).to match(%r{05/#{year}})
     end
   end
 end

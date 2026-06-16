@@ -24,8 +24,10 @@ class Subscription < ApplicationRecord
   has_many :proxy_orders, dependent: :destroy
   has_many :orders, through: :proxy_orders
 
-  alias_attribute :billing_address, :bill_address
-  alias_attribute :shipping_address, :ship_address
+  alias_method :billing_address, :bill_address
+  alias_method :billing_address=, :bill_address=
+  alias_method :shipping_address, :ship_address
+  alias_method :shipping_address=, :ship_address=
 
   accepts_nested_attributes_for :subscription_line_items, allow_destroy: true
   accepts_nested_attributes_for :bill_address, :ship_address
@@ -34,8 +36,8 @@ class Subscription < ApplicationRecord
                       where('subscriptions.ends_at > (?) OR subscriptions.ends_at IS NULL',
                             Time.zone.now)
                     }
-  scope :not_canceled, -> { where('subscriptions.canceled_at IS NULL') }
-  scope :not_paused, -> { where('subscriptions.paused_at IS NULL') }
+  scope :not_canceled, -> { where(subscriptions: { canceled_at: nil }) }
+  scope :not_paused, -> { where(subscriptions: { paused_at: nil }) }
   scope :active, -> {
                    not_canceled.not_ended.not_paused.where('subscriptions.begins_at <= (?)',
                                                            Time.zone.now)

@@ -1,17 +1,16 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
 require 'spree/core/product_duplicator'
 
-describe Api::V0::ProductsController, type: :controller do
+RSpec.describe Api::V0::ProductsController do
   render_views
 
   let(:supplier) { create(:supplier_enterprise) }
   let(:supplier2) { create(:supplier_enterprise) }
-  let!(:product) { create(:product, supplier:) }
-  let!(:other_product) { create(:product) }
-  let(:product_other_supplier) { create(:product, supplier: supplier2) }
-  let(:product_with_image) { create(:product_with_image, supplier:) }
+  let!(:product) { create(:product, supplier_id: supplier.id) }
+  let!(:other_product) { create(:product, supplier_id: supplier.id) }
+  let(:product_other_supplier) { create(:product, supplier_id: supplier2.id) }
+  let(:product_with_image) { create(:product_with_image, supplier_id: supplier.id) }
   let(:all_attributes) { ["id", "name", "variants"] }
   let(:variants_attributes) {
     ["id", "options_text", "unit_value", "unit_description", "unit_to_display", "on_demand",
@@ -25,31 +24,32 @@ describe Api::V0::ProductsController, type: :controller do
   end
 
   context "as a normal user" do
+    let(:taxon) { create(:taxon) }
     let(:attachment) { fixture_file_upload("thinking-cat.jpg") }
 
     before do
       allow(current_api_user)
-        .to receive(:has_spree_role?).with("admin").and_return(false)
+        .to receive(:admin?).and_return(false)
     end
 
     it "gets a single product" do
       product.create_image!(attachment:)
-      product.variants.create!(unit_value: "1", unit_description: "thing", price: 1)
+      product.variants.create!(unit_value: "1", variant_unit: "weight", variant_unit_scale: 1,
+                               unit_description: "thing", price: 1, primary_taxon: taxon, supplier:)
       product.variants.first.images.create!(attachment:)
       product.set_property("spree", "rocks")
+
       api_get :show, id: product.to_param
 
-      expect(all_attributes.all?{ |attr| json_response.keys.include? attr }).to eq(true)
-      expect(variants_attributes.all?{ |attr|
-               json_response['variants'].first.keys.include? attr
-             } ).to eq(true)
+      expect(json_response.keys).to include(*all_attributes)
+      expect(json_response["variants"].first.keys).to include(*variants_attributes)
     end
 
     it "returns a 404 error when it cannot find a product" do
       api_get :show, id: "non-existant"
 
       expect(json_response["error"]).to eq("The resource you were looking for could not be found.")
-      expect(response.status).to eq(404)
+      expect(response).to have_http_status(:not_found)
     end
 
     it "cannot create a new product if not an admin" do
@@ -75,7 +75,7 @@ describe Api::V0::ProductsController, type: :controller do
       expect(product.deleted_at).to be_nil
       api_delete :destroy, id: product.to_param
 
-      expect(response.status).to eq(204)
+      expect(response).to have_http_status(:no_content)
       expect { product.reload }.not_to raise_error
       expect(product.deleted_at).not_to be_nil
     end
@@ -93,7 +93,7 @@ describe Api::V0::ProductsController, type: :controller do
   context "as an administrator" do
     before do
       allow(current_api_user)
-        .to receive(:has_spree_role?).with("admin").and_return(true)
+        .to receive(:admin?).and_return(true)
     end
 
     it "can create a new product" do
@@ -107,30 +107,32 @@ describe Api::V0::ProductsController, type: :controller do
                                    unit_description: "things" }
 
       expect(all_attributes.all?{ |attr| json_response.keys.include? attr }).to eq(true)
-      expect(response.status).to eq(201)
+      expect(response).to have_http_status(:created)
       expect(Spree::Product.last.variants.first.price).to eq 123.45
     end
 
     it "cannot create a new product with invalid attributes" do
       api_post :create, product: {}
 
-      expect(response.status).to eq(422)
+      expect(response).to have_http_status(:unprocessable_entity)
       expect(json_response["error"]).to eq("Invalid resource. Please fix errors and try again.")
       errors = json_response["errors"]
-      expect(errors.keys).to match_array(["name", "primary_taxon", "supplier", "variant_unit",
-                                          "price"])
+      expect(errors.keys).to match_array([
+                                           "name", "price", "primary_taxon_id",
+                                           "supplier_id", "variant_unit"
+                                         ])
     end
 
     it "can update a product" do
       api_put :update, id: product.to_param, product: { name: "New and Improved Product!" }
 
-      expect(response.status).to eq(200)
+      expect(response).to have_http_status(:ok)
     end
 
     it "cannot update a product with an invalid attribute" do
       api_put :update, id: product.to_param, product: { name: "" }
 
-      expect(response.status).to eq(422)
+      expect(response).to have_http_status(:unprocessable_entity)
       expect(json_response["error"]).to eq("Invalid resource. Please fix errors and try again.")
       expect(json_response["errors"]["name"]).to eq(["can't be blank"])
     end
@@ -139,7 +141,7 @@ describe Api::V0::ProductsController, type: :controller do
       expect(product.deleted_at).to be_nil
       api_delete :destroy, id: product.to_param
 
-      expect(response.status).to eq(204)
+      expect(response).to have_http_status(:no_content)
       expect(product.reload.deleted_at).not_to be_nil
     end
   end
@@ -148,7 +150,7 @@ describe Api::V0::ProductsController, type: :controller do
     context 'as a normal user' do
       before do
         allow(current_api_user)
-          .to receive(:has_spree_role?).with("admin").and_return(false)
+          .to receive(:admin?).and_return(false)
       end
 
       it 'denies access' do
@@ -165,7 +167,7 @@ describe Api::V0::ProductsController, type: :controller do
       it 'responds with a successful response' do
         spree_post :clone, product_id: product.id, format: :json
 
-        expect(response.status).to eq(201)
+        expect(response).to have_http_status(:created)
       end
 
       it 'clones the product' do
@@ -177,7 +179,7 @@ describe Api::V0::ProductsController, type: :controller do
       it 'clones a product with image' do
         spree_post :clone, product_id: product_with_image.id, format: :json
 
-        expect(response.status).to eq(201)
+        expect(response).to have_http_status(:created)
         expect(json_response['name']).to eq("COPY OF #{product_with_image.name}")
       end
 
@@ -186,7 +188,7 @@ describe Api::V0::ProductsController, type: :controller do
       # stock info - clone is set to zero
       it '(does not) clone the stock info of the product' do
         spree_post :clone, product_id: product.id, format: :json
-        expect(json_response['on_hand']).to eq(0)
+        expect(json_response.dig("variants", 0, "on_hand")).to eq(0)
       end
 
       # variants: only the master variant of the product is cloned
@@ -199,13 +201,13 @@ describe Api::V0::ProductsController, type: :controller do
     context 'as an administrator' do
       before do
         allow(current_api_user)
-          .to receive(:has_spree_role?).with("admin").and_return(true)
+          .to receive(:admin?).and_return(true)
       end
 
       it 'responds with a successful response' do
         spree_post :clone, product_id: product.id, format: :json
 
-        expect(response.status).to eq(201)
+        expect(response).to have_http_status(:created)
       end
 
       it 'clones the product' do
@@ -217,7 +219,7 @@ describe Api::V0::ProductsController, type: :controller do
       it 'clones a product with image' do
         spree_post :clone, product_id: product_with_image.id, format: :json
 
-        expect(response.status).to eq(201)
+        expect(response).to have_http_status(:created)
         expect(json_response['name']).to eq("COPY OF #{product_with_image.name}")
       end
     end
@@ -226,9 +228,9 @@ describe Api::V0::ProductsController, type: :controller do
   describe '#bulk_products' do
     context "as an enterprise user" do
       let!(:taxon) { create(:taxon) }
-      let!(:product2) { create(:product, supplier:, primary_taxon: taxon) }
-      let!(:product3) { create(:product, supplier: supplier2, primary_taxon: taxon) }
-      let!(:product4) { create(:product, supplier: supplier2) }
+      let!(:product2) { create(:product, supplier_id: supplier.id, primary_taxon: taxon) }
+      let!(:product3) { create(:product, supplier_id: supplier2.id, primary_taxon: taxon) }
+      let!(:product4) { create(:product, supplier_id: supplier2.id) }
       let(:current_api_user) { supplier_enterprise_user(supplier) }
 
       before { current_api_user.enterprise_roles.create(enterprise: supplier2) }
@@ -260,13 +262,15 @@ describe Api::V0::ProductsController, type: :controller do
       end
 
       it "filters results by supplier" do
-        api_get :bulk_products, { page: 1, per_page: 15, q: { supplier_id_eq: supplier.id } },
+        api_get :bulk_products,
+                { page: 1, per_page: 15, q: { variants_supplier_id_eq: supplier.id } },
                 format: :json
         expect(returned_product_ids).to eq [product2.id, other_product.id, product.id]
       end
 
       it "filters results by product category" do
-        api_get :bulk_products, { page: 1, per_page: 15, q: { primary_taxon_id_eq: taxon.id } },
+        api_get :bulk_products,
+                { page: 1, per_page: 15, q: { variants_primary_taxon_id_eq: taxon.id } },
                 format: :json
         expect(returned_product_ids).to eq [product3.id, product2.id]
       end
@@ -292,6 +296,6 @@ describe Api::V0::ProductsController, type: :controller do
   end
 
   def returned_product_ids
-    json_response['products'].map{ |obj| obj['id'] }
+    json_response['products'].pluck(:id)
   end
 end

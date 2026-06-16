@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
-
-describe "spree/orders/show.html.haml" do
+RSpec.describe "spree/orders/show.html.haml" do
   helper InjectionHelper
   helper ShopHelper
   helper ApplicationHelper
@@ -21,6 +19,7 @@ describe "spree/orders/show.html.haml" do
 
   before do
     assign(:order, order)
+    assign(:paid_with_credit, 0.00)
     allow(view).to receive_messages(
       current_order: order,
       last_payment_method: nil,

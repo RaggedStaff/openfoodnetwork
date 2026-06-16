@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
 require 'open_food_network/address_finder'
 
-describe Api::Admin::SubscriptionCustomerSerializer do
+RSpec.describe Api::Admin::SubscriptionCustomerSerializer do
   let(:address) { build(:address) }
   let(:customer) { build(:customer) }
   let(:serializer) { Api::Admin::SubscriptionCustomerSerializer.new(customer) }

@@ -2,12 +2,13 @@
 
 require 'system_helper'
 
-describe "shopping with variant overrides defined" do
+RSpec.describe "shopping with variant overrides defined", feature: :inventory do
   include AuthenticationHelper
   include WebHelper
   include ShopWorkflow
   include CheckoutRequestsHelper
   include UIComponentHelper
+  include CheckoutHelper
 
   let(:hub) { create(:distributor_enterprise, with_payment_and_shipping: true) }
   let(:producer) { create(:supplier_enterprise) }
@@ -17,21 +18,33 @@ describe "shopping with variant overrides defined" do
   let(:outgoing_exchange) { oc.exchanges.outgoing.first }
   let(:sm) { hub.shipping_methods.first }
   let(:pm) { hub.payment_methods.first }
-  let(:product1) { create(:simple_product, supplier: producer) }
-  let(:product2) { create(:simple_product, supplier: producer) }
-  let(:product3) { create(:simple_product, supplier: producer, on_demand: true) }
-  let(:product4) { create(:simple_product, supplier: producer) }
-  let(:product1_variant1) { create(:variant, product: product1, price: 11.11, unit_value: 1) }
-  let(:product1_variant2) { create(:variant, product: product1, price: 22.22, unit_value: 2) }
-  let(:product2_variant1) { create(:variant, product: product2, price: 33.33, unit_value: 3) }
-  let(:product1_variant3) { create(:variant, product: product1, price: 44.44, unit_value: 4) }
+  let(:product1) { create(:simple_product, supplier_id: producer.id) }
+  let(:product2) { create(:simple_product, supplier_id: producer.id) }
+  let(:product3) { create(:simple_product, supplier_id: producer.id, on_demand: true) }
+  let(:product4) { create(:simple_product, supplier_id: producer.id) }
+  let(:product1_variant1) {
+    create(:variant, product: product1, price: 11.11, unit_value: 1, supplier: producer)
+  }
+  let(:product1_variant2) {
+    create(:variant, product: product1, price: 22.22, unit_value: 2, supplier: producer)
+  }
+  let(:product2_variant1) {
+    create(:variant, product: product2, price: 33.33, unit_value: 3, supplier: producer)
+  }
+  let(:product1_variant3) {
+    create(:variant, product: product1, price: 44.44, unit_value: 4, supplier: producer)
+  }
   let(:product3_variant1) {
-    create(:variant, product: product3, price: 55.55, unit_value: 5, on_demand: true)
+    create(:variant, product: product3, price: 55.55, unit_value: 5, on_demand: true,
+                     supplier: producer)
   }
   let(:product3_variant2) {
-    create(:variant, product: product3, price: 66.66, unit_value: 6, on_demand: true)
+    create(:variant, product: product3, price: 66.66, unit_value: 6, on_demand: true,
+                     supplier: producer)
   }
-  let(:product4_variant1) { create(:variant, product: product4, price: 77.77, unit_value: 7) }
+  let(:product4_variant1) {
+    create(:variant, product: product4, price: 77.77, unit_value: 7, supplier: producer)
+  }
   let!(:product1_variant1_override) {
     create(:variant_override, :use_producer_stock_settings, hub:, variant: product1_variant1,
                                                             price: 55.55, count_on_hand: nil,
@@ -150,23 +163,27 @@ describe "shopping with variant overrides defined" do
       expect(page).to have_selector "#edit-cart .grand-total", text: with_currency(122.22)
     end
 
-    pending "prices in the checkout" do
+    context "prices in the checkout" do
       it "shows the correct prices" do
         click_add_to_cart product1_variant1, 2
         click_checkout
+        checkout_as_guest
 
-        expect(page).to have_selector 'form.edit_order .cart-total', text: with_currency(122.22)
-        expect(page).to have_selector 'form.edit_order .shipping', text: with_currency(0.00)
-        expect(page).to have_selector 'form.edit_order .total', text: with_currency(122.22)
+        fill_out_details
+        fill_out_billing_address
+
+        proceed_to_payment
+        proceed_to_summary
+
+        expect(page).to have_selector '.summary-right-line-value', text: with_currency(122.22)
+        expect(page).to have_selector '#order_total', text: with_currency(122.22)
       end
     end
   end
 
-  pending "creating orders" do
+  describe "creating orders" do
     it "creates the order with the correct prices" do
       click_add_to_cart product1_variant1, 2
-      click_checkout
-
       complete_checkout
 
       o = Spree::Order.complete.last
@@ -205,13 +222,13 @@ describe "shopping with variant overrides defined" do
       expect(product1_variant1_override.reload.count_on_hand).to be_nil
     end
 
-    it "does not subtract stock from variants where the override has on_demand: true" do
+    it "subtracts stock from override but not variants where the override has on_demand: true" do
       click_add_to_cart product4_variant1, 2
       click_checkout
       expect do
         complete_checkout
       end.to change { product4_variant1.reload.on_hand }.by(0)
-      expect(product4_variant1_override.reload.count_on_hand).to be_nil
+      expect(product4_variant1_override.reload.count_on_hand).to eq(-2)
     end
 
     it "does not show out of stock flags on order confirmation page" do
@@ -228,32 +245,17 @@ describe "shopping with variant overrides defined" do
   private
 
   def complete_checkout
+    click_checkout
+
     checkout_as_guest
 
-    within "#details" do
-      fill_in "First Name", with: "Some"
-      fill_in "Last Name", with: "One"
-      fill_in "Email", with: "test@example.com"
-      fill_in "Phone", with: "0456789012"
-    end
+    fill_out_details
+    fill_out_billing_address
 
-    within "#billing" do
-      fill_in "Address", with: "123 Street"
-      select "Australia", from: "Country"
-      select "Victoria", from: "State"
-      fill_in "City", with: "Melbourne"
-      fill_in "Postcode", with: "3066"
-    end
+    proceed_to_payment
+    proceed_to_summary
 
-    within "#shipping" do
-      choose sm.name
-    end
-
-    within "#payment" do
-      choose pm.name
-    end
-
-    place_order
+    click_on "Complete order"
     expect(page).to have_content "Your order has been processed successfully"
   end
 

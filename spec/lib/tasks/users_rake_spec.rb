@@ -1,30 +1,23 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
 require 'rake'
 
-describe 'users.rake' do
-  before(:all) do
-    Rake.application.rake_require 'tasks/users'
-    Rake::Task.define_task(:environment)
-  end
-
+RSpec.describe 'users.rake' do
   describe ':remove_enterprise_limit' do
     context 'when the user exists' do
+      let(:user) { create(:user) }
+
       it 'sets the enterprise_limit to the maximum integer' do
-        max_integer = 2_147_483_647
-        user = create(:user)
+        invoke_task "ofn:remove_enterprise_limit[#{user.id}]"
 
-        Rake.application.invoke_task "ofn:remove_enterprise_limit[#{user.id}]"
-
-        expect(user.reload.enterprise_limit).to eq(max_integer)
+        expect(user.reload.enterprise_limit).to eq(2_147_483_647)
       end
     end
 
     context 'when the user does not exist' do
       it 'raises' do
         expect {
-          RemoveEnterpriseLimit.new(-1).call
+          invoke_task "ofn:remove_enterprise_limit[123]"
         }.to raise_error(ActiveRecord::RecordNotFound)
       end
     end

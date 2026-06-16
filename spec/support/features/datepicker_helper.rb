@@ -4,7 +4,7 @@ module Features
   module DatepickerHelper
     def choose_today_from_datepicker
       within(".flatpickr-calendar.open") do
-        find("button", text: "TODAY").click
+        find("button", text: "Today").click
       end
     end
 
@@ -12,55 +12,59 @@ module Features
       # Once the datepicker is open,
       # it simply consist to select the 'from' date and then the 'to' date
       select_date_from_datepicker(from)
-      select_date_from_datepicker(to, from)
+      select_date_from_datepicker(to)
     end
 
-    def select_date_from_datepicker(date, reference_date = Time.zone.today)
-      navigate_datepicker_to_month(date, reference_date)
-      find('.flatpickr-calendar.open .flatpickr-days .flatpickr-day:not(.prevMonthDay)',
-           text: date.strftime("%e").to_s.strip, exact_text: true, match: :first).click
+    def select_datetime_from(element, datetime)
+      datetime = Time.zone.parse(datetime) if datetime.is_a? String
+
+      # Wait for timepicker element to be loaded:
+      expect(page).to have_css "#{element}.datetimepicker"
+
+      find(element).click
+      select_datetime_from_datepicker(datetime)
+      close_datepicker
     end
 
-    def select_datetime_from_datepicker(datetime)
-      ## First of all select date
-      select_date_from_datepicker(datetime)
-      # Then select time
-      find(".flatpickr-calendar.open .flatpickr-hour").set datetime.strftime("%H").to_s.strip
-      find(".flatpickr-calendar.open .flatpickr-minute").set datetime.strftime("%M").to_s.strip
-    end
+    def select_date_from_datepicker(date)
+      within ".flatpickr-calendar.open" do
+        # Unfortunately, flatpickr doesn't notice a change of year when we do
+        #
+        #     fill_in "Year", with: date.year
+        #
+        # A working alternative is:
+        find(".cur-year").send_keys(date.year.to_s)
+        select date.strftime("%B"), from: "Month"
 
-    def navigate_datepicker_to_month(date, reference_date)
-      month_and_year = date.strftime("%-m %Y")
-
-      until datepicker_month_and_year == month_and_year.upcase
-        if date < reference_date
-          navigate_datepicker_to_previous_month
-        elsif date > reference_date
-          navigate_datepicker_to_next_month
-        end
+        aria_date = date.strftime("%B %-d, %Y")
+        find("[aria-label='#{aria_date}']").click
       end
     end
 
-    def navigate_datepicker_to_previous_month
-      find('.flatpickr-calendar.open .flatpickr-months .flatpickr-prev-month').click
-    end
+    def select_datetime_from_datepicker(datetime)
+      select_date_from_datepicker(datetime)
+      fill_in "Hour", with: datetime.strftime("%H")
+      fill_in "Minute", with: datetime.strftime("%M")
 
-    def navigate_datepicker_to_next_month
-      find('.flatpickr-calendar.open .flatpickr-months .flatpickr-next-month').click
-    end
-
-    def datepicker_month_and_year
-      month = find(".flatpickr-calendar.open .flatpickr-current-month " \
-                   "select.flatpickr-monthDropdown-months").value.to_i + 1
-      year = find(".flatpickr-calendar.open .flatpickr-current-month " \
-                  ".numInputWrapper .cur-year").value
-      month.to_s + " " + year.to_s
+      # Flatpickr needs time to update the time.
+      # Otherwise submitting the form may not work.
+      # CI experimentation: 10ms ->   7% success
+      #                     50ms ->  87% success
+      #                    100ms -> 100% success in 112 runs
+      # Let's double that to reduce flakiness even further.
+      sleep 0.2
     end
 
     def pick_datetime(calendar_selector, datetime_selector)
       find(calendar_selector).click
       select_datetime_from_datepicker datetime_selector
       find("body").send_keys(:escape)
+    end
+
+    def close_datepicker
+      within(".flatpickr-calendar.open") do
+        click_button "Close"
+      end
     end
   end
 end

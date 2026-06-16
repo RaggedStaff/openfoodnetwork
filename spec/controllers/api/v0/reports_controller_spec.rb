@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
-
-describe Api::V0::ReportsController, type: :controller do
+RSpec.describe Api::V0::ReportsController do
   let(:enterprise_user) { create(:user, enterprises: [create(:enterprise)]) }
   let(:params) {
     {
@@ -42,7 +40,7 @@ describe Api::V0::ReportsController, type: :controller do
       it "returns an error" do
         api_get :show, q: { example: 'test' }
 
-        expect(response.status).to eq 422
+        expect(response).to have_http_status :unprocessable_entity
         expect(json_response["error"]).to eq 'Please specify a report type'
       end
     end
@@ -53,7 +51,7 @@ describe Api::V0::ReportsController, type: :controller do
       it "returns an error" do
         api_get :show, report_type: "xxxxxx", q: { example: 'test' }
 
-        expect(response.status).to eq 422
+        expect(response).to have_http_status :unprocessable_entity
         expect(json_response["error"]).to eq 'Report not found'
       end
     end
@@ -63,7 +61,7 @@ describe Api::V0::ReportsController, type: :controller do
 
       it "returns an error" do
         api_get :show, report_type: "packing"
-        expect(response.status).to eq 422
+        expect(response).to have_http_status :unprocessable_entity
         expect(json_response["error"]).to eq('Please supply Ransack search params in the request')
       end
     end

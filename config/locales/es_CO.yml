@@ -29,10 +29,12 @@ es_CO:
       spree/product:
         name: "nombre del producto"
         price: "Precio"
-        primary_taxon: "Categoría del producto"
-        supplier: "Proveedor"
+        primary_taxon_id: "Categoría del producto"
         shipping_category_id: "Categoría de envío"
-        variant_unit: "Unidad Variante"
+      spree/variant:
+        primary_taxon: "Categoría del producto"
+        shipping_category_id: "Categoría de envío"
+        supplier: "Proveedora"
         variant_unit_name: "Nombre de la unidad de la variante"
       spree/credit_card:
         base: "Tarjeta de crédito"
@@ -65,7 +67,6 @@ es_CO:
         variant_override:
           count_on_hand:
             using_producer_stock_settings_but_count_on_hand_set: "debe estar en blanco porque está usando la configuración de inventario del productor"
-            on_demand_but_count_on_hand_set: "debe estar en blanco si es bajo demanda"
             limited_stock_but_no_count_on_hand: "debe estar especificado porque se ha definido un inventario limitado"
       messages:
         blank: "no puede estar vacío"
@@ -146,6 +147,9 @@ es_CO:
     integer_array_validator:
       not_array_error: "debe ser una lista"
       invalid_element_error: "debe contener solo enteros válidos"
+  backorder_mailer:
+    backorder_failed:
+      product: "Producto"
   enterprise_mailer:
     confirmation_instructions:
       subject: "Por favor, confirma la dirección de correo electrónico de %{enterprise}"
@@ -297,7 +301,6 @@ es_CO:
   password_confirmation: Confirmación de contraseña
   reset_password_token: Token de restablecimiento de contraseña
   expired: ha expirado, por favor solicite una nueva
-  back_to_payments_list: "Volver a la lista de pagos"
   maestro_or_solo_cards: "Solo tarjetas MasterCard"
   backordered: "Pedido pendiente"
   on_hand: "Disponibles"
@@ -311,6 +314,7 @@ es_CO:
     create_and_add_another: "Crear y agregar otro"
     create: "Crear"
     cancel: "Cancelar"
+    cancel_order: "Cancelar"
     save: "Guardar"
     edit: "Editar"
     update: "Actualizar"
@@ -326,6 +330,7 @@ es_CO:
           title: Productoras
         colums: Columnas
       columns:
+        image: Imágen
         name: Nombre
         unit: Unidad
         price: Precio
@@ -338,6 +343,7 @@ es_CO:
         inherits_properties: "¿Hereda propiedades?"
         import_date: "Fecha de importación"
         actions: Acciones
+        tags: Etiquetas
       columns_selector:
         unit: Unidad
         price: Precio
@@ -353,8 +359,11 @@ es_CO:
         edit: Editar
         clone: Duplicar
         delete: Borrar
+        remove: Eliminar
       image:
         edit: Editar
+      product_preview:
+        shop_tab: Tienda
     begins_at: Empieza en
     begins_on: Comienza en
     customer: Cliente
@@ -404,7 +413,6 @@ es_CO:
     show_n_more: Mostrar %{num} más
     choose: "Escoger..."
     please_select: Por favor selecciona ...
-    column_save_as_default: Guardar por defecto
     columns: Columnas
     actions: Acciones
     viewing: "Viendo: %{current_view_name}"
@@ -471,6 +479,11 @@ es_CO:
         confirm_delete: "¿Confirmas que quieres borrar?"
         search_by_email: "Buscar por correo electrónico/código"
         guest_label: "Retirar como invitado"
+    customer_account_transaction:
+      index:
+        description: Descripción
+        amount: Cantidad
+        running_balance: Saldo actual
     contents:
       edit:
         title: Contenido
@@ -484,6 +497,11 @@ es_CO:
         your_content: Tu contenido
         user_guide: Manual de usuario
         map: Mapa
+    dfc_product_imports:
+      index:
+        update: Actualizar
+        new: Nuevo
+        import: Importar
     enterprise_fees:
       index:
         title: "Comisiones de la organización"
@@ -537,7 +555,6 @@ es_CO:
       variants:
         infinity: "infinito"
         to_order_tip: "Los artículos hechos según el pedido no tienen un nivel fijado de inventario, como por ejemplo panes hechos según demanda."
-      back_to_products_list: "Volver a la lista de productos"
       editing_product: "Editando producto"
       tabs:
         product_details: "Detalles del producto"
@@ -554,11 +571,18 @@ es_CO:
           label: Productoras
         categories:
           label: Categorías
+        tags:
+          label: Etiquetas
+          none: Ninguno
         search: Buscar
-      table:
+      product_variant_row:
         new_variant: Nueva variante
-      edit_image:
-        close: Atrás
+      variant_row:
+        none_tax_category: Ninguno
+        category_field_name: "Categoría"
+        tax_category_field_name: "Categoría de impuestos"
+        producer_field_name: "Productor"
+        add_a_tag: Añade una etiqueta
     product_import:
       title: Importe de producto
       file_not_found: Archivo no encontrado o no se pudo abrir
@@ -617,7 +641,6 @@ es_CO:
         no_name: Sin nombre
         blank_enterprise: algunos productos no tienen una organización definida.
         reset_absent?: Restablecer productos ausentes
-        reset_absent_tip: Establezca el inventario en cero para todos los productos existentes que no estén presentes en el archivo.
         overwrite_all: Sobrescribir todo
         overwrite_empty: Sobrescribir si está vacío
         default_stock: Establecer nivel de inventario
@@ -772,12 +795,6 @@ es_CO:
         images:
           legend: "Imágenes"
           logo: Logo
-          promo_image_placeholder: 'Esta imagen aparece en "Sobre nosotras"'
-          promo_image_note1: 'ATENCIÓN:'
-          promo_image_note2: La imagen será recortada a  1200 x 260.
-          promo_image_note3: La imagen se mostrará en la parte superior del perfil de la organización y en pop-ups.
-          remove_logo: "Eliminar la imágen"
-          remove_promo_image: "Eliminar la imágen"
         inventory_settings:
           legend: "Configuración del Inventario"
           text1: Puedes optar por administrar los niveles de stock y los precios a través de tu
@@ -855,14 +872,16 @@ es_CO:
           customer_names_tip: "Permita que sus proveedores vean los nombres de sus clientes en los informes"
           customer_names_false: "Deshabilitado"
           customer_names_true: "Habilitado"
+          customer_contacts_false: "Deshabilitado"
+          customer_contacts_true: "Habilitado"
+          producers_edit_orders_false: "Deshabilitado"
+          producers_edit_orders_true: "Habilitado"
           shopfront_message: "Mensaje de la tienda"
           shopfront_message_placeholder: >
               Mensaje de bienvenida opcional para compradores, explica como comprar
               en el sitio. Si el texto se agrega en este campo, va a ser mostrado
               en la pestaña de inicio cuando los clientes ingresen por primera vez
               a la tienda.
-          shopfront_message_link_tooltip: "Insertar / editar enlace"
-          shopfront_message_link_prompt: "Por favor introduzca una URL para insertar"
           shopfront_closed_message: "Mensaje de tienda cerrada"
           shopfront_closed_message_placeholder: >
               Un mensaje que proporciona una explicación más detallada sobre por qué
@@ -901,34 +920,36 @@ es_CO:
             no_rules_yet: No hay reglas por defecto aplicadas
             add_new_button: '+ Añadir una nueva regla por defecto'
           no_tags_yet: No hay etiquetas para esta organización
-          no_rules_yet: Todavía no se aplican reglas a esta etiqueta
-          for_customers_tagged: 'Para los consumidores etiquetados:'
-          add_new_rule: '+ Añadir una nueva regla'
           add_new_tag: '+ Añadir una nueva etiqueta'
+          show_hide_variants: 'Mostrar u ocultar variantes en mi tienda'
+          show_hide_shipping: 'Mostrar u ocultar los métodos de envío al comprar'
+          show_hide_payment: 'Mostrar u ocultar los métodos de pago al comprar'
+          show_hide_order_cycles: 'Mostrar u ocultar ciclos de pedido en mi tienda'
         users:
           legend: "Usuarias"
           email_confirmation_notice_html: "Falta la confirmación del email. Te hemos enviado un correo de confirmación a %{email}."
           resend: Reenviar
-          owner: 'Propietaria'
           contact: "Contacto"
+          owner: 'Propietaria'
           contact_tip: "El administrador que recibirá los correos electrónicos de la empresa para pedidos y notificaciones. Debe tener una dirección de correo electrónico confirmada."
           owner_tip: La principal usaría responsable para esta organización.
           notifications: Notificaciones
           notifications_tip: Las Notificaciones sobre los pedidos se enviarán a esta dirección de correo.
           notifications_placeholder: ej. gustav@truffles.com
           notifications_note: 'Nota: Una nueva dirección de correo debe ser confirmada. '
-          managers: Gestoras
-          managers_tip: Otras usuarias con permiso para gestionar esta organización.
           invite_manager: "Invitar administrador"
-          invite_manager_tip: "Invite a un usuario no registrado a registrarse y convertirse en administrador de esta organización."
-          add_unregistered_user: "Agregar un usuario no registrado"
           email_confirmed: "Correo electrónico confirmado"
           email_not_confirmed: "Correo electrónico no confirmado"
         vouchers:
           rate: Impuesto
           customers: Cliente
         connected_apps:
-          loading: "Cargando"
+          affiliate_sales_data:
+            loading: "Cargando"
+          discover_regen:
+            loading: "Cargando"
+          vine:
+            enable: "Conectar"
       actions:
         edit_profile: Configuración
         properties: Propiedades
@@ -981,10 +1002,8 @@ es_CO:
         contact_name: Nombre de contacto
       edit:
         editing: 'Configuración:'
-        back_link: Volver a la lista de organizaciones
       new:
         title: Nueva Organización
-        back_link: Volver a la lista de organizaciones
       welcome:
         welcome_title: ¡Bienvenido a Open Food Network!
         welcome_text: Ha creado correctamente un
@@ -992,9 +1011,6 @@ es_CO:
         choose_starting_point: 'Seleccione su perfil:'
         profile: 'Perfil'
         producer_profile: 'Perfil de Productor'
-      invite_manager:
-        user_already_exists: "El usuario ya existe"
-        error: "Algo salió mal"
     order_cycles:
       loading_flash:
         loading_order_cycles: Cargando ciclos de pedido
@@ -1019,6 +1035,8 @@ es_CO:
         back_to_list: "Regresar a la lista"
         save_and_back_to_list: "Guardar y volver a lista"
         choose_products_from: "Escoger productos desde:"
+      date_time_warning_modal_content:
+        cancel: 'Cancelar'
       incoming:
         incoming: "Entrante"
         supplier: "Proveedor"
@@ -1135,6 +1153,17 @@ es_CO:
       resume:
         could_not_resume_the_order: No se pudo reanudar el pedido
     shared:
+      attachment_field:
+        logo_label: "Logo"
+        logo_remove: "Eliminar la imágen"
+        logo_remove_confirm: "El logotipo se eliminará inmediatamente después de confirmar."
+        promo_image_note1: 'ATENCIÓN:'
+        promo_image_note2: La imagen será recortada a  1200 x 260.
+        promo_image_note3: La imagen se mostrará en la parte superior del perfil de la organización y en pop-ups.
+        promo_image_placeholder: 'Esta imagen aparece en "Sobre nosotras"'
+        promo_image_remove: "Eliminar la imágen"
+        promo_image_remove_confirm: "La imágen promocional se eliminará inmediatamente después de confirmar."
+        white_label_logo_remove: "Eliminar la imágen"
       user_guide_link:
         user_guide: Manual de usuario
       enterprises_hubs_tabs:
@@ -1174,7 +1203,6 @@ es_CO:
       email_confirmation: "La confirmación de correo electrónico está pendiente. Hemos enviado un correo electrónico de confirmación a %{email}."
       not_visible: "%{enterprise} no es visible y no se puede encontrar en el mapa o en búsquedas"
     reports:
-      hidden: OCULTO
       unitsize: TAMAÑO DE LA UNIDAD
       total: TOTAL
       total_items: ARTÍCULOS TOTALES
@@ -1333,6 +1361,11 @@ es_CO:
     schedules:
       destroy:
         associated_subscriptions_error: Este horario no se puede eliminar porque tiene suscripciones asociadas
+    user_invitations:
+      new:
+        back: Atrás
+        email: Email
+        invite: Invitar
     vouchers:
       new:
         back: Atrás
@@ -1343,6 +1376,9 @@ es_CO:
         stripe_connect_cancelled: "Se ha cancelado la conexión a Stripe"
         stripe_connect_success: "La cuenta Stripe se ha conectado correctamente"
         stripe_connect_fail: Lo sentimos, la conexión de su cuenta Stripe ha fallado
+        remove_logo_success: "Logotipo eliminado con éxito"
+        remove_promo_image_success: "Imágen promocional eliminada con éxito"
+        remove_white_label_logo_success: "Logotipo eliminado con éxito"
       stripe_connect_settings:
         resource: Configuración de Stripe Connect
   api:
@@ -1557,7 +1593,6 @@ es_CO:
   label_account: "Cuenta"
   label_more: "Mostrar más"
   label_less: "Mostrar menos"
-  label_notices: "Noticias"
   cart_items: "Elementos"
   cart_headline: "Su carrito de compras"
   total: "Total"
@@ -1593,7 +1628,6 @@ es_CO:
       essential_cookies_note: "La mayoría de las cookies solo contienen un identificador único, pero no otros datos, por lo que su dirección de correo electrónico y contraseña, por ejemplo, nunca se incluyen ni se exponen."
       cookie_domain: "Establecido por:"
       cookie_session_desc: "Se usa para permitir que el sitio web recuerde a los usuarios entre las visitas a la página, por ejemplo, recordar los artículos en tu carrito."
-      cookie_consent_desc: "Se usa para mantener el estado del consentimiento del usuario para almacenar cookies"
       cookie_remember_me_desc: "Se usa si el usuario ha solicitado que el sitio web lo recuerde. Esta cookie se elimina automáticamente después de 12 días. Si como usuario deseas que se elimine esa cookie, solo necesitas desconectarte. Si no deseas que la cookie se instale en tu computadora no debes marcar la casilla \"recordarme\" al iniciar sesión."
       cookie_openstreemap_desc: "Utilizado por nuestro amigo proveedor de mapeo de código abierto (OpenStreetMap) para garantizar que no recibas demasiadas solicitudes durante un período de tiempo determinado, para evitar el abuso de sus servicios."
       cookie_stripe_desc: "Datos recopilados por nuestro procesador de pagos Stripe para detectar fraudes https://stripe.com/cookies-policy/legal. No todas las tiendas usan Stripe como método de pago pero es una buena práctica evitar fraude aplicarlo a todas las páginas. Stripe probablemente crea una imagen de cuáles de nuestras páginas generalmente interactúan con su API y luego marca cualquier cosa inusual. Por lo tanto configurar la cookie Stripe tiene una función más amplia que la simple provisión de un método de pago a un usuario. Eliminarla podría afectar la seguridad del servicio en sí. Puede obtener más información acerca de Stripe y leer su política de privacidad en https://stripe.com/privacy."
@@ -1611,13 +1645,6 @@ es_CO:
       disabling_cookies_ie_link: "https://support.microsoft.com/es-es/help/17442/windows-internet-explorer-delete-manage-cookies"
       disabling_cookies_safari_link: "https://www.apple.com/legal/privacy/es/cookies/"
       disabling_cookies_note: "Pero tenga en cuenta que si elimina o modifica las cookies esenciales utilizadas por Open Food Network, el sitio web no funcionará, no podrá agregar nada a su carrito ni realizar pedidos, por ejemplo."
-    cookies_banner:
-      cookies_usage: "Este sitio utiliza cookies para que su navegación sea fluida y segura, y para ayudarnos a comprender cómo lo usa para mejorar las funciones que ofrecemos."
-      cookies_definition: "Las cookies son archivos de texto muy pequeños que se almacenan en tu ordenador cuando visitas algunos sitios web."
-      cookies_desc: "Utilizamos solo las cookies que son necesarias para ofrecerle el servicio de venta / compra de alimentos en línea. No vendemos ninguno de sus datos. Utilizamos cookies principalmente para recordar quién es usted si 'inicia sesión' en el servicio, o para poder recordar los artículos que puso en su carrito, incluso si no ha iniciado sesión. Si continúa navegando en el sitio web sin hacer clic en \"Aceptar cookies\", asumimos que nos da su consentimiento para almacenar las cookies que son esenciales para el funcionamiento del sitio web."
-      cookies_policy_link_desc: "Si desea obtener más información, consulte nuestro"
-      cookies_policy_link: "política de cookies"
-      cookies_accept_button: "Aceptar cookies"
   home_shop: Comprar ahora
   brandstory_headline: "Consuma con valores."
   brandstory_intro: "A veces la mejor forma de arreglar el sistema es empezar uno nuevo…"
@@ -1628,12 +1655,11 @@ es_CO:
   brandstory_part5_strong: "Le llamamos Open Food Network."
   brandstory_part6: "Todos amamos la comida. Ahora podemos amar nuestro sistema de comida también."
   system_headline: "Compras - aquí está cómo funcionan."
-  system_step1: "1. Buscar"
-  system_step1_text: "Busque comida local y de temporada en nuestras tiendas diversas e independientes. Puede buscar por cantón y tipo de comida o si prefiere por método de envío."
-  system_step2: "2. Comprar"
-  system_step2_text: "Transforme su consumo con comida local y asequible de diversos productores y nodos ¡Conozca las historias detrás de su comida y la gente que la hace!"
-  system_step3: "3. Recogida"
-  system_step3_text: "Espere su entrega, o visite su productor o nodo para una conexión más personal con su comida. Compra de alimentos tan diversa como la naturaleza lo propuso."
+  system_step1_html: "1. Buscar"
+  system_step2_html: "2. Comprar"
+  system_step2_text_html: "Transforme su consumo con comida local y asequible de diversos productores y nodos ¡Conozca las historias detrás de su comida y la gente que la hace!"
+  system_step3_html: "3. Recogida"
+  system_step3_text_html: "Espere su entrega, o visite su productor o nodo para una conexión más personal con su comida. Compra de alimentos tan diversa como la naturaleza lo propuso."
   cta_headline: "Compras que hacen el mundo un mejor lugar."
   cta_label: "Estoy listo"
   stats_headline: "Entre todos creamos un nuevo sistema de producción, distribución y consumo."
@@ -1669,6 +1695,7 @@ es_CO:
   order_not_paid: NO PAGADO
   order_total: Pedido total
   order_payment: "Pagando con:"
+  customer_credit: Crédito
   order_billing_address: Dirección de cobro
   order_delivery_on: Entregar en
   order_delivery_address: Dirección de entrega
@@ -1694,10 +1721,8 @@ es_CO:
   email_confirmed: "Gracias por confirmar la dirección de correo electrónico."
   email_confirmation_activate_account: "Antes de que podamos activar su nueva cuenta, necesitamos confirmar su dirección de correo electrónico."
   email_confirmation_greeting: "Hola, %{contact}!"
-  email_confirmation_profile_created: "¡Se creó un un perfil para %{name} con éxito! Para activar su Perfil necesitamos que confirme esta dirección de correo."
   email_confirmation_click_link: "Por favor haga clic en el enlace de abajo para confirmar el correo electrónico y continuar configurando su perfil."
   email_confirmation_link_label: "Confirmar este correo electrónico »"
-  email_confirmation_help_html: "Después de confirmar el correo electrónico puede acceder a su cuenta de administración para esta organización. Visite %{link} para encontrar más información sobre las características de %{sitename} y empiece a usar su perfil o tienda en línea."
   email_confirmation_notice_unexpected: "Recibe este mensaje porque se ha registrado en %{sitename} o ha sido invitado a inscribirse por alguien que probablemente conozca. Si no entiende por qué está recibiendo este correo electrónico, escriba a %{contact}."
   email_social: "Conecte con nosotros:"
   email_contact: "Envíenos un correo electrónico:"
@@ -2269,26 +2294,14 @@ es_CO:
   spree_admin_enterprises_fees: "Comisiones de la Organización"
   spree_admin_enterprises_none_create_a_new_enterprise: "CREAR NUEVA ORGANIZACIÓN"
   spree_admin_enterprises_none_text: "No tienes ninguna organización"
-  spree_admin_enterprises_tabs_hubs: "NODOS"
   spree_admin_enterprises_producers_manage_products: "GESTIONAR PRODUCTOS"
   spree_admin_enterprises_create_new_product: "CREAR UN NUEVO PRODUCTO"
-  spree_admin_single_enterprise_alert_mail_confirmation: "Confirma la dirección de email para"
-  spree_admin_single_enterprise_alert_mail_sent: "Te hemos enviado un mail a"
-  spree_admin_overview_action_required: "Acción Requerida"
-  spree_admin_overview_check_your_inbox: "Revisa tu bandeja de entrada para las siguientes instrucciones. Gracias!"
-  spree_admin_unit_value: Valor unidad
-  spree_admin_unit_description: Descripción de la unidad
-  spree_admin_variant_unit: Variante
-  spree_admin_variant_unit_scale: Escala de unidad
   spree_admin_supplier: Proveedora
-  spree_admin_product_category: categoría del producto
-  spree_admin_variant_unit_name: Nombre de la variante
   unit_name: "Nombre de la unidad"
   change_package: "Cambiar Perfil"
   spree_admin_single_enterprise_hint: "Sugerencia: Para permitir que la gente te encuentre, activa tu visibilidad"
   spree_admin_eg_pickup_from_school: "p.ej. 'Recogida en la Cooperativa'"
   spree_admin_eg_collect_your_order: "p.ej. 'Por favor recoge tu pedido en la Calle del Hormiguero nº3'"
-  spree_classification_primary_taxon_error: "La clasificación %{taxon} es la clasificación primaria de %{product} y no puede ser eliminada"
   spree_order_availability_error: "El Distribuidor o el Ciclo de Pedido no pueden suministrar los productos en su carrito"
   spree_order_populator_error: "Este Distribuidor o Ciclo de Pedido no puede suministrar todos los productos en tu carrito. Por favor, elige otro."
   spree_order_populator_availability_error: "Este producto no está disponible por el distribuidor o Ciclo de Pedido elegido."
@@ -2374,7 +2387,6 @@ es_CO:
   report_header_paid: ¿Pagado?
   report_header_delivery: ¿Entregado?
   report_header_shipping: Envío
-  report_header_shipping_method: Método de envío
   report_header_shipping_instructions: Instrucciones de envío
   report_header_ship_street: Calle de envío
   report_header_ship_street_2: 'Calle 2 de envío '
@@ -2418,6 +2430,7 @@ es_CO:
   report_header_quantity: Cantidad
   report_header_max_quantity: Cantidad máxima
   report_header_variant: Variante
+  report_header_variant_unit_name: Nombre de la unidad de la variante
   report_header_variant_value: Valor de la variante
   report_header_variant_unit: Unidad Variante
   report_header_total_available: Total disponible
@@ -2484,6 +2497,8 @@ es_CO:
   report_header_total_excl_vat: "Total Impuestos excl. (%{currency_symbol})"
   report_header_total_incl_vat: "Total Impuestos incl. (%{currency_symbol})"
   report_header_temp_controlled: ¿Control de Temperatura?
+  report_header_shipment_state: "Estado del envío"
+  report_header_shipping_method: "Método de envío"
   report_header_is_producer: ¿Productora?
   report_header_not_confirmed: No confirmado
   report_header_gst_on_income: IVA sobre Ingresos
@@ -2727,18 +2742,6 @@ es_CO:
           select_all_variants: "Seleccionar todas las variantes %{total_number_of_variants}"
           variants_loaded: "%{num_of_variants_loaded} de %{total_number_of_variants} variantes cargadas"
           loading_variants: "Cargando variantes"
-      tag_rules:
-        shipping_method_tagged_top: "Métodos de envío etiquetados"
-        shipping_method_tagged_bottom: "son:"
-        payment_method_tagged_top: "Métodos de pago etiquetados"
-        payment_method_tagged_bottom: "son:"
-        order_cycle_tagged_top: "Ciclos de pedido etiquetados"
-        order_cycle_tagged_bottom: "son:"
-        inventory_tagged_top: "Variantes de inventario etiquetadas"
-        inventory_tagged_bottom: "son:"
-      new_tag_rule_dialog:
-        select_rule_type: "Selecciona un tipo de regla:"
-        add_rule: "Añadir regla"
       enterprise_fees:
         inherit_from_product: "Heredar del producto"
       orders:
@@ -2811,13 +2814,6 @@ es_CO:
         error_saving: "Error al guardar suscripción "
         new:
           please_select_a_shop: "Por favor seleccione una tienda"
-      enterprises:
-        form:
-          images:
-            removed_logo_successfully: "Logotipo eliminado con éxito"
-            immediate_logo_removal_warning: "El logotipo se eliminará inmediatamente después de confirmar."
-            removed_promo_image_successfully: "Imágen promocional eliminada con éxito"
-            immediate_promo_image_removal_warning: "La imágen promocional se eliminará inmediatamente después de confirmar."
     insufficient_stock: "Inventario insuficiente disponible, solo quedan %{on_hand}"
     out_of_stock:
       reduced_stock_available: Inventario reducido disponible
@@ -2825,7 +2821,7 @@ es_CO:
           Mientras usted estaba comprando, los niveles de inventario para uno o más
           de los productos de su carrito se han reducido. Aquí está lo que ha cambiado:
       now_out_of_stock: está ahora fuera de inventario.
-      only_n_remainging: "ahora solo hay %{num} restantes."
+      only_n_remaining: "ahora solo hay %{num} restantes."
     shopfront:
       variant:
         add_to_cart: "Añadir"
@@ -2852,13 +2848,6 @@ es_CO:
       some_trouble: "Han habido algunos problemas al guardar: %{errors}"
       changing_on_hand_stock: Cambiando los niveles de inventario..
       stock_reset: Restablecer inventario a valores por defecto
-    tag_rules:
-      show_hide_variants: 'Mostrar u ocultar variantes en mi tienda'
-      show_hide_shipping: 'Mostrar u ocultar los métodos de envío al comprar'
-      show_hide_payment: 'Mostrar u ocultar los métodos de pago al comprar'
-      show_hide_order_cycles: 'Mostrar u ocultar ciclos de pedido en mi tienda'
-      visible: VISIBLE
-      not_visible: NO VISIBLE
     services:
       unsaved_changes_message: Los cambios no guardados existen todavía, ¿guardar ahora o ignorar?
       save: GUARDAR
@@ -2874,6 +2863,8 @@ es_CO:
           Esto establecerá el nivel de stock a cero en todos los productos para esta
           organización que no están presentes en el archivo subido.
     order_cycles:
+      unsaved_changes: "Tiene cambios sin guardar"
+      bulk_save_error: "¡Vaya! No se ha podido guardar los cambios."
       create_failure: "Error al crear el ciclo de pedido"
       update_success: 'Se ha actualizado su ciclo de pedido.'
       update_failure: "Error al actualizar el ciclo de pedido"
@@ -2900,6 +2891,9 @@ es_CO:
       unknown_error_from_stripe: |
           Hubo un problema al configurar su tarjeta en nuestra pasarela de pagos.
           Por favor actualice la página y vuelva a intentarlo; si falla por segunda vez, por favor contáctanos para recibir asistencia.
+    trix:
+      code: "Código"
+      urlPlaceholder: "Por favor introduzca una URL para insertar"
   inflections:
     each:
       one: "each"
@@ -2981,10 +2975,6 @@ es_CO:
       one: "maceta"
       many: "contenedores"
       other: "contenedores"
-    bundle:
-      one: "haz"
-      many: "paquetes"
-      other: "paquetes"
     flask:
       one: "flask"
       many: "frascos"
@@ -2997,6 +2987,10 @@ es_CO:
       one: "sacos"
       many: "sacos"
       other: "sacos"
+    bundle:
+      one: "haz"
+      many: "paquetes"
+      other: "paquetes"
   producers:
     signup:
       start_free_profile: "¡Empieze con un perfil gratuito, y amplíelo cuando esté preparado!"
@@ -3072,7 +3066,7 @@ es_CO:
   account: "Cuenta"
   logout: "Cerrar sesión"
   date_range: "Rango de fechas"
-  status: "estado"
+  status: "Estado"
   new: "Nuevo"
   start: "Inicio"
   end: "Final"
@@ -3086,6 +3080,7 @@ es_CO:
     credit: "Crédito"
     more: "Más"
     no_pending_payments: "No tiene pagos pendientes"
+    remove: "Eliminar"
     none: "Ninguno"
     updating: "Actualizando"
     your_order_is_empty_add_product: "Su pedido está vacío, busque y añada un producto arriba"
@@ -3175,7 +3170,6 @@ es_CO:
     tax_rate_amount_explanation: "Las tarifas de impuestos son una cantidad decimal para ayudar en los cálculos (es decir, si la tasa de impuestos es del 5%, introduzca 0.05)"
     included_in_price: "Incluido en el precio"
     show_rate_in_label: "Mostrar tarifa en la etiqueta"
-    back_to_tax_rates_list: "Volver a la lista de tarifas de impuestos"
     tax_settings: "Configuración de Impuestos"
     zones: "Zonas"
     new_zone: "Nueva zona"
@@ -3188,14 +3182,11 @@ es_CO:
     iso_name: "Nombre de ISO"
     states_required: "Provincias requeridas"
     editing_country: "Editar país"
-    back_to_countries_list: "Volver a la lista de países"
     states: "Provincias"
     abbreviation: "Abreviatura"
     new_state: "Nueva provincia"
     payment_methods: "Métodos de pago"
-    taxonomies: "Taxonomías"
-    new_taxonomy: "Nueva taxonomía"
-    back_to_taxonomies_list: "Volver a la lista de taxonomías"
+    taxons: "Categorías de producto"
     shipping_methods: "Métodos de envío"
     shipping_method: "Método de envío"
     shipment: "Envío"
@@ -3271,6 +3262,9 @@ es_CO:
           header:
             store: Tienda
     admin:
+      images:
+        edit:
+          close: Atrás
       subscriptions:
         number: "Número"
       tab:
@@ -3279,6 +3273,7 @@ es_CO:
         bulk_order_management: "Gestión de pedidos en bloque"
         subscriptions: "Suscripciones"
         products: "Productos"
+        products_v3: "Productos"
         option_types: "Tipos de opciones"
         properties: "Propiedades"
         variant_overrides: "Inventario"
@@ -3291,6 +3286,10 @@ es_CO:
         enterprise_relationships: "Permisos"
         customers: "Cliente"
         groups: "Grupos"
+        overview: "Vista general"
+        product_import: "Importar"
+        enterprise_roles: "Roles"
+        payment_methods: "Métodos de Pago"
       product_properties:
         index:
           inherits_properties_checkbox_hint: "¿Heredar propiedades desde %{supplier}? (a menos que sea anulado arriba)"
@@ -3321,7 +3320,6 @@ es_CO:
           continue: "Continuar"
         new:
           new_return_authorization: "Nueva autorización de devolución"
-          back_to_return_authorizations_list: "Volver a lista de autorización de devolución"
           continue: "Continuar"
         edit:
           receive: "recibir"
@@ -3535,8 +3533,6 @@ es_CO:
       reports:
         table:
           select_and_search: "Seleccione filtros y haga clic en %{option} para acceder a sus datos."
-        customer_names_message:
-          customer_names_tip: "Si los nombres de los clientes están ocultos para los pedidos que ha suministrado, puede comunicarse con el distribuidor y preguntar si pueden actualizar sus preferencias de tienda para permitir que sus proveedores vean los nombres de los clientes."
       users:
         index:
           listing_users: "Listando usuarios"
@@ -3551,7 +3547,6 @@ es_CO:
           general_settings: "Configuración general"
         form:
           email: "Correo electrónico"
-          roles: "Roles"
           enterprise_limit: "Límite de la organización"
           confirm_password: "Confirmar contraseña"
           password: "Contraseña"
@@ -3573,12 +3568,14 @@ es_CO:
           new_variant: "Nueva variante"
         form:
           sku: "SKU"
-          price: "Precio"
           unit_price: "Precio por unidad"
           display_as: "Mostrar como"
           display_name: "Nombre para mostrar"
           display_as_placeholder: 'p.ej. 2 kilogramos'
           display_name_placeholder: 'p.ej. Tomates'
+          unit: Unidad
+          price: Precio
+          variant_category: Categoría
         autocomplete:
           out_of_stock: "Agotado"
           producer_name: "Productor"
@@ -3586,6 +3583,7 @@ es_CO:
       shared:
         sortable_header:
           name: "Nombre"
+          on_hand: "Disponibles"
           number: "Número"
           completed_at: "Completado en"
           state: "Provincia"
@@ -3595,13 +3593,14 @@ es_CO:
           total: "Total"
           billing_address_name: "Nombre"
       taxons:
+        index:
+          title: "Categorías de producto"
         form:
           name: Nombre
           description: Descripción
       general_settings:
         edit:
           legal_settings: "Configuraciones legales"
-          cookies_consent_banner_toggle: "Mostrar el banner de consentimiento de cookies"
           privacy_policy_url: "Vínculo con la política de privacidad"
           enterprises_require_tos: "Las organizaciones deben aceptar los Términos del Servicio"
           cookies_policy_matomo_section: "Mostrar la sección de Matomo en la página de política de cookies"
@@ -3731,6 +3730,10 @@ es_CO:
         past_orders: Pedidos anteriores
       transactions:
         transaction_history: Historial de transacciones
+      customer_account_transactions:
+        description: Descripción
+        amount: Cantidad
+        running_balance: Saldo actual
       open_orders:
         order: Pedido
         shop: Tienda
@@ -3775,7 +3778,6 @@ es_CO:
       key_cleared: "Llave borrada"
       shipment:
         cannot_ready: "No se puede completar envío"
-      invalid_taxonomy_id: "El identificador de taxonomía es inválido."
     activerecord:
       models:
         spree/payment:
@@ -3791,3 +3793,25 @@ es_CO:
     pagination:
       next: Siguiente
       previous: Anterior
+    tag_list_input:
+      default_placeholder: Añade una etiqueta
+    tag_rule_form:
+      tag_rules:
+        shipping_method_tagged_top: "Métodos de envío etiquetados"
+        shipping_method_tagged_bottom: "son:"
+        payment_method_tagged_top: "Métodos de pago etiquetados"
+        payment_method_tagged_bottom: "son:"
+        order_cycle_tagged_top: "Ciclos de pedido etiquetados"
+        order_cycle_tagged_bottom: "son:"
+        inventory_tagged_top: "Variantes de inventario etiquetadas"
+        inventory_tagged_bottom: "son:"
+        variant_tagged_bottom: "son:"
+        visible: VISIBLE
+        not_visible: NO VISIBLE
+    tag_rule_group_form:
+      for_customers_tagged: 'Para los consumidores etiquetados:'
+      add_new_rule: '+ Añadir una nueva regla'
+      no_rules_yet: Todavía no se aplican reglas a esta etiqueta
+    add_tag_rule_modal:
+      select_rule_type: "Selecciona un tipo de regla:"
+      add_rule: "Añadir regla"

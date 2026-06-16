@@ -3,19 +3,14 @@
 module Api
   module Admin
     class ProductSerializer < ActiveModel::Serializer
-      attributes :id, :name, :sku, :variant_unit, :variant_unit_scale, :variant_unit_name,
-                 :inherits_properties, :on_hand, :price, :import_date, :image_url,
+      attributes :id, :name, :sku, :inherits_properties, :price, :import_date, :image_url,
                  :thumb_url, :variants
-
-      has_one :supplier, key: :producer_id, embed: :id
-      has_one :primary_taxon, key: :category_id, embed: :id
 
       def variants
         ActiveModel::ArraySerializer.new(
           object.variants,
           each_serializer: Api::Admin::VariantSerializer,
           image: thumb_url,
-          stock_location: Spree::StockLocation.first
         )
       end
 

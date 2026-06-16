@@ -9,7 +9,7 @@ module DfcProvider
       return not_found unless authorized(address)
 
       dfc_address = AddressBuilder.address(address)
-      render json: DfcIo.export(dfc_address)
+      render_dfc(dfc_address)
     end
 
     private
@@ -30,14 +30,20 @@ module DfcProvider
     # - Spree::Shipment
     # - Subscription
     def authorized(address)
-      current_user.ship_address_id == address.id ||
-        current_user.bill_address_id == address.id ||
+      user_address(address) ||
         [
           customer_address(address),
           public_enterprise_group_address(address),
           public_enterprise_address(address),
           managed_enterprise_address(address),
         ].any?(&:exists?)
+    end
+
+    def user_address(address)
+      return false if current_user.is_a? ApiUser
+
+      current_user.ship_address_id == address.id ||
+        current_user.bill_address_id == address.id
     end
 
     def customer_address(address)
@@ -51,7 +57,7 @@ module DfcProvider
     end
 
     def public_enterprise_address(address)
-      Enterprise.activated.visible.is_distributor.where(address:)
+      ::Enterprise.activated.visible.is_distributor.where(address:)
     end
 
     def managed_enterprise_address(address)

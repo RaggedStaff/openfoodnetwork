@@ -1,44 +1,17 @@
-= form_with url: checkout_update_path(checkout_step), model: @order, method: :put, data: { remote: "true" } do |f|
+= form_with url: checkout_update_path(checkout_step), model: @order, method: :put, data: { remote: "true", 'guest-checkout-target': 'summary' } do |f|
   .summary-main
     = render partial: "checkout/already_ordered" if show_bought_items? && checkout_step?(:summary)
     .checkout-substep
       .checkout-title
         = t("checkout.step3.delivery_details.title")
-        %a.summary-edit{href: main_app.checkout_step_path(:details)}
+        %a.summary-edit{ href: main_app.checkout_step_path(:details), data: { action: "guest-checkout#removeUnloadEvent" } }
           = t("checkout.step3.delivery_details.edit")
 
       .summary-subtitle
         = @order.shipping_method.name
         %em.fees= payment_or_shipping_price(@order.shipping_method, @order)
       .two-columns
-        %div
-          .summary-subtitle
-            = t("checkout.step3.delivery_details.address")
-          %span
-            = @order.ship_address.firstname
-            = @order.ship_address.lastname
-          %div
-            = @order.ship_address.phone
-          %div
-            = @order.user.email if @order.user
-          %br
-          %div
-            = @order.ship_address.address1
-          - unless @order.ship_address.address2.blank?
-            %div
-              = @order.ship_address.address2
-          %div
-            = @order.ship_address.city
-          %div
-            = @order.ship_address.state
-          %div
-            = @order.ship_address.zipcode
-          %div
-            = @order.ship_address.country
-          - if @order.special_instructions.present?
-            %br
-            %em
-              = @order.special_instructions
+        = render "delivery_details" if @order.shipping_method.delivery?
         - if @order.shipping_method.description.present?
           %div
             .summary-subtitle
@@ -51,13 +24,13 @@
     .checkout-substep
       .checkout-title
         = t("checkout.step3.payment_method.title")
-        %a.summary-edit{href: main_app.checkout_step_path(:payment)}
+        %a.summary-edit{ href: main_app.checkout_step_path(:payment), data: { action: "guest-checkout#removeUnloadEvent" } }
           = t("checkout.step3.payment_method.edit")
       .two-columns
         - payment_method = last_payment_method(@order)
         %div
           - if payment_method
-            = payment_method.name
+            = payment_method.display_name
             %em.fees
               = payment_or_shipping_price(payment_method, @order)
           - elsif @order.zero_priced_order?
@@ -68,13 +41,13 @@
             .summary-subtitle
               = t("checkout.step3.payment_method.instructions")
             %div
-              = payment_method&.description
+              = payment_method&.display_description
 
 
-    %div.checkout-substep
-      %div.checkout-title
+    .checkout-substep
+      .checkout-title
         = t("checkout.step3.order.title")
-        %a.summary-edit{href: main_app.cart_path}
+        %a.summary-edit{ href: main_app.cart_path, data: { action: "guest-checkout#removeUnloadEvent" } }
           = t("checkout.step3.order.edit")
 
       = render 'spree/orders/summary', order: @order, display_footer: false
@@ -83,7 +56,8 @@
   .summary-right{ "data-controller": "sticky", "data-sticky-target": "container" }
     .summary-right-line.total
       .summary-right-line-label= t :order_total_price
-      .summary-right-line-value#order_total= @order.display_total.to_html
+
+      .summary-right-line-value#order_total= @order.display_outstanding_balance.to_html 
 
     .summary-right-line
       .summary-right-line-label= t :order_produce
@@ -105,7 +79,12 @@
         .summary-right-line-label= t :order_includes_tax
         .summary-right-line-value#tax-row= display_checkout_tax_total(@order)
 
+    - if @paid_with_credit > 0.00
+      .summary-right-line
+        .summary-right-line-label= t :customer_credit
+        .summary-right-line-value#customer-credit= Spree::Money.new(-1 * @paid_with_credit).to_html
+
     .checkout-submit
       - if any_terms_required?(@order.distributor)
         = render partial: "terms_and_conditions", locals: { f: f }
-      = f.submit t("checkout.step3.submit"), name: "confirm_order", class: "button primary", disabled: @terms_and_conditions_accepted == false || @platform_tos_accepted == false
+      = f.submit t("checkout.step3.submit"), name: "confirm_order", class: "button primary", disabled: @terms_and_conditions_accepted == false || @platform_tos_accepted == false, data: { action: "click -> guest-checkout#removeUnloadEvent" }

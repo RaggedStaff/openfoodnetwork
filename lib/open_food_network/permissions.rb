@@ -62,30 +62,32 @@ module OpenFoodNetwork
     def editable_products
       return Spree::Product.all if admin?
 
-      Spree::Product.where(supplier_id: @user.enterprises).or(
-        Spree::Product.where(supplier_id: related_enterprises_granting(:manage_products))
+      product_with_variants.where(spree_variants: { supplier_id: @user.enterprises }).or(
+        product_with_variants.where(
+          spree_variants: { supplier_id: related_enterprises_granting(:manage_products) }
+        )
       )
     end
 
     def visible_products
       return Spree::Product.all if admin?
 
-      Spree::Product.where(
-        supplier_id: @user.enterprises
-      ).or(
-        Spree::Product.where(
-          supplier_id: related_enterprises_granting(:manage_products) |
-            related_enterprises_granting(:add_to_order_cycle)
+      product_with_variants.where(spree_variants: { supplier_id: @user.enterprises }).or(
+        product_with_variants.where(
+          spree_variants: {
+            supplier_id: related_enterprises_granting(:manage_products) |
+              related_enterprises_granting(:add_to_order_cycle)
+          }
         )
       )
     end
 
-    def product_ids_supplied_by(supplier_ids)
-      Spree::Product.where(supplier_id: supplier_ids).select(:id)
-    end
-
     def managed_product_enterprises
       managed_and_related_enterprises_granting :manage_products
+    end
+
+    def enterprises_granting_linked_variants
+      related_enterprises_granting :create_linked_variants
     end
 
     def manages_one_enterprise?
@@ -115,7 +117,9 @@ module OpenFoodNetwork
     end
 
     def managed_enterprises
-      @managed_enterprises ||= Enterprise.managed_by(@user)
+      return Enterprise.all if admin?
+
+      @user.enterprises
     end
 
     def coordinated_order_cycles
@@ -175,6 +179,10 @@ module OpenFoodNetwork
 
     def managed_enterprise_products
       Spree::Product.managed_by(@user)
+    end
+
+    def product_with_variants
+      Spree::Product.joins(:variants)
     end
   end
 end

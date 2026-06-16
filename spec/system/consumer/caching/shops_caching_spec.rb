@@ -2,7 +2,7 @@
 
 require "system_helper"
 
-describe "Shops caching", caching: true do
+RSpec.describe "Shops caching", caching: true do
   include WebHelper
   include UIComponentHelper
 
@@ -14,12 +14,13 @@ describe "Shops caching", caching: true do
   }
 
   describe "caching enterprises AMS data" do
-    it "caches data for all enterprises, with the provided options" do
+    before do
       # Trigger lengthy tasks like JS compilation before testing caching:
       visit shops_path
       Rails.cache.clear
+    end
 
-      # Now run the test, hopefully in a timely manner:
+    it "caches data for all enterprises, with the provided options" do
       visit shops_path
 
       key, options = CacheService::FragmentCaching.ams_shops
@@ -28,7 +29,7 @@ describe "Shops caching", caching: true do
 
     it "keeps data cached for a short time on subsequent requests" do
       # Ensure sufficient time for requests to load and timed caches to expire
-      Timecop.travel(10.minutes.ago) do
+      travel(-10.minutes) do
         visit shops_path
 
         expect(page).to have_content distributor.name
@@ -38,7 +39,7 @@ describe "Shops caching", caching: true do
 
         visit shops_path
 
-        expect(page).to_not have_content "New Name" # Displayed name is unchanged
+        expect(page).not_to have_content "New Name" # Displayed name is unchanged
       end
 
       # A while later...
@@ -53,8 +54,9 @@ describe "Shops caching", caching: true do
     let!(:property) { create(:property, presentation: "Cached Property") }
     let!(:property2) { create(:property, presentation: "New Property") }
     let!(:product) {
-      create(:product, primary_taxon: taxon, properties: [property])
+      create(:product, primary_taxon_id: taxon.id, properties: [property])
     }
+    let(:variant) { product.variants.first }
     let(:exchange) { order_cycle.exchanges.to_enterprises(distributor).outgoing.first }
 
     let(:test_domain) {
@@ -72,13 +74,20 @@ describe "Shops caching", caching: true do
 
     before do
       exchange.variants << product.variants.first
+
+      # Trigger lengthy tasks like JS compilation before testing caching:
+      visit enterprise_shop_path(distributor)
+      Rails.cache.clear
     end
 
     it "caches rendered response for taxons and properties, with the provided options" do
       visit enterprise_shop_path(distributor)
 
-      expect(page).to have_content "Cached Taxon"
-      expect(page).to have_content "Cached Property"
+      # Ensure we test for the right text after AJAX loads filters:
+      within(".sticky-shop-filters-container", text: "Filter by") do
+        expect(page).to have_content "Cached Taxon"
+        expect(page).to have_content "Cached Property"
+      end
 
       expect_cached taxons_key, options
       expect_cached properties_key, options
@@ -86,26 +95,36 @@ describe "Shops caching", caching: true do
 
     it "keeps data cached for a short time on subsequent requests" do
       # Ensure sufficient time for requests to load and timed caches to expire
-      Timecop.travel(10.minutes.ago) do
+      travel(-10.minutes) do
         visit enterprise_shop_path(distributor)
 
-        expect(page).to have_content taxon.name
-        expect(page).to have_content property.presentation
+        # The page HTML contains the cached text but we need to test for the
+        # visible filters which are loaded asynchronously.
+        # Otherwise we may update the database before the AJAX requests
+        # and cache the new data.
+        within(".sticky-shop-filters-container", text: "Filter by") do
+          expect(page).to have_content taxon.name
+          expect(page).to have_content property.presentation
+        end
 
-        product.update_attribute(:primary_taxon, taxon2)
+        variant.update_attribute(:primary_taxon, taxon2)
         product.update_attribute(:properties, [property2])
 
         visit enterprise_shop_path(distributor)
 
-        expect(page).to have_content taxon.name # Taxon list is unchanged
-        expect(page).to have_content property.presentation # Property list is unchanged
+        within(".sticky-shop-filters-container", text: "Filter by") do
+          expect(page).to have_content taxon.name # Taxon list is unchanged
+          expect(page).to have_content property.presentation # Property list is unchanged
+        end
       end
 
       # A while later...
       visit enterprise_shop_path(distributor)
 
-      expect(page).to have_content taxon2.name
-      expect(page).to have_content property2.presentation
+      within(".sticky-shop-filters-container", text: "Filter by") do
+        expect(page).to have_content taxon2.name
+        expect(page).to have_content property2.presentation
+      end
     end
   end
 

@@ -1,11 +1,13 @@
-%div{ng: {app: 'admin.productImport', controller: 'ImportOptionsFormCtrl', init: "initForm()"}}
+%div{ "ng-app": 'admin.productImport', "ng-controller": 'ImportOptionsFormCtrl', "ng-init": "initForm()" }
 
   = form_tag main_app.admin_product_import_path, multipart: true, class: 'product-import' do
 
     %h6= t('admin.product_import.index.choose_import_type')
     %br
+    - options = { "#{t('admin.product_import.index.product_list')}" => :product_list }
+    - options = options.merge("#{t('admin.product_import.index.inventories')}" => :inventories) if feature?(:inventory, *spree_current_user.enterprises)
     = select_tag "settings[import_into]",
-      options_for_select({"#{t('admin.product_import.index.product_list')}" => :product_list, "#{t('admin.product_import.index.inventories')}" => :inventories}),
+      options_for_select(options),
       { "data-controller": "tom-select", class: "primary inline no-search", "ng-model": "settings.import_into" }
     %br
     %br

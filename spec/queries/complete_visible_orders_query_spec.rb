@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe CompleteVisibleOrdersQuery do
+RSpec.describe CompleteVisibleOrdersQuery do
   subject(:result) { described_class.new(order_permissions).call }
 
   let(:filter_canceled) { false }

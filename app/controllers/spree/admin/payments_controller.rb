@@ -5,7 +5,7 @@ module Spree
     class PaymentsController < Spree::Admin::BaseController
       before_action :load_order, except: [:show]
       before_action :load_payment, only: [:fire, :show]
-      before_action :load_data
+      before_action :load_data, except: [:credit_customer]
       before_action :can_transition_to_payment
       # We ensure that items are in stock before all screens if the order is in the Payment state.
       # This way, we don't allow someone to enter credit card details for an order only to be told
@@ -24,16 +24,19 @@ module Spree
       end
 
       def create
+        # Try to redeem VINE voucher first as we don't want to create a payment and complete
+        # the order if it fails
+        return redirect_to spree.admin_order_payments_path(@order) unless redeem_vine_voucher
+
         @payment = @order.payments.build(object_params)
         load_payment_source
-
         begin
           unless @payment.save
             redirect_to spree.admin_order_payments_path(@order)
             return
           end
 
-          OrderWorkflow.new(@order).complete! unless @order.completed?
+          ::Orders::WorkflowService.new(@order).complete! unless @order.completed?
 
           authorize_stripe_sca_payment
           @payment.process_offline!
@@ -49,7 +52,11 @@ module Spree
       # (we can't use respond_override because Spree no longer uses respond_with)
       def fire
         event = params[:e]
-        return unless event && @payment.payment_source
+        return unless event
+
+        # capture_and_complete_order will complete the order, so we want to try to redeem VINE
+        # voucher first and exit if it fails
+        return if event == "capture_and_complete_order" && !redeem_vine_voucher
 
         # Because we have a transition method also called void, we do this to avoid conflicts.
         event = "void_transaction" if event == "void"
@@ -60,7 +67,7 @@ module Spree
         end
       rescue StandardError => e
         logger.error e.message
-        Bugsnag.notify(e)
+        Alert.raise(e)
         flash[:error] = e.message
       ensure
         redirect_to request.referer
@@ -85,11 +92,22 @@ module Spree
         end
       end
 
+      def credit_customer
+        response = ::Orders::CustomerCreditService.new(@order).refund
+
+        if response.success?
+          flash[:success] = Spree.t(:customer_credit_successful, scope: "admin.payments")
+        else
+          flash[:error] = response.message
+        end
+
+        redirect_to admin_order_payments_path(@order)
+      end
+
       private
 
       def load_payment_source
-        if @payment.payment_method.is_a?(Spree::Gateway) &&
-           @payment.payment_method.payment_profiles_supported? &&
+        if @payment.payment_method.is_a?(Gateway::StripeSCA) &&
            params[:card].present? &&
            (params[:card] != 'new')
           @payment.source = CreditCard.find_by(id: params[:card])
@@ -179,8 +197,24 @@ module Spree
       end
 
       def allowed_events
-        %w{capture void_transaction credit refund resend_authorization_email
+        %w{capture void_transaction credit refund internal_void resend_authorization_email
            capture_and_complete_order}
+      end
+
+      def redeem_vine_voucher
+        vine_voucher_redeemer = Vine::VoucherRedeemerService.new(order: @order)
+        if vine_voucher_redeemer.redeem == false
+          # rubocop:disable Rails/DeprecatedActiveModelErrorsMethods
+          flash[:error] = if vine_voucher_redeemer.errors.keys.include?(:redeeming_failed)
+                            vine_voucher_redeemer.errors[:redeeming_failed]
+                          else
+                            I18n.t('checkout.errors.voucher_redeeming_error')
+                          end
+          # rubocop:enable Rails/DeprecatedActiveModelErrorsMethods
+          return false
+        end
+
+        true
       end
     end
   end

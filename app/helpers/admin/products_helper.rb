@@ -1,0 +1,70 @@
+# frozen_string_literal: true
+
+module Admin
+  module ProductsHelper
+    def product_image_form_path(product)
+      if product.image.present?
+        edit_admin_product_image_path(product.id, product.image.id)
+      else
+        new_admin_product_image_path(product.id)
+      end
+    end
+
+    def prepare_new_variant(product, producer_id = nil)
+      product.variants.build do |new_variant|
+        new_variant.supplier_id = producer_id
+        new_variant.tax_category_id = product.variants.first.tax_category_id
+      end
+    end
+
+    def unit_value_with_description(variant)
+      return variant.unit_description.to_s if variant.unit_value.nil?
+
+      scaled_unit_value = variant.unit_value / (variant.variant_unit_scale || 1)
+      precised_unit_value = number_with_precision(
+        scaled_unit_value,
+        precision: nil,
+        strip_insignificant_zeros: true,
+        significant: false,
+      )
+
+      [precised_unit_value, variant.unit_description].compact_blank.join(" ")
+    end
+
+    def products_return_to_url
+      session[:products_return_to_url] || admin_products_url
+    end
+
+    # if user hasn't saved any preferences on products page and there's only one producer;
+    # we need to hide producer column
+    def hide_producer_column?(allowed_producers)
+      spree_current_user.column_preferences.bulk_edit_product.empty? && allowed_producers.one?
+    end
+
+    # check if the user is in the "admins" group or if it's enabled for any of
+    # the enterprises the user manages
+    def variant_tag_enabled?(user)
+      feature?(:variant_tag, user) || feature?(:variant_tag, *user.enterprises)
+    end
+
+    def allowed_source_producers
+      @allowed_source_producers ||= OpenFoodNetwork::Permissions.new(spree_current_user)
+        .enterprises_granting_linked_variants
+    end
+
+    def managed_product_enterprises
+      @managed_product_enterprises ||= OpenFoodNetwork::Permissions.new(spree_current_user)
+        .managed_product_enterprises
+    end
+
+    # Query only name of the model to avoid loading the whole record
+    def selected_option(id, model)
+      return [] unless id
+
+      name = model.where(id: id).pick(:name)
+      return [] unless name
+
+      [[name, id]]
+    end
+  end
+end

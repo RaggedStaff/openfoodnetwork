@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Admin::InvoiceSettingsController, type: :controller do
+RSpec.describe Admin::InvoiceSettingsController do
   describe "#update" do
     let(:params) {
       {

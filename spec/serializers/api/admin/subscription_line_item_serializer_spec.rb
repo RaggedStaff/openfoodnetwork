@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 module Api
   module Admin
-    describe SubscriptionLineItemSerializer do
+    RSpec.describe SubscriptionLineItemSerializer do
       let(:subscription_line_item) { create(:subscription_line_item) }
 
       it "serializes a subscription line item with the product name" do

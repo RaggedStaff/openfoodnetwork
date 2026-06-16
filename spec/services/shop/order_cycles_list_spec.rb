@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Shop::OrderCyclesList do
+RSpec.describe Shop::OrderCyclesList do
   describe ".active_for" do
     let(:customer) { nil }
 

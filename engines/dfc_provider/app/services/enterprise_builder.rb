@@ -6,11 +6,11 @@ class EnterpriseBuilder < DfcBuilder
     # in the DFC standard.
 
     variants = enterprise.supplied_variants.to_a
-    catalog_items = variants.map(&method(:catalog_item))
+    catalog_items = variants.map(&CatalogItemBuilder.method(:catalog_item))
     supplied_products = catalog_items.map(&:product)
     address = AddressBuilder.address(enterprise.address)
 
-    DataFoodConsortium::Connector::Enterprise.new(
+    DfcProvider::Enterprise.new(
       urls.enterprise_url(enterprise.id),
       name: enterprise.name,
       description: enterprise.description,
@@ -19,9 +19,14 @@ class EnterpriseBuilder < DfcBuilder
       catalogItems: catalog_items,
       emails: [enterprise.email_address].compact,
       localizations: [address],
-      phoneNumbers: [enterprise.phone].compact,
+      phoneNumbers: phone_numbers(enterprise),
       socialMedias: SocialMediaBuilder.social_medias(enterprise),
-      websites: [enterprise.website].compact,
+      logo: enterprise.logo_url(:small),
+      mainContact: contact(enterprise),
+      certifications: certifications(enterprise),
+
+      # The model strips the protocol and we need to add it:
+      websites: [enterprise.website].compact_blank.map { |url| "https://#{url}" },
     ).tap do |e|
       add_ofn_property(e, "ofn:long_description", enterprise.long_description)
 
@@ -29,8 +34,10 @@ class EnterpriseBuilder < DfcBuilder
       # But that would require a new endpoint for a single string.
       add_ofn_property(e, "ofn:contact_name", enterprise.contact_name)
 
-      add_ofn_property(e, "ofn:logo_url", enterprise.logo.url)
-      add_ofn_property(e, "ofn:promo_image_url", enterprise.promo_image.url)
+      # DEPRECATED: please use the standard `logo` attribute above.
+      add_ofn_property(e, "ofn:logo_url", enterprise.logo_url(:small))
+
+      add_ofn_property(e, "ofn:promo_image_url", enterprise.promo_image_url(:large))
     end
   end
 
@@ -43,7 +50,7 @@ class EnterpriseBuilder < DfcBuilder
       urls.enterprise_url(member.id)
     end
 
-    DataFoodConsortium::Connector::Enterprise.new(
+    DataFoodConsortium::ConnectorV1::Enterprise.new(
       urls.enterprise_group_url(group.id),
       name: group.name,
       description: group.description,
@@ -53,6 +60,33 @@ class EnterpriseBuilder < DfcBuilder
       enterprise.registerSemanticProperty("dfc-b:affiliatedBy") do
         members
       end
+    end
+  end
+
+  def self.contact(enterprise)
+    firstName, lastName = enterprise.contact_name&.split(/ ([^ ]+)$/) # rubocop:disable Naming/VariableName
+
+    DataFoodConsortium::ConnectorV1::Person.new(
+      urls.enterprise_url(enterprise.id, anchor: "mainContact"),
+      firstName:, # rubocop:disable Naming/VariableName
+      lastName:, # rubocop:disable Naming/VariableName
+    )
+  end
+
+  def self.phone_numbers(enterprise)
+    return [] if enterprise.phone.blank?
+
+    number = DataFoodConsortium::ConnectorV1::PhoneNumber.new(
+      nil,
+      phoneNumber: enterprise.phone,
+    )
+
+    [number]
+  end
+
+  def self.certifications(enterprise)
+    enterprise.properties.map do |property|
+      CertificationBuilder.certification(property)
     end
   end
 end

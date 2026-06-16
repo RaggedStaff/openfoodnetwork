@@ -1,23 +1,11 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe I18nHelper, type: :helper do
+RSpec.describe I18nHelper do
   let(:user) { create(:user) }
   let(:cookies) { {} }
 
   before do
     allow(helper).to receive(:cookies) { cookies }
-  end
-
-  # In the real world, the helper is called in every request and sets
-  # I18n.locale to the chosen locale or the default. For testing purposes we
-  # have to restore I18n.locale for unit tests that don't call the helper, but
-  # rely on translated strings.
-  around do |example|
-    locale = I18n.locale
-    example.run
-    I18n.locale = locale
   end
 
   context "as guest" do
@@ -27,7 +15,7 @@ describe I18nHelper, type: :helper do
 
     it "sets the default locale" do
       helper.set_locale
-      expect(I18n.locale).to eq :en
+      expect(I18n.locale).to eq :en_TST
     end
 
     it "sets the chosen locale" do
@@ -48,11 +36,11 @@ describe I18nHelper, type: :helper do
     it "ignores unavailable locales" do
       allow(helper).to receive(:params) { { locale: "xx" } }
       helper.set_locale
-      expect(I18n.locale).to eq :en
+      expect(I18n.locale).to eq :en_TST
     end
 
     it "remembers the last chosen locale" do
-      allow(helper).to receive(:params) { { locale: "en" } }
+      allow(helper).to receive(:params) { { locale: "en_TST" } }
       helper.set_locale
 
       allow(helper).to receive(:params) { { locale: "es" } }
@@ -83,7 +71,7 @@ describe I18nHelper, type: :helper do
 
       allow(helper).to receive(:params) { {} }
       helper.set_locale
-      expect(I18n.locale).to eq :en
+      expect(I18n.locale).to eq :en_TST
     end
   end
 
@@ -94,7 +82,7 @@ describe I18nHelper, type: :helper do
 
     it "sets the default locale" do
       helper.set_locale
-      expect(I18n.locale).to eq :en
+      expect(I18n.locale).to eq :en_TST
     end
 
     it "sets the chosen locale" do
@@ -114,7 +102,7 @@ describe I18nHelper, type: :helper do
     end
 
     it "remembers the last chosen locale" do
-      allow(helper).to receive(:params) { { locale: "en" } }
+      allow(helper).to receive(:params) { { locale: "en_TST" } }
       helper.set_locale
 
       allow(helper).to receive(:params) { { locale: "es" } }

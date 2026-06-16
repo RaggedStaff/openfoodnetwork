@@ -2,7 +2,7 @@
 
 class PersonBuilder < DfcBuilder
   def self.person(user)
-    DataFoodConsortium::Connector::Person.new(
+    DataFoodConsortium::ConnectorV1::Person.new(
       urls.person_url(user.id),
       firstName: user.bill_address&.firstname,
       lastName: user.bill_address&.lastname,

@@ -43,15 +43,22 @@ namespace :ofn do
     def anonymize_users_data
       Spree::User.update_all("email = concat(id, '_ofn_user@example.com'),
                               login = concat(id, '_ofn_user@example.com'),
-                              unconfirmed_email = concat(id, '_ofn_user@example.com')")
-      Customer.where("user_id IS NULL")
+                              unconfirmed_email = concat(id, '_ofn_user@example.com'),
+                              current_sign_in_ip = '0.0.0.0',
+                              last_sign_in_ip = '0.0.0.0'")
+      Customer.where(user_id: nil)
         .update_all("email = concat(id, '_ofn_customer@example.com'),
-                     name = concat('Customer Number ', id, ' (without connected User)')")
+                     name = concat('Customer Number ', id, ' (without connected User)'),
+                     first_name = concat('Customer Number ', id),
+                     last_name = '(without connected User)'")
       Customer.where.not(user_id: nil)
-        .update_all("email = concat(user_id, '_ofn_user@example.com'),
-                     name = concat('Customer Number ', id, ' - User ', user_id)")
+        .update_all("email = concat(user_id, '_ofn_user+customer_', id, '@example.com'),
+                     name = concat('Customer Number ', id, ' - User ', user_id),
+                     first_name = concat('Customer Number ', id),
+                     last_name = concat('User ', user_id)")
 
-      Spree::Order.update_all("email = concat(id, '_ofn_order@example.com')")
+      Spree::Order.update_all("email = concat(id, '_ofn_order@example.com'),
+                              last_ip_address = '0.0.0.0'")
     end
 
     def anonymize_payments_data
@@ -60,7 +67,7 @@ namespace :ofn do
                                        environment = '#{Rails.env}'")
       Spree::Payment.update_all("response_code = null, avs_response = null,
                                  cvv_response_code = null, identifier = null,
-                                 cvv_response_message = null")
+                                 cvv_response_message = null, redirect_auth_url = null")
       Spree::CreditCard.update_all("
         month = 12, year = 2020, start_month = 12, start_year = 2000,
         cc_type = 'VISA', first_name = 'Dummy', last_name = 'Dummy', last_digits = '2543'")

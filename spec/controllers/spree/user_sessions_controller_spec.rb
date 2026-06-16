@@ -1,8 +1,6 @@
 # frozen_string_literal: false
 
-require 'spec_helper'
-
-describe Spree::UserSessionsController, type: :controller do
+RSpec.describe Spree::UserSessionsController do
   let(:user) { create(:user) }
 
   before do
@@ -15,19 +13,19 @@ describe Spree::UserSessionsController, type: :controller do
         it "redirects to root" do
           spree_post :create, spree_user: { email: user.email, password: user.password }
 
-          expect(response).to have_http_status(:ok)
-          expect(response.body).to match(root_path).and match("redirect")
+          expect(response).to have_http_status(:found)
+          expect(response.location).to eq root_url
         end
       end
 
       context "when referer is '/checkout'" do
-        before { @request.env['HTTP_REFERER'] = 'http://test.com/checkout' }
+        before { @request.env['HTTP_REFERER'] = 'http://test.host/checkout' }
 
         it "redirects to checkout" do
           spree_post :create, spree_user: { email: user.email, password: user.password }
 
-          expect(response).to have_http_status(:ok)
-          expect(response.body).to match(checkout_path).and match("redirect")
+          expect(response).to have_http_status(:found)
+          expect(response).to redirect_to(checkout_url)
         end
       end
     end
@@ -36,9 +34,10 @@ describe Spree::UserSessionsController, type: :controller do
       render_views
 
       it "returns an error" do
-        spree_post :create, spree_user: { email: user.email, password: "wrong" }
+        spree_post :create, spree_user: { email: user.email, password: "wrong" },
+                            format: :turbo_stream
 
-        expect(response).to have_http_status(:unauthorized)
+        expect(response).to have_http_status(:unprocessable_entity)
         expect(response.body).to include "Invalid email or password"
       end
     end

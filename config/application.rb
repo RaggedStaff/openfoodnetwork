@@ -1,52 +1,101 @@
-require_relative 'boot'
+# frozen_string_literal: true
+
+require_relative "boot"
 
 require "rails"
-[
-  "active_record/railtie",
-  "active_storage/engine",
-  "action_controller/railtie",
-  "action_view/railtie",
-  "action_mailer/railtie",
-  "active_job/railtie",
-  "action_cable/engine",
-  # "action_mailbox/engine",
-  # "action_text/engine",
-  "rails/test_unit/railtie",
-  "sprockets/railtie" # Disable this after migrating to Webpacker
-].each do |railtie|
-  begin
-    require railtie
-  rescue LoadError
-  end
-end
+# Pick the frameworks you want:
+require "active_model/railtie"
+require "active_job/railtie"
+require "active_record/railtie"
+require "active_storage/engine"
+require "action_controller/railtie"
+require "action_mailer/railtie"
+# require "action_mailbox/engine"
+# require "action_text/engine"
+require "action_view/railtie"
+require "action_cable/engine"
+require "rails/test_unit/railtie"
+require "sprockets/railtie" # Disable this after migrating to Webpacker
 
 require_relative "../lib/open_food_network/i18n_config"
 require_relative '../lib/spree/core/environment'
 require_relative '../lib/spree/core/mail_interceptor'
 require_relative "../lib/i18n_digests"
 require_relative "../lib/git_utils"
+require_relative "../lib/session_cookie_upgrader"
 
-if defined?(Bundler)
-  # If you precompile assets before deploying to production, use this line
-  Bundler.require(*Rails.groups(:assets => %w(development test)))
-  # If you want your assets lazily compiled in production, use this line
-  # Bundler.require(:default, :assets, Rails.env)
-end
+# Require the gems listed in Gemfile, including any gems
+# you've limited to :test, :development, or :production.
+Bundler.require(*Rails.groups(assets: %w(development test)))
 
 module Openfoodnetwork
   class Application < Rails::Application
+    # Initialize configuration defaults for originally generated Rails version.
+    config.load_defaults 7.1
+
+    config.action_view.form_with_generates_remote_forms = false
+    config.active_record.cache_versioning = false
+    config.active_record.has_many_inversing = false
+    config.active_record.yaml_column_permitted_classes = [BigDecimal, Symbol, Time,
+                                                          ActiveSupport::TimeWithZone,
+                                                          ActiveSupport::TimeZone]
+    config.active_support.cache_format_version = 7.1
+
+    # this used to migrate cookie from :mashal serializer to :json serializer,
+    # default in rails 7 is :json
+    # TODO to remove once we are sure all cookies have been migrated
+    config.action_dispatch.cookies_serializer = :hybrid
+
+    config.active_record.encryption.hash_digest_class = OpenSSL::Digest::SHA256
+    # This allows rails to decrypt data previously encrypted with SHA-1, new default encryption
+    # for rails 7.1 is SHA-256
+    # TODO set to false once we migrated encrypted data to SHA-256
+    config.active_record.encryption.support_sha1_for_non_deterministic_encryption = true
+
+    # Please, add to the `ignore` list any other `lib` subdirectories that do
+    # not contain `.rb` files, or that should not be reloaded or eager loaded.
+    # Common ones are `templates`, `generators`, or `middleware`, for example.
+    # config.autoload_lib(ignore: %w(assets tasks))
+
+    # Configuration for the application, engines, and railties goes here.
+    #
+    # These settings can be overridden in specific environments using the files
+    # in config/environments, which are processed later.
+    #
+
+    config.middleware.insert_before(
+      ActionDispatch::Cookies,
+      SessionCookieUpgrader, {
+        old_key: "_ofn_session_id",
+        new_key: "_h-ofn_session_id",
+        domain: ENV.fetch("SITE_URL", nil),
+        attrs: { http_only: true, secure: true },
+      }
+    ) if Rails.env.staging? || Rails.env.production?
+
+    config.time_zone = ENV.fetch("TIMEZONE", nil)
+    # config.eager_load_paths << Rails.root.join("extras")
+
     # Store a description of the current version
-    config.x.git_version = GitUtils::git_version
+    config.x.git_version = GitUtils.git_version
 
     config.after_initialize do
       # We need this here because the test env file loads before the Spree engine is loaded
-      Spree::Core::Engine.routes.default_url_options[:host] = ENV["SITE_URL"] if Rails.env == 'test'
+      if Rails.env.test?
+        Spree::Core::Engine.routes.default_url_options[:host] =
+          ENV.fetch("SITE_URL", nil)
+      end
     end
 
-    # We reload the routes here
-    #   so that the appended/prepended routes are available to the application.
     config.after_initialize do
+      # We reload the routes here
+      #   so that the appended/prepended routes are available to the application.
       Rails.application.routes_reloader.reload!
+
+      # Subscribe to payment transition events
+      ActiveSupport::Notifications.subscribe(
+        "ofn.payment_transition", Payments::StatusChangedListenerService.new
+      )
     end
 
     initializer "spree.environment", before: :load_config_initializers do |app|
@@ -56,45 +105,10 @@ module Openfoodnetwork
       end
     end
 
-    initializer "spree.register.payment_methods" do |app|
-      Rails.application.reloader.to_prepare do
-        app.config.spree.payment_methods = [
-          Spree::PaymentMethod::Check
-        ]
-      end
-    end
-
     initializer "spree.mail.settings" do |_app|
       Rails.application.reloader.to_prepare do
         Spree::Core::MailSettings.init
         Mail.register_interceptor(Spree::Core::MailInterceptor)
-      end
-    end
-
-    # filter sensitive information during logging
-    initializer "spree.params.filter" do |app|
-      app.config.filter_parameters += [
-        :password,
-        :password_confirmation,
-        :number,
-        :verification_value
-      ]
-    end
-
-    # Settings dependent on locale
-    #
-    # We need to set this config before the promo environment gets loaded and
-    # after the spree environment gets loaded...
-    # This is because Spree uses `Spree::Config` while evaluating classes :scream:
-    #
-    # https://github.com/spree/spree/blob/2-0-stable/core/app/models/spree/calculator/per_item.rb#L6
-    #
-    # TODO: move back to spree initializer once we upgrade to a more recent version
-    #       of Spree
-    initializer 'ofn.spree_locale_settings', before: 'spree.promo.environment' do |app|
-      Rails.application.reloader.to_prepare do
-        Spree::Config['checkout_zone'] = ENV['CHECKOUT_ZONE']
-        Spree::Config['currency'] = ENV['CURRENCY']
       end
     end
 
@@ -138,21 +152,13 @@ module Openfoodnetwork
       end
     end
 
-    # Register Spree payment methods
-    initializer "spree.gateway.payment_methods", :after => "spree.register.payment_methods" do |app|
-      Rails.application.reloader.to_prepare do
-        app.config.spree.payment_methods << Spree::Gateway::StripeSCA
-        app.config.spree.payment_methods << Spree::Gateway::PayPalExpress
-      end
-    end
-
-    initializer "ofn.reports" do |app|
+    initializer "ofn.reports" do |_app|
       module ::Reporting; end
       Rails.application.reloader.to_prepare do
-        next if defined?(::Reporting) && defined?(::Reporting::Errors)
+        next if defined?(::Reporting::Errors)
 
         loader = Zeitwerk::Loader.new
-        loader.push_dir("#{Rails.root}/lib/reporting", namespace: ::Reporting)
+        loader.push_dir("#{Rails.root.join('lib/reporting')}", namespace: ::Reporting)
         loader.enable_reloading
         loader.setup
         loader.eager_load
@@ -178,14 +184,10 @@ module Openfoodnetwork
     # Activate observers that should always be running.
     # config.active_record.observers = :cacher, :garbage_collector, :forum_observer
 
-    # Set Time.zone default to the specified zone and make Active Record auto-convert to this zone.
-    # Run "rake -D time" for a list of tasks for finding time zone names. Default is UTC.
-    config.time_zone = ENV["TIMEZONE"]
-
-    # The default locale is :en and all translations from config/locales/*.rb,yml are auto loaded.
-    # config.i18n.load_path += Dir[Rails.root.join('my', 'locales', '*.{rb,yml}').to_s]
+    # The default locale is set in the environment.
     config.i18n.default_locale = OpenFoodNetwork::I18nConfig.default_locale
     config.i18n.available_locales = OpenFoodNetwork::I18nConfig.available_locales
+    config.i18n.fallbacks = OpenFoodNetwork::I18nConfig.fallbacks
     I18n.locale = config.i18n.locale = config.i18n.default_locale
 
     # Calculate digests for locale files so we can know when they change
@@ -201,36 +203,13 @@ module Openfoodnetwork
 
     # Enable the asset pipeline
     config.assets.enabled = true
-
-    # Version of your assets, change this if you want to expire all your assets
-    config.assets.version = '1.2'
+    config.assets.initialize_on_precompile = true
 
     # Unset X-Frame-Options header for embedded pages.
     config.action_dispatch.default_headers.except! "X-Frame-Options"
 
-    # css and js files other than application.* are not precompiled by default
-    # Instead, they must be explicitly included below
-    # http://stackoverflow.com/questions/8012434/what-is-the-purpose-of-config-assets-precompile
-    config.assets.initialize_on_precompile = true
-    config.assets.precompile += ['admin/*.js', 'admin/**/*.js', 'admin_minimal.js']
-    config.assets.precompile += ['web/all.js']
-    config.assets.precompile += ['darkswarm/all.js']
-    config.assets.precompile += ['shared/*']
-    config.assets.precompile += ['*.jpg', '*.jpeg', '*.png', '*.gif' '*.svg']
-
     # Highlight code that triggered database queries in logs.
     config.active_record.verbose_query_logs = ENV.fetch("VERBOSE_QUERY_LOGS", false)
-
-    # Apply framework defaults. New recommended defaults are successively added with each Rails version and
-    # include the defaults from previous versions. For more info see:
-    # https://guides.rubyonrails.org/configuring.html#results-of-config-load-defaults
-    config.load_defaults 6.1
-    config.action_view.form_with_generates_remote_forms = false
-    config.active_record.cache_versioning = false
-    config.active_record.has_many_inversing = false
-    config.active_record.yaml_column_permitted_classes = [BigDecimal, Symbol, Time,
-                                                          ActiveSupport::TimeWithZone,
-                                                          ActiveSupport::TimeZone]
 
     config.active_support.escape_html_entities_in_json = true
 
@@ -240,18 +219,39 @@ module Openfoodnetwork
 
     config.generators.template_engine = :haml
 
-    Rails.application.routes.default_url_options[:host] = ENV["SITE_URL"]
-    DfcProvider::Engine.routes.default_url_options[:host] = ENV["SITE_URL"]
+    Rails.application.routes.default_url_options[:host] = ENV.fetch("SITE_URL", nil)
+    DfcProvider::Engine.routes.default_url_options[:host] = ENV.fetch("SITE_URL", nil)
 
     Rails.autoloaders.main.ignore(Rails.root.join('app/webpacker'))
 
-    config.active_storage.service = ENV["S3_BUCKET"].present? ? :amazon : :local
+    config.active_storage.service =
+      if ENV["S3_BUCKET"].present?
+        if ENV["S3_ENDPOINT"].present?
+          :s3_compatible_storage
+        else
+          :amazon
+        end
+      else
+        :local
+      end
     config.active_storage.content_types_to_serve_as_binary -= ["image/svg+xml"]
     config.active_storage.variable_content_types += ["image/svg+xml"]
     config.active_storage.url_options = config.action_controller.default_url_options
+    config.active_storage.variant_processor = :mini_magick
 
-    config.exceptions_app = self.routes
+    config.exceptions_app = routes
 
     config.view_component.generate.sidecar = true # Always generate components in subfolders
+
+    # Database encryption configuration, required for VINE connected app
+    config.active_record.encryption.primary_key = ENV.fetch(
+      "ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY", nil
+    )
+    config.active_record.encryption.deterministic_key = ENV.fetch(
+      "ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY", nil
+    )
+    config.active_record.encryption.key_derivation_salt = ENV.fetch(
+      "ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT", nil
+    )
   end
 end

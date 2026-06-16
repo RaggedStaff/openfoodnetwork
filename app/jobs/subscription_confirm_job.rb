@@ -23,7 +23,7 @@ class SubscriptionConfirmJob < ApplicationJob
     unconfirmed_proxy_orders.update_all(confirmed_at: Time.zone.now)
 
     # Confirm these proxy orders
-    ProxyOrder.where(id: unconfirmed_proxy_orders_ids).each do |proxy_order|
+    ProxyOrder.where(id: unconfirmed_proxy_orders_ids).find_each do |proxy_order|
       JobLogger.logger.info "Confirming Order for Proxy Order #{proxy_order.id}"
       confirm_order!(proxy_order.order)
     end
@@ -55,9 +55,7 @@ class SubscriptionConfirmJob < ApplicationJob
     if order.errors.any?
       send_failed_payment_email(order)
     else
-      Bugsnag.notify(e) do |payload|
-        payload.add_metadata :order, order
-      end
+      Alert.raise_with_record(e, order)
       send_failed_payment_email(order, e.message)
     end
   end
@@ -108,9 +106,6 @@ class SubscriptionConfirmJob < ApplicationJob
     record_and_log_error(:failed_payment, order, error_message)
     SubscriptionMailer.failed_payment_email(order).deliver_now
   rescue StandardError => e
-    Bugsnag.notify(e) do |payload|
-      payload.add_metadata :order, order
-      payload.add_metadata :error_message, error_message
-    end
+    Alert.raise(e, { subscription_data: { order:, error_message: } })
   end
 end

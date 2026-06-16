@@ -22,7 +22,8 @@ namespace :ofn do
         ProxyOrder.find_by(order_cycle_id:)&.update!(
           order_id: nil,
           confirmed_at: nil,
-          placed_at: nil)
+          placed_at: nil
+        )
 
         # Run placement job to create orders
         SubscriptionPlacementJob.perform_now
@@ -62,7 +63,7 @@ namespace :ofn do
 
       def request_order_cycle_id
         puts "Please input Order Cycle ID to reset"
-        input = STDIN.gets.chomp
+        input = $stdin.gets.chomp
         exit if input.blank? || !Integer(input)
         Integer(input)
       end

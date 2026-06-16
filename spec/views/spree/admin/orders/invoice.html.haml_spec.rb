@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
-
-describe "spree/admin/orders/invoice.html.haml" do
+RSpec.describe "spree/admin/orders/invoice.html.haml" do
   let(:shop) { create(:distributor_enterprise) }
   let(:order) { create(:completed_order_with_totals, distributor: shop) }
   let(:adas_address) do
@@ -82,7 +80,7 @@ describe "spree/admin/orders/invoice.html.haml" do
 
     render
     expect(rendered).to have_content "Shipping: Pickup"
-    expect(rendered).to_not have_content adas_address_display
+    expect(rendered).not_to have_content adas_address_display
   end
 
   it "displays order note on invoice when note is given" do

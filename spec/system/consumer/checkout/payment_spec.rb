@@ -2,7 +2,7 @@
 
 require "system_helper"
 
-describe "As a consumer, I want to checkout my order" do
+RSpec.describe "As a consumer, I want to checkout my order" do
   include ShopWorkflow
   include CheckoutHelper
   include FileHelper
@@ -15,19 +15,13 @@ describe "As a consumer, I want to checkout my order" do
   let(:supplier) { create(:supplier_enterprise) }
   let(:distributor) { create(:distributor_enterprise, charges_sales_tax: true) }
   let(:product) {
-    create(:taxed_product, supplier:, price: 10, zone:, tax_rate_amount: 0.1)
+    create(:taxed_product, supplier_id: supplier.id, price: 10, zone:, tax_rate_amount: 0.1)
   }
   let(:variant) { product.variants.first }
   let!(:order_cycle) {
     create(:simple_order_cycle, suppliers: [supplier], distributors: [distributor],
                                 coordinator: create(:distributor_enterprise), variants: [variant])
   }
-  let(:order) {
-    create(:order, order_cycle:, distributor:, bill_address_id: nil,
-                   ship_address_id: nil, state: "cart",
-                   line_items: [create(:line_item, variant:)])
-  }
-
   let(:fee_tax_rate) { create(:tax_rate, amount: 0.10, zone:, included_in_price: true) }
   let(:fee_tax_category) { create(:tax_category, tax_rates: [fee_tax_rate]) }
   let(:enterprise_fee) { create(:enterprise_fee, amount: 1.23, tax_category: fee_tax_category) }
@@ -45,7 +39,7 @@ describe "As a consumer, I want to checkout my order" do
 
   before do
     add_enterprise_fee enterprise_fee
-    set_order order
+    pick_order order
 
     distributor.shipping_methods.push(free_shipping_with_required_address)
   end
@@ -55,7 +49,6 @@ describe "As a consumer, I want to checkout my order" do
 
     before do
       login_as(user)
-      visit checkout_path
     end
 
     context "payment step" do
@@ -73,6 +66,7 @@ describe "As a consumer, I want to checkout my order" do
 
       context "with a transaction fee" do
         before do
+          visit checkout_path
           click_button "Next - Order summary"
         end
 
@@ -90,6 +84,7 @@ describe "As a consumer, I want to checkout my order" do
 
         context "after completing the order" do
           before do
+            visit checkout_path
             click_on "Complete order"
           end
           it_behaves_like "displays the transaction fee", "order confirmation"
@@ -114,13 +109,77 @@ describe "As a consumer, I want to checkout my order" do
         end
       end
 
-      describe "vouchers" do
-        context "with no voucher available" do
-          before do
-            visit checkout_step_path(:payment)
+      context "with credit available" do
+        let!(:payment_method) { create(:payment_method, distributors: [distributor]) }
+        let(:payment_amount) { 10.00 }
+        # Add a voucher so we can test the voucher input as well
+        let!(:voucher) do
+          create(:voucher_flat_rate, code: 'some_code', enterprise: distributor, amount: 15)
+        end
+
+        before do
+          create(
+            :customer_account_transaction,
+            amount: 100, customer: order.customer,
+          )
+          # Add credit payment
+          payment = order.payments.create!(payment_method: Spree::PaymentMethod.customer_credit,
+                                           amount: payment_amount, state: "checkout")
+
+          visit checkout_step_path(:payment)
+        end
+
+        it "displays no payment required and hide voucher" do
+          expect(page).to have_content "No payment required"
+          expect(page).to have_content "Credit used: $10.00"
+
+          expect(page).not_to have_content "Apply voucher"
+        end
+
+        context "when credit does not cover the whole order" do
+          let(:credit_amount) { 5.00 }
+          let(:payment_amount) { 5.00 }
+
+          it "shows credit used, available payment method and voucher" do
+            expect(page).to have_content "Credit used: $5.00"
+            expect(page).to have_content "Payment with Fee $1.23"
+            expect(page).to have_content "Check Free"
+            expect(page).to have_content "Apply voucher"
           end
 
+          it "requires choosing a payment method" do
+            click_on "Next - Order summary"
+
+            expect(page).to have_content "Credit used: $5.00"
+            expect(page).to have_content "Select a payment method"
+          end
+        end
+
+        context "when updating the order after reaching payment step" do
+          it "updates the credit amount used" do
+            expect(page).to have_content "No payment required"
+            expect(page).to have_content "Credit used: $10.00"
+
+            # Update line item quantity to change the order total
+            line_item = order.line_items.first
+            order.contents.update_item(line_item, { quantity: 2 })
+
+            click_link "Your details"
+            choose free_shipping_with_required_address.name
+
+            proceed_to_payment
+
+            expect(page).to have_content "No payment required"
+            expect(page).to have_content "Credit used: $20.00"
+          end
+        end
+      end
+
+      describe "vouchers" do
+        context "with no voucher available" do
           it "doesn't show voucher input" do
+            visit checkout_step_path(:payment)
+
             expect(page).not_to have_content "Apply voucher"
           end
         end
@@ -131,11 +190,8 @@ describe "As a consumer, I want to checkout my order" do
           end
 
           describe "adding voucher to the order" do
-            before do
-              visit checkout_step_path(:payment)
-            end
-
             it "adds a voucher to the order" do
+              visit checkout_step_path(:payment)
               apply_voucher "some_code"
 
               expect(page).to have_content "$15.00 Voucher"
@@ -149,6 +205,7 @@ describe "As a consumer, I want to checkout my order" do
               end
 
               it "shows a warning message and doesn't require payment" do
+                visit checkout_step_path(:payment)
                 apply_voucher "some_code"
 
                 expect(page).to have_content "$15.00 Voucher"
@@ -164,12 +221,70 @@ describe "As a consumer, I want to checkout my order" do
               end
             end
 
+            context "when order partially paid with credit" do
+              it "shows paid with credit amount" do
+                create(
+                  :customer_account_transaction,
+                  amount: 100, customer: order.customer,
+                )
+                # Add credit payment
+                payment = order.payments.create!(payment_method: Spree::PaymentMethod.customer_credit,
+                                                 amount: 5.00, state: "checkout")
+
+                visit checkout_step_path(:payment)
+                expect(page).to have_content "Credit used: $5.00"
+
+                apply_voucher "some_code"
+
+                expect(page).to have_content "$15.00 Voucher"
+                expect(page).to have_content "Credit used: $5.00"
+                expect(page).to have_content "No payment required"
+              end
+            end
+
             context "voucher doesn't exist" do
               it "show an error" do
+                visit checkout_step_path(:payment)
+
                 fill_in "Enter voucher code", with: "non_code"
                 click_button("Apply")
 
-                expect(page).to have_content("Voucher code Not found")
+                expect(page).to have_content("Voucher code invalid")
+              end
+            end
+
+            context "with a VINE voucher", :vcr, feature: :connected_apps do
+              let!(:vine_connected_app) {
+                ConnectedApps::Vine.create(
+                  enterprise: distributor, data: { api_key: "1234568", secret: "my_secret" }
+                )
+              }
+              before do
+                allow(ENV).to receive(:fetch).and_call_original
+                allow(ENV).to receive(:fetch).with("VINE_API_URL").and_return("https://vine-staging.openfoodnetwork.org.au/api/v1")
+              end
+
+              it "adds a voucher to the order" do
+                visit checkout_step_path(:payment)
+
+                apply_voucher "CI3922"
+
+                expect(page).to have_content "$5.00 Voucher"
+                expect(order.reload.voucher_adjustments.length).to eq(1)
+                expect(Vouchers::Vine.find_by(code: "CI3922",
+                                              enterprise: distributor)).not_to be_nil
+              end
+
+              context "with an invalid voucher" do
+                it "show an error" do
+                  visit checkout_step_path(:payment)
+
+                  fill_in "Enter voucher code", with: "KM1891"
+                  click_button("Apply")
+
+                  expect(page).to have_content("The voucher is not valid")
+                  expect(Vouchers::Vine.find_by(code: "KM1891", enterprise: distributor)).to be_nil
+                end
               end
             end
           end
@@ -219,7 +334,7 @@ describe "As a consumer, I want to checkout my order" do
 
       describe "choosing" do
         shared_examples "different payment methods" do |pay_method|
-          context "checking out with #{pay_method}", if: pay_method.eql?("Stripe SCA") == false do
+          context "checking out with #{pay_method}" do
             before do
               visit checkout_step_path(:payment)
             end
@@ -233,46 +348,9 @@ describe "As a consumer, I want to checkout my order" do
               expect(order.reload.state).to eq "complete"
             end
           end
-
-          context "for Stripe SCA", if: pay_method.eql?("Stripe SCA") do
-            around do |example|
-              with_stripe_setup { example.run }
-            end
-
-            before do
-              stripe_enable
-              visit checkout_step_path(:payment)
-            end
-
-            it "selects Stripe SCA and proceeds to the summary step" do
-              choose pay_method.to_s
-              fill_out_card_details
-              click_on "Next - Order summary"
-              proceed_to_summary
-            end
-
-            context "when saving card" do
-              it "selects Stripe SCA and proceeds to the summary step" do
-                stub_customers_post_request(email: order.user.email)
-                stub_payment_method_attach_request
-
-                choose pay_method.to_s
-                fill_out_card_details
-                check "Save card for future use"
-
-                click_on "Next - Order summary"
-                proceed_to_summary
-
-                # Verify card has been saved with correct stripe IDs
-                user_credit_card = order.reload.user.credit_cards.first
-                expect(user_credit_card.gateway_payment_profile_id).to eq "pm_123"
-                expect(user_credit_card.gateway_customer_profile_id).to eq "cus_A123"
-              end
-            end
-          end
         end
 
-        describe "shared examples" do
+        describe "payment method" do
           let!(:cash) { create(:payment_method, distributors: [distributor], name: "Cash") }
 
           context "Cash" do
@@ -307,7 +385,70 @@ describe "As a consumer, I want to checkout my order" do
               create(:stripe_sca_payment_method, distributors: [distributor], name: "Stripe SCA")
             }
 
-            it_behaves_like "different payment methods", "Stripe SCA"
+            around do |example|
+              with_stripe_setup { example.run }
+            end
+
+            before do
+              stripe_enable
+              visit checkout_step_path(:payment)
+            end
+
+            it "selects Stripe SCA and proceeds to the summary step" do
+              choose "Stripe SCA"
+              fill_out_card_details
+              click_on "Next - Order summary"
+              proceed_to_summary
+            end
+
+            context "when saving card" do
+              it "selects Stripe SCA and proceeds to the summary step" do
+                stub_customers_post_request(email: order.user.email)
+                stub_payment_method_attach_request
+
+                choose "Stripe SCA"
+                fill_out_card_details
+                check "Save card for future use"
+
+                click_on "Next - Order summary"
+                proceed_to_summary
+
+                # Verify card has been saved with correct stripe IDs
+                user_credit_card = order.reload.user.credit_cards.first
+                expect(user_credit_card.gateway_payment_profile_id).to eq "pm_123"
+                expect(user_credit_card.gateway_customer_profile_id).to eq "cus_A123"
+              end
+            end
+          end
+
+          context "Taler" do
+            let!(:taler) do
+              Spree::PaymentMethod::Taler.create!(
+                name: "Taler",
+                environment: "test",
+                preferred_instance_url: "https://taler.example.com/",
+                distributors: [distributor]
+              )
+            end
+
+            before do
+              # Shortcut the user interaction and go straight to our
+              # confirmation action.
+              taler_order_id = { "order_id" => "taler-order:123" }
+              expect_any_instance_of(Taler::Order)
+                .to receive(:create).and_return(taler_order_id)
+
+              # And fake the payment status to avoid user interaction.
+              allow_any_instance_of(Taler::Order)
+                .to receive(:status_url) do
+                  payment = Spree::Payment.last
+                  payment_gateways_confirm_taler_path(payment_id: payment.id)
+              end
+              allow_any_instance_of(Taler::Order)
+                .to receive(:fetch).with("order_status").and_return("paid")
+            end
+
+            it_behaves_like "different payment methods", "Taler"
           end
         end
       end
@@ -353,7 +494,6 @@ describe "As a consumer, I want to checkout my order" do
 
   def add_voucher_to_order(voucher, order)
     voucher.create_adjustment(voucher.code, order)
-    VoucherAdjustmentsService.new(order).update
-    order.update_totals_and_states
+    OrderManagement::Order::Updater.new(order).update_voucher
   end
 end

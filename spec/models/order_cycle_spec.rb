@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe OrderCycle do
+RSpec.describe OrderCycle do
   it "should be valid when built from factory" do
     expect(build(:simple_order_cycle)).to be_valid
   end
@@ -15,7 +13,7 @@ describe OrderCycle do
 
   it 'should not be valid when open date is after close date' do
     oc = build(:simple_order_cycle, orders_open_at: Time.zone.now, orders_close_at: 1.minute.ago)
-    expect(oc).to_not be_valid
+    expect(oc).not_to be_valid
   end
 
   it "has a coordinator and associated fees" do
@@ -62,8 +60,7 @@ describe OrderCycle do
   it "finds order cycles accessible by a user" do
     e1 = create(:enterprise, is_primary_producer: true, sells: "any")
     e2 = create(:enterprise, is_primary_producer: true, sells: "any")
-    user = create(:user, enterprises: [e2], spree_roles: [])
-    user.spree_roles = []
+    user = create(:user, enterprises: [e2])
 
     oc_coordinated = create(:simple_order_cycle, coordinator: e2)
     oc_sent = create(:simple_order_cycle, suppliers: [e2])
@@ -151,12 +148,12 @@ describe OrderCycle do
   end
 
   it "checks for variants" do
-    p1 = create(:simple_product)
-    p2 = create(:simple_product)
-    oc = create(:simple_order_cycle, suppliers: [p1.supplier], variants: [p1.variants.first])
+    variant1 = create(:variant)
+    variant2 = create(:variant)
+    order_cycle = create(:simple_order_cycle, suppliers: [variant1.supplier], variants: [variant1])
 
-    expect(oc).to have_variant(p1.variants.first)
-    expect(oc).not_to have_variant(p2.variants.first)
+    expect(order_cycle).to have_variant(variant1)
+    expect(order_cycle).not_to have_variant(variant2)
   end
 
   describe "product exchanges" do
@@ -230,38 +227,55 @@ describe OrderCycle do
       expect(oc.products).to match_array [p0, p1, p2]
     end
 
-    context "listing variant distributed by a particular distributor" do
-      context "when default settings are in play" do
-        it "returns an empty list when no distributor is given" do
-          expect(oc.variants_distributed_by(nil)).to eq([])
-        end
+    describe "#variants_distributed_by" do
+      it "returns an empty list when no distributor is given" do
+        expect(oc.variants_distributed_by(nil)).to eq([])
+      end
 
-        it "returns all variants in the outgoing exchange for the distributor provided" do
-          expect(oc.variants_distributed_by(d2)).to include p1.variants.first, p1_v_visible
-          expect(oc.variants_distributed_by(d2)).not_to include p1_v_hidden, p1_v_deleted
-          expect(oc.variants_distributed_by(d1)).to include p2_v
-        end
+      it "returns all variants in the outgoing exchange for the distributor provided" do
+        expect(oc.variants_distributed_by(d2)).to include p1.variants.first, p1_v_visible,
+                                                          p1_v_hidden
+        expect(oc.variants_distributed_by(d2)).not_to include p1_v_deleted
+        expect(oc.variants_distributed_by(d1)).to include p2_v
+      end
 
-        context "with soft-deleted variants" do
-          it "does not consider soft-deleted variants to be currently distributed in the oc" do
-            p2_v.delete
+      context "with soft-deleted variants" do
+        it "does not consider soft-deleted variants to be currently distributed in the oc" do
+          p2_v.delete
 
-            expect(oc.variants_distributed_by(d1)).to_not include p2_v
-          end
+          expect(oc.variants_distributed_by(d1)).not_to include p2_v
         end
       end
 
-      context "when hub prefers product selection from inventory only" do
-        before do
-          allow(d1).to receive(:prefers_product_selection_from_inventory_only?) { true }
+      context "when inventory is enabled", feature: :inventory do
+        context "when default settings are in play" do
+          it "returns all variants in the outgoing exchange for the distributor provided" do
+            expect(oc.variants_distributed_by(d2)).to include p1.variants.first, p1_v_visible
+            expect(oc.variants_distributed_by(d2)).not_to include p1_v_hidden, p1_v_deleted
+            expect(oc.variants_distributed_by(d1)).to include p2_v
+          end
+
+          context "with soft-deleted variants" do
+            it "does not consider soft-deleted variants to be currently distributed in the oc" do
+              p2_v.delete
+
+              expect(oc.variants_distributed_by(d1)).not_to include p2_v
+            end
+          end
         end
 
-        it "returns an empty list when no distributor is given" do
-          expect(oc.variants_distributed_by(nil)).to eq([])
-        end
+        context "when hub prefers product selection from inventory only" do
+          before do
+            allow(d1).to receive(:prefers_product_selection_from_inventory_only?) { true }
+          end
 
-        it "returns only variants in the exchange that are also in the distributor's inventory" do
-          expect(oc.variants_distributed_by(d1)).not_to include p2_v
+          it "returns an empty list when no distributor is given" do
+            expect(oc.variants_distributed_by(nil)).to eq([])
+          end
+
+          it "returns only variants in the exchange that are also in the distributor's inventory" do
+            expect(oc.variants_distributed_by(d1)).not_to include p2_v
+          end
         end
       end
     end
@@ -272,7 +286,7 @@ describe OrderCycle do
       @oc = create(:simple_order_cycle)
 
       @d1 = create(:enterprise)
-      @d2 = create(:enterprise, next_collection_at: '2-8pm Friday')
+      @d2 = create(:enterprise)
 
       @e0 = create(:exchange, order_cycle: @oc, sender: create(:enterprise),
                               receiver: @oc.coordinator, incoming: true)
@@ -292,10 +306,6 @@ describe OrderCycle do
       it "looks up the pickup time on the exchange when present" do
         expect(@oc.pickup_time_for(@d1)).to eq('5pm Tuesday')
       end
-
-      it "returns the distributor's default collection time otherwise" do
-        expect(@oc.pickup_time_for(@d2)).to eq('2-8pm Friday')
-      end
     end
 
     describe "finding pickup instructions for a distributor" do
@@ -309,7 +319,7 @@ describe OrderCycle do
     let(:oc) { build_stubbed(:simple_order_cycle) }
 
     it "reports status when an order cycle is upcoming" do
-      Timecop.freeze(oc.orders_open_at - 1.second) do
+      travel_to(oc.orders_open_at - 1.second) do
         expect(oc).not_to be_undated
         expect(oc).to     be_dated
         expect(oc).to     be_upcoming
@@ -327,7 +337,7 @@ describe OrderCycle do
     end
 
     it "reports status when an order cycle has closed" do
-      Timecop.freeze(oc.orders_close_at + 1.second) do
+      travel_to(oc.orders_close_at + 1.second) do
         expect(oc).not_to be_undated
         expect(oc).to     be_dated
         expect(oc).not_to be_upcoming
@@ -427,6 +437,30 @@ describe OrderCycle do
     it "returns the earliest closing time" do
       expect(OrderCycle.earliest_closing_times[e2.id].round).to eq(time2.round)
     end
+
+    context "when scoped by distributors" do
+      it "returns times for the given distributors" do
+        expect(OrderCycle.earliest_closing_times([e1.id])).to have_key e1.id
+        expect(OrderCycle.earliest_closing_times([e2.id])).to have_key e2.id
+      end
+
+      it "doesn't return times for other distributors" do
+        expect(OrderCycle.earliest_closing_times([e1.id])).not_to have_key e2.id
+        expect(OrderCycle.earliest_closing_times([e2.id])).not_to have_key e1.id
+      end
+
+      it "returns the correct values" do
+        expect(OrderCycle.earliest_closing_times([e1.id])[e1.id].round).to eq time1.round
+        expect(OrderCycle.earliest_closing_times([e2.id])[e2.id].round).to eq time2.round
+      end
+    end
+
+    context "when not scoped by distributors" do
+      it "returns times for all distributors" do
+        expect(OrderCycle.earliest_closing_times).to have_key e1.id
+        expect(OrderCycle.earliest_closing_times).to have_key e2.id
+      end
+    end
   end
 
   describe "finding all line items sold by to a user by a given shop" do
@@ -458,7 +492,7 @@ describe OrderCycle do
       expect(items).to match_array order.reload.line_items
     end
 
-    it "returns items with scoped variants" do
+    it "returns items with scoped variants", feature: :inventory do
       overridden_variant = order.line_items.first.variant
       create(:variant_override, hub: shop, variant: overridden_variant, count_on_hand: 1000)
 
@@ -564,12 +598,12 @@ describe OrderCycle do
 
     it "it does not reset opened_at if open date is changed to be earlier" do
       expect{ oc.update!(orders_open_at: 3.days.ago) }
-        .to_not change { oc.opened_at }
+        .not_to change { oc.opened_at }
     end
 
     it "it does not reset opened_at if open date does not change" do
       expect{ oc.update!(orders_close_at: 1.day.from_now) }
-        .to_not change { oc.opened_at }
+        .not_to change { oc.opened_at }
     end
   end
 
@@ -580,21 +614,21 @@ describe OrderCycle do
     }
 
     it "reset processed_at if close date change in future" do
-      expect(oc.processed_at).to_not be_nil
+      expect(oc.processed_at).not_to be_nil
       oc.update!(orders_close_at: 1.week.from_now)
       expect(oc.processed_at).to be_nil
     end
 
     it "it does not reset processed_at if close date is changed to be earlier" do
-      expect(oc.processed_at).to_not be_nil
+      expect(oc.processed_at).not_to be_nil
       oc.update!(orders_close_at: 2.days.ago)
-      expect(oc.processed_at).to_not be_nil
+      expect(oc.processed_at).not_to be_nil
     end
 
     it "it does not reset processed_at if close date does not change" do
-      expect(oc.processed_at).to_not be_nil
+      expect(oc.processed_at).not_to be_nil
       oc.update!(orders_open_at: 2.weeks.ago)
-      expect(oc.processed_at).to_not be_nil
+      expect(oc.processed_at).not_to be_nil
     end
   end
 
@@ -709,7 +743,7 @@ describe OrderCycle do
           ).distributor_payment_methods.first
           oc.selected_distributor_payment_methods << other_distributor_payment_method_i
 
-          expect(oc.distributor_payment_methods).to eq [
+          expect(oc.distributor_payment_methods).to match_array [
             distributor_payment_method,
             other_distributor_payment_method_i
           ]
@@ -785,10 +819,10 @@ describe OrderCycle do
           ).distributor_shipping_methods.first
           oc.selected_distributor_shipping_methods << other_distributor_shipping_method_i
 
-          expect(oc.distributor_shipping_methods).to eq [
+          expect(oc.distributor_shipping_methods).to contain_exactly(
             distributor_shipping_method,
             other_distributor_shipping_method_i
-          ]
+          )
         end
       end
     end
@@ -805,6 +839,33 @@ describe OrderCycle do
       order_cycle = build(:simple_order_cycle, coordinator: build(:enterprise, sells: "any"))
 
       expect(order_cycle).not_to be_simple
+    end
+  end
+
+  describe "same_datetime_value" do
+    it 'returns true when old and new values are nil' do
+      order_cycle = create(:order_cycle, orders_open_at: nil, orders_close_at: nil)
+      expect(order_cycle.same_datetime_value(:orders_open_at, nil)).to be_truthy
+    end
+
+    it 'returns false if one value is nil and other not nil' do
+      order_cycle = create(:order_cycle, orders_open_at: "2024-09-30 06:09", orders_close_at: nil)
+      expect(order_cycle.same_datetime_value(:orders_open_at, nil)).to be_falsey
+      expect(order_cycle.same_datetime_value(:orders_close_at, "2024-09-30 06:09")).to be_falsey
+    end
+
+    it 'returns true if either values are same' do
+      order_cycle = create(:order_cycle, orders_open_at: Time.zone.parse("2024-09-30 06:09"),
+                                         orders_close_at: Time.zone.parse("2024-11-30 06:09"))
+      expect(order_cycle.same_datetime_value(:orders_open_at, "2024-09-30 06:09")).to be_truthy
+      expect(order_cycle.same_datetime_value(:orders_close_at, "2024-11-30 06:09")).to be_truthy
+    end
+
+    it 'returns false if either values are not same' do
+      order_cycle = create(:order_cycle, orders_open_at: Time.zone.parse("2024-09-30 06:09"),
+                                         orders_close_at: Time.zone.parse("2024-11-30 06:09"))
+      expect(order_cycle.same_datetime_value(:orders_open_at, "2024-10-30 06:09")).to be_falsey
+      expect(order_cycle.same_datetime_value(:orders_close_at, "2024-12-30 06:09")).to be_falsey
     end
   end
 end

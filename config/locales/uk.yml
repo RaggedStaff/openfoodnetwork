@@ -5,6 +5,8 @@ uk:
       spree/product: Продукт
       spree/shipping_method: Спосіб доставки
     attributes:
+      spree/image:
+        attachment: Вкладення
       spree/order/ship_address:
         phone: "Телефонний номер"
         firstname: "Ім'я"
@@ -29,10 +31,12 @@ uk:
       spree/product:
         name: "Назва продукту"
         price: "Ціна"
-        primary_taxon: "Категорія товару"
-        supplier: "Постачальник"
+        primary_taxon_id: "Категорія товару"
         shipping_category_id: "Категорія доставки"
-        variant_unit: "Варіант одиниці"
+      spree/variant:
+        primary_taxon: "Категорія товару"
+        shipping_category_id: "Категорія доставки"
+        supplier: "Постачальник"
         variant_unit_name: "Назва варіанта одиниці"
       spree/credit_card:
         base: "Кредитна картка"
@@ -65,32 +69,9 @@ uk:
         variant_override:
           count_on_hand:
             using_producer_stock_settings_but_count_on_hand_set: "має бути порожнім, оскільки використовуються налаштування запасів виробника"
-            on_demand_but_count_on_hand_set: "має бути порожнім, якщо на вимогу"
             limited_stock_but_no_count_on_hand: "необхідно вказати, оскільки запаси обмежені"
       messages:
         blank: "не може бути порожнім"
-  errors:
-    messages:
-      content_type_invalid: "має невірний тип контенту"
-      file_size_out_of_range: "розмір %{file_size} не знаходиться в необхідному діапазоні"
-      limit_out_of_range: "загальна кількість виходить за межі діапазону"
-      image_metadata_missing: "не є дійсним зображенням"
-      dimension_min_inclusion: "має бути більшим або дорівнювати %{width} x %{height} пікселям."
-      dimension_max_inclusion: "має бути меншим або дорівнювати %{width} x %{height} пікселям."
-      dimension_width_inclusion: "ширина не включається між %{min} та %{max} пікселями."
-      dimension_height_inclusion: "висота не включається між %{min} та %{max} пікселями."
-      dimension_width_greater_than_or_equal_to: "ширина має бути більшою або дорівнювати %{length} пікселю."
-      dimension_height_greater_than_or_equal_to: "висота має бути більшою або дорівнювати %{length} пікселям."
-      dimension_width_less_than_or_equal_to: "ширина має бути меншою або дорівнювати %{length} пікселям."
-      dimension_height_less_than_or_equal_to: "висота має бути меншою або дорівнювати %{length} пікселю."
-      dimension_width_equal_to: "ширина має дорівнювати %{length} пікселям."
-      dimension_height_equal_to: "висота має дорівнювати %{length} пікселям."
-      aspect_ratio_not_square: "має бути квадратне зображення"
-      aspect_ratio_not_portrait: "має бути портретне зображення"
-      aspect_ratio_not_landscape: "має бути пейзажним зображенням"
-      aspect_ratio_is_not: "має мати співвідношення сторін %{aspect_ratio}"
-      aspect_ratio_unknown: "має невідоме співвідношення сторін"
-      image_not_processable: "не є дійсним зображенням"
   stripe:
     error_code:
       incorrect_number: "Номер картки неправильний."
@@ -247,6 +228,9 @@ uk:
     integer_array_validator:
       not_array_error: "має бути масивом"
       invalid_element_error: "має містити тільки допустимі цілі числа"
+  backorder_mailer:
+    backorder_failed:
+      product: "Продукт"
   enterprise_mailer:
     confirmation_instructions:
       subject: "Будь ласка, підтвердьте адресу електронної пошти для %{enterprise}"
@@ -262,6 +246,13 @@ uk:
       join_community: "Приєднуйтесь до спільноти"
     invite_manager:
       subject: "%{enterprise} запросив вас стати менеджером"
+  payment_mailer:
+    authorize_payment:
+      subject: "Авторизуйте свій платіж на %{distributor} на OFN"
+      instructions: "Ваш платіж %{amount} на адресу %{distributor} вимагає додаткової автентифікації. Перейдіть за такою URL-адресою, щоб авторизувати свій платіж:"
+    authorization_required:
+      subject: "Платіж потребує авторизації клієнта"
+      message: "Оплата замовлення %{order_number} потребує додаткової авторизації від клієнта. Клієнта було сповіщено електронною поштою, і платіж відображатиметься як очікуваний, доки його не буде авторизовано."
   producer_mailer:
     order_cycle:
       subject: "Замовити циклічний звіт для %{producer}"
@@ -418,6 +409,7 @@ uk:
     create_and_add_another: "Створити та додати ще один"
     create: "Створити"
     cancel: "Скасувати"
+    cancel_order: "Скасувати"
     resume: "Продовжити"
     save: "Зберегти"
     edit: "Редагувати"
@@ -438,6 +430,7 @@ uk:
           title: Виробники
         colums: Колонки
       columns:
+        image: Зображення
         name: Ім'я
         unit: Одиниця
         price: Ціна
@@ -450,6 +443,7 @@ uk:
         inherits_properties: "Успадковує властивості?"
         import_date: "Дата імпорту"
         actions: Дії
+        tags: Мітки
       columns_selector:
         unit: Одиниця
         price: Ціна
@@ -465,8 +459,11 @@ uk:
         edit: Редагувати
         clone: Клонувати
         delete: Видалити
+        remove: Видалити
       image:
         edit: Редагувати
+      product_preview:
+        shop_tab: Магазин
     adjustments:
       skipped_changing_canceled_order: "Ви не можете змінити скасоване замовлення."
     begins_at: Починається о
@@ -520,7 +517,6 @@ uk:
     show_n_more: Показати на%{num} більше
     choose: "Виберіть..."
     please_select: Виберіть будь ласка...
-    column_save_as_default: Зберегти за замовчуванням
     columns: Колонки
     actions: Дії
     viewing: "Перегляд: %{current_view_name}"
@@ -603,6 +599,11 @@ uk:
         guest_label: "Реєстрація гостя"
         credit_owed: "Кредитна заборгованість"
         balance_due: "Баланс через"
+    customer_account_transaction:
+      index:
+        description: Опис
+        amount: Кількість
+        running_balance: Поточний баланс
     contents:
       edit:
         title: Контент
@@ -616,6 +617,11 @@ uk:
         your_content: Ваш контент
         user_guide: Посібник користувача
         map: Карта
+    dfc_product_imports:
+      index:
+        update: Оновити
+        new: Новий
+        import: Імпорт
     enterprise_fees:
       index:
         title: "Комісія підприємства"
@@ -669,7 +675,6 @@ uk:
       variants:
         infinity: "Нескінченність"
         to_order_tip: "Товари, виготовлені на замовлення, не мають встановленого рівня запасів, наприклад, хліб, свіжий на замовлення."
-      back_to_products_list: "Повернутися до списку продуктів"
       editing_product: "Редагування продукту"
       tabs:
         product_details: "Деталі продукту"
@@ -681,19 +686,26 @@ uk:
       index:
         header:
           title: Масове редагування продуктів
-      sort:
-        pagination:
-          clear_search: Очистити пошук
       filters:
         producers:
           label: Виробники
         categories:
           label: Категорії
+        tags:
+          label: Мітки
+          none: Жодного
         search: Пошук
-      table:
+      sort:
+        pagination:
+          clear_search: Очистити пошук
+      product_variant_row:
         new_variant: Новий варіант
-      edit_image:
-        close: Назад
+      variant_row:
+        none_tax_category: Жодного
+        category_field_name: "Категорія"
+        tax_category_field_name: "Категорія податку"
+        producer_field_name: "Виробник"
+        add_a_tag: Додати тег
     product_import:
       title: Імпорт продукту
       file_not_found: Файл не знайдено або не вдалося відкрити
@@ -752,7 +764,6 @@ uk:
         no_name: Без назви
         blank_enterprise: для деяких продуктів не визначено підприємство
         reset_absent?: Скинути відсутні продукти
-        reset_absent_tip: Встановити запас на нуль для всіх вихідних продуктів, яких немає у файлі
         overwrite_all: Перезаписати все
         overwrite_empty: Перезаписати, якщо пусто
         default_stock: Встановити рівень запасів
@@ -935,12 +946,6 @@ uk:
         images:
           legend: "Зображення"
           logo: Логотип
-          promo_image_placeholder: 'Це зображення відображається в розділі "Про нас"'
-          promo_image_note1: 'БУДЬ ЛАСКА, ЗАПИШІТЬ:'
-          promo_image_note2: Будь-яке рекламне зображення, завантажене тут, буде обрізано до 1200 x 260.
-          promo_image_note3: Рекламне зображення відображається у верхній частині сторінки профілю підприємства та у спливаючих вікнах.
-          remove_logo: "Видалити зображення"
-          remove_promo_image: "Видалити зображення"
         inventory_settings:
           legend: "Налаштування інвентарю"
           text1: Ви можете керувати залишками і цінами через свій
@@ -1021,13 +1026,15 @@ uk:
           customer_names_tip: "Дозволити вашим постачальникам бачити імена клієнтів у звітах"
           customer_names_false: "Вимкнено"
           customer_names_true: "Увімкнено"
+          customer_contacts_false: "Вимкнено"
+          customer_contacts_true: "Увімкнено"
+          producers_edit_orders_false: "Вимкнено"
+          producers_edit_orders_true: "Увімкнено"
           shopfront_message: "Повідомлення вітрини магазину"
           shopfront_message_placeholder: >
               Додаткове повідомлення для привітання клієнтів і пояснення, як робити
               покупки у вас. Якщо тут ввести текст, він відображатиметься на вкладці
               «Домашня сторінка», коли клієнти вперше прийдуть у ваш магазин.
-          shopfront_message_link_tooltip: "Вставити/редагувати посилання"
-          shopfront_message_link_prompt: "Введіть URL-адресу для вставки"
           shopfront_closed_message: " Повідомлення закритої вітрини магазину"
           shopfront_closed_message_placeholder: >
               Повідомлення, яке містить більш детальне пояснення про те, чому ваш
@@ -1072,27 +1079,24 @@ uk:
             no_rules_yet: Правила за умовчанням ще не застосовані
             add_new_button: '+ Додайте нове правило за замовчуванням'
           no_tags_yet: До цього підприємства ще не застосовані теги
-          no_rules_yet: До цього тегу ще не застосовуються правила
-          for_customers_tagged: 'Для клієнтів з тегами:'
-          add_new_rule: '+ Додати нове правило'
           add_new_tag: '+ Додати новий тег'
+          show_hide_variants: 'Показати або приховати варіанти в моїй вітрині'
+          show_hide_shipping: 'Показати або приховати способи доставки під час оформлення замовлення'
+          show_hide_payment: 'Показати або приховати способи оплати під час оформлення замовлення'
+          show_hide_order_cycles: 'Показати або приховати цикли замовлень у моїй вітрині'
         users:
           legend: "Користувачі"
           email_confirmation_notice_html: "Очікується підтвердження електронною поштою. Ми надіслали електронний лист із підтвердженням на адресу %{email}."
           resend: Надіслати повторно
-          owner: 'Власник'
           contact: "Контакти"
+          owner: 'Власник'
           contact_tip: "Менеджер, який отримуватиме корпоративні електронні листи для замовлень і повідомлень. Необхідно мати підтверджену електронну адресу."
           owner_tip: Основний користувач, відповідальний за це підприємство.
           notifications: Сповіщення
           notifications_tip: На цю електронну адресу будуть надходити повідомлення про замовлення.
           notifications_placeholder: напр. gustav@truffles.com
           notifications_note: 'Примітка: перед використанням може знадобитися підтвердити нову електронну адресу'
-          managers: Менеджери
-          managers_tip: Інші користувачі з дозволом на керування цим підприємством.
           invite_manager: "Запросити менеджера"
-          invite_manager_tip: "Запросіть незареєстрованого користувача зареєструватися та стати менеджером цього підприємства."
-          add_unregistered_user: "Додайте незареєстрованого користувача"
           email_confirmed: "Електронна адреса підтверджена"
           email_not_confirmed: "Електронна пошта не підтверджена"
         vouchers:
@@ -1100,7 +1104,12 @@ uk:
           customers: Замовник
           active: Активний?
         connected_apps:
-          loading: "Завантаження"
+          affiliate_sales_data:
+            loading: "Завантаження"
+          discover_regen:
+            loading: "Завантаження"
+          vine:
+            enable: "Підключитися"
       actions:
         edit_profile: Налаштування
         properties: Властивості
@@ -1153,10 +1162,8 @@ uk:
         contact_name: Контактна Особа
       edit:
         editing: 'Налаштування:'
-        back_link: Повернутися до списку підприємств
       new:
         title: Нове підприємство
-        back_link: Повернутися до списку підприємств
       welcome:
         welcome_title: Ласкаво просимо до Open Food Network!
         welcome_text: 'Ви успішно створили '
@@ -1164,9 +1171,6 @@ uk:
         choose_starting_point: 'Виберіть свій пакет:'
         profile: 'Профіль'
         producer_profile: 'Профіль виробника'
-      invite_manager:
-        user_already_exists: "Користувач вже існує"
-        error: "Щось пішло не так"
     order_cycles:
       loading_flash:
         loading_order_cycles: ЦИКЛИ ЗАВАНТАЖЕННЯ ЗАМОВЛЕННЯ
@@ -1193,6 +1197,8 @@ uk:
         choose_products_from: "Виберіть продукти з:"
         re_notify_producers: Повторно повідомте виробників
         notify_producers_tip: Це надішле електронний лист кожному виробнику зі списком їхніх замовлень.
+      date_time_warning_modal_content:
+        cancel: 'Скасувати'
       incoming:
         incoming: "Вхідні"
         supplier: "Постачальник"
@@ -1316,6 +1322,17 @@ uk:
       resume:
         could_not_resume_the_order: Не вдалося відновити замовлення
     shared:
+      attachment_field:
+        logo_label: "Логотип"
+        logo_remove: "Видалити зображення"
+        logo_remove_confirm: "Логотип буде видалено відразу після вашого підтвердження."
+        promo_image_note1: 'БУДЬ ЛАСКА, ЗАПИШІТЬ:'
+        promo_image_note2: Будь-яке рекламне зображення, завантажене тут, буде обрізано до 1200 x 260.
+        promo_image_note3: Рекламне зображення відображається у верхній частині сторінки профілю підприємства та у спливаючих вікнах.
+        promo_image_placeholder: 'Це зображення відображається в розділі "Про нас"'
+        promo_image_remove: "Видалити зображення"
+        promo_image_remove_confirm: "Рекламне зображення буде видалено одразу після вашого підтвердження."
+        white_label_logo_remove: "Видалити зображення"
       user_guide_link:
         user_guide: Керівництво користувача
       enterprises_hubs_tabs:
@@ -1355,7 +1372,7 @@ uk:
       email_confirmation: "Очікується підтвердження електронною поштою. Ми надіслали електронний лист із підтвердженням на адресу %{email}."
       not_visible: "%{enterprise} не видно, тому його не можна знайти на карті чи в результатах пошуку"
     reports:
-      hidden: ПРИХОВАНО
+      hidden_field: "< Приховано >"
       unitsize: РОЗМІР
       total: РАЗОМ
       total_items: ВСЬОГО ПОЗИЦІЙ
@@ -1407,7 +1424,6 @@ uk:
         no_report_type: "Будь ласка, вкажіть тип звіту"
         report_not_found: "Звіт не знайдено"
         missing_ransack_params: "У запиті вкажіть параметри пошуку Ransack"
-      hidden_field: "< Приховано >"
       summary_row:
         total: "РАЗОМ"
       table:
@@ -1530,6 +1546,11 @@ uk:
     schedules:
       destroy:
         associated_subscriptions_error: Цей розклад неможливо видалити, оскільки він має пов’язані підписки
+    user_invitations:
+      new:
+        back: Назад
+        email: Email
+        invite: Запросити
     vouchers:
       new:
         back: Назад
@@ -1540,6 +1561,9 @@ uk:
         stripe_connect_cancelled: "Підключення до Stripe скасовано"
         stripe_connect_success: "Обліковий запис Stripe успішно підключено"
         stripe_connect_fail: На жаль, не вдалося підключитися до вашого облікового запису Stripe
+        remove_logo_success: "Логотип видалено"
+        remove_promo_image_success: "Рекламне зображення видалено"
+        remove_white_label_logo_success: "Логотип видалено"
       stripe_connect_settings:
         resource: Конфігурація Stripe Connect
   api:
@@ -1646,7 +1670,6 @@ uk:
       invalid_email: "Будь ласка, введіть дійсну адресу електронної пошти"
       select_a_shipping_method: Виберіть спосіб доставки
       select_a_payment_method: Виберіть спосіб оплати
-      voucher_not_found: Не знайдено
   shops:
     hubs:
       show_closed_shops: "Показати закриті магазини"
@@ -1810,7 +1833,6 @@ uk:
   label_account: "Обліковий запис"
   label_more: "Показати більше"
   label_less: "Показувати менше"
-  label_notices: "Повідомлення"
   cart_items: "Товари"
   cart_headline: "Ваш кошик для покупок"
   total: "Всього"
@@ -1846,7 +1868,6 @@ uk:
       essential_cookies_note: "Більшість файлів cookie містять лише унікальний ідентифікатор, але не містять інших даних, тому ваша адреса електронної пошти та пароль, наприклад, ніколи не містяться в них і ніколи не розкриваються."
       cookie_domain: "Установлено:"
       cookie_session_desc: "Використовується, щоб дозволити веб-сайту запам’ятовувати користувачів між відвідуваннями сторінок, наприклад запам’ятовувати товари у вашому кошику."
-      cookie_consent_desc: "Використовується для підтримки статусу згоди користувача на зберігання файлів cookie"
       cookie_remember_me_desc: "Використовується, якщо користувач попросив сайт запам’ятати його. Цей файл cookie автоматично видаляється через 12 днів. Якщо ви як користувач бажаєте, щоб цей файл cookie було видалено, вам потрібно лише вийти. Якщо ви не хочете, щоб цей файл cookie встановлювався на вашому комп’ютері, не встановлюйте прапорець «запам’ятати мене» під час входу."
       cookie_openstreemap_desc: "Використовується нашим дружнім постачальником карт з відкритим кодом (OpenStreetMap), щоб гарантувати, що він не отримує надто багато запитів протягом певного періоду часу, щоб запобігти зловживанню їхніми послугами."
       cookie_stripe_desc: "Дані, зібрані нашим платіжним процесором Stripe для виявлення шахрайства https://stripe.com/cookies-policy/legal. Не всі магазини використовують Stripe як спосіб оплати, але для запобігання шахрайству рекомендується застосовувати його на всіх сторінках. Stripe, ймовірно, створює картину того, які наші сторінки зазвичай взаємодіють із їхнім API, а потім позначає щось незвичайне. Таким чином, встановлення файлу cookie Stripe має ширшу функцію, ніж просто надання користувачеві способу оплати. Його видалення може вплинути на безпеку самої служби. Ви можете дізнатися більше про Stripe і прочитати його політику конфіденційності на https://stripe.com/privacy."
@@ -1864,13 +1885,6 @@ uk:
       disabling_cookies_ie_link: "https://support.microsoft.com/en-us/help/17442/windows-internet-explorer-delete-manage-cookies"
       disabling_cookies_safari_link: "https://www.apple.com/legal/privacy/en-ww/cookies/"
       disabling_cookies_note: "Але майте на увазі, що якщо ви видалите або зміните основні файли cookie, які використовуються Open Food Network, веб-сайт не працюватиме, ви не зможете нічого додати до свого кошика, ані, наприклад, для оформлення замовлення."
-    cookies_banner:
-      cookies_usage: "Цей сайт використовує файли cookie, щоб зробити вашу навігацію зручною та безпечною, а також допомогти нам зрозуміти, як ви використовуєте його, щоб покращити функції, які ми пропонуємо."
-      cookies_definition: "Файли cookie — це дуже маленькі текстові файли, які зберігаються на вашому комп’ютері, коли ви відвідуєте деякі веб-сайти."
-      cookies_desc: "Ми використовуємо лише ті файли cookie, які необхідні для надання вам послуги продажу/купівлі їжі в Інтернеті. Ми не продаємо ваші дані. Ми використовуємо файли cookie головним чином для того, щоб запам’ятати, хто ви є, якщо ви «ввійдете» до служби, або щоб запам’ятати товари, які ви помістили у свій кошик, навіть якщо ви не ввійшли в систему. Якщо ви продовжуєте навігацію веб-сайтом, не натискаючи «Прийняти файли cookie», ми припускаємо, що ви даєте нам згоду на зберігання файлів cookie, які необхідні для функціонування веб-сайту."
-      cookies_policy_link_desc: "Якщо ви хочете дізнатися більше, перегляньте наш"
-      cookies_policy_link: "політика файлів cookie"
-      cookies_accept_button: "Прийняти файли cookie"
   home_shop: Здійснити покупку
   brandstory_headline: "Харчування, некорпоративне."
   brandstory_intro: "Іноді найкращий спосіб виправити систему – запустити нову…"
@@ -1881,12 +1895,11 @@ uk:
   brandstory_part5_strong: "Ми називаємо це Open Food Network, Відкрита продуктова мережа."
   brandstory_part6: "Ми всі любимо їжу. Тепер ми також можемо любити нашу систему постачання продуктів."
   system_headline: "Шопінг – ось як це працює."
-  system_step1: "1. Пошук"
-  system_step1_text: "Шукайте в наших різноманітних незалежних магазинах сезонну місцеву їжу. Шукайте за розташуванням та категоріями страв, віддаєте перевагу доставці чи самовивозу."
-  system_step2: "2. Магазин"
-  system_step2_text: "Трансформуйте свої транзакції за допомогою доступної місцевої їжі від різноманітних виробників і хабів. Дізнайтеся історію вашої їжі та людей, які її готують!"
-  system_step3: "3. Самовивіз / Доставка"
-  system_step3_text: "Зачекайте на доставку або відвідайте свого виробника чи хаб для більш особистого спілкування зі своєю їжею. Покупки їжі настільки різноманітні, наскільки це задумано природою."
+  system_step1_html: "1. Пошук"
+  system_step2_html: "2. Магазин"
+  system_step2_text_html: "Трансформуйте свої транзакції за допомогою доступної місцевої їжі від різноманітних виробників і хабів. Дізнайтеся історію вашої їжі та людей, які її готують!"
+  system_step3_html: "3. Самовивіз / Доставка"
+  system_step3_text_html: "Зачекайте на доставку або відвідайте свого виробника чи хаб для більш особистого спілкування зі своєю їжею. Покупки їжі настільки різноманітні, наскільки це задумано природою."
   cta_headline: "Покупки, які роблять світ кращим."
   cta_label: "Я готовий"
   stats_headline: "Ми створюємо нову систему продовольства."
@@ -1922,6 +1935,7 @@ uk:
   order_not_paid: НЕ ОПЛАЧЕНО
   order_total: Замовлено всього
   order_payment: "Оплата через:"
+  customer_credit: Кредит
   order_billing_address: Платіжна адреса
   order_delivery_on: Доставка на
   order_delivery_address: Адреса доставки
@@ -1949,10 +1963,8 @@ uk:
   email_confirmed: "Дякуємо за підтвердження адреси електронної пошти."
   email_confirmation_activate_account: "Перш ніж ми зможемо активувати ваш новий обліковий запис, нам потрібно підтвердити вашу електронну адресу."
   email_confirmation_greeting: "Привіт, %{contact}!"
-  email_confirmation_profile_created: "Профіль для %{name} успішно створено! Щоб активувати ваш профіль, нам потрібно підтвердити цю електронну адресу."
   email_confirmation_click_link: "Клацніть посилання нижче, щоб підтвердити свою електронну адресу та продовжити налаштування профілю."
   email_confirmation_link_label: "Підтвердіть цю електронну адресу »"
-  email_confirmation_help_html: "Після підтвердження електронної пошти ви зможете отримати доступ до облікового запису адміністратора цього підприємства. Перегляньте %{link}, щоб дізнатися більше про функції %{sitename} і почати використовувати свій профіль або онлайн-магазин."
   email_confirmation_notice_unexpected: "Ви отримали це повідомлення, оскільки ви зареєструвалися на %{sitename} або вас запросив зареєструватися хтось, кого ви, напевно, знаєте. Якщо ви не розумієте, чому ви отримали цей електронний лист, напишіть на %{contact}."
   email_social: "Зв'яжіться з нами:"
   email_contact: "Напишіть нам:"
@@ -2544,26 +2556,14 @@ uk:
   spree_admin_enterprises_fees: "Комісія підприємства"
   spree_admin_enterprises_none_create_a_new_enterprise: "СТВОРИТИ НОВЕ ПІДПРИЄМСТВО"
   spree_admin_enterprises_none_text: "У вас ще немає підприємств"
-  spree_admin_enterprises_tabs_hubs: "ХАБИ"
   spree_admin_enterprises_producers_manage_products: "КЕРУВАННЯ ПРОДУКТАМИ"
   spree_admin_enterprises_create_new_product: "СТВОРИТИ НОВИЙ ПРОДУКТ"
-  spree_admin_single_enterprise_alert_mail_confirmation: "Будь ласка, підтвердіть електронну адресу для"
-  spree_admin_single_enterprise_alert_mail_sent: "Ми надіслали електронний лист на адресу"
-  spree_admin_overview_action_required: "Потрібна дія"
-  spree_admin_overview_check_your_inbox: "Щоб отримати подальші інструкції, перевірте свою поштову скриньку. Спасибі!"
-  spree_admin_unit_value: Вартість одиниці
-  spree_admin_unit_description: Опис одиниці
-  spree_admin_variant_unit: Варіант одиниці
-  spree_admin_variant_unit_scale: Варіант виміру одиниці
   spree_admin_supplier: Постачальник
-  spree_admin_product_category: Категорія товару
-  spree_admin_variant_unit_name: Назва варіанту одиниці
   unit_name: "Назва одиниці"
   change_package: "Змінити Пакування"
   spree_admin_single_enterprise_hint: "Підказка: щоб люди могли вас знайти, увімкніть свою видимість під"
   spree_admin_eg_pickup_from_school: "напр. «Забір із першої школи»"
   spree_admin_eg_collect_your_order: "напр. \"Будь ласка, заберіть своє замовлення за адресою: 123 Imaginary St, Northcote \";"
-  spree_classification_primary_taxon_error: "Таксон %{taxon} є основним таксоном %{product} і не може бути видалений"
   spree_order_availability_error: "Дистриб’ютор або цикл замовлення не можуть надати продукти у вашому кошику"
   spree_order_populator_error: "Цей дистриб’ютор або цикл замовлення не може забезпечити всі продукти у вашому кошику. Виберіть інший."
   spree_order_cycle_error: "Будь ласка, виберіть цикл замовлення для цього замовлення."
@@ -2654,7 +2654,6 @@ uk:
   report_header_paid: Заплачено?
   report_header_delivery: Доставка?
   report_header_shipping: Доставка
-  report_header_shipping_method: Спосіб доставки
   report_header_shipping_instructions: Інструкції з доставки
   report_header_ship_street: Вулиця Доставки
   report_header_ship_street_2: Вулиця Доставки 2
@@ -2699,6 +2698,7 @@ uk:
   report_header_quantity: Кількість
   report_header_max_quantity: Максимальна кількість
   report_header_variant: Варіант
+  report_header_variant_unit_name: Назва варіанта одиниці
   report_header_variant_value: Значення Варіанту
   report_header_variant_unit: Варіант одиниці
   report_header_total_available: Всього доступно
@@ -2768,6 +2768,8 @@ uk:
   report_header_total_excl_vat: "Всього без податків (%{currency_symbol})"
   report_header_total_incl_vat: "Всього в т.ч. податок (%{currency_symbol})"
   report_header_temp_controlled: Темпер. контроль?
+  report_header_shipment_state: "Стан відвантаження"
+  report_header_shipping_method: "Спосіб доставки"
   report_header_is_producer: Виробник?
   report_header_not_confirmed: Не підтверджено
   report_header_gst_on_income: Податок на дохід
@@ -2857,7 +2859,7 @@ uk:
   order_cycles_no_permission_to_coordinate_error: "Жодне з ваших підприємств не має дозволу на координацію циклу замовлення"
   order_cycles_no_permission_to_create_error: "У вас немає дозволу на створення циклу замовлення, який координує це підприємство"
   order_cycle_closed: "Вибраний вами цикл замовлення щойно закрито. Будь ласка спробуйте ще раз!"
-  back_to_orders_list: "Повернутися до списку замовлень"
+  back_to_orders_list: "Назад до списку замовлень"
   no_orders_found: "Замовлень не знайдено"
   order_information: "Інформація про замовлення"
   new_payment: "Нова оплата"
@@ -2867,6 +2869,7 @@ uk:
     ready: Готовий
     pending: В очікуванні
     shipped: Відправлено
+  business_name: Найменування фірми
   js:
     saving: 'Збереження...'
     changes_saved: 'Зміни збережено.'
@@ -3029,18 +3032,6 @@ uk:
           select_all_variants: "Виберіть усі %{total_number_of_variants} варіанти"
           variants_loaded: "%{num_of_variants_loaded} з %{total_number_of_variants} Варіанти завантажено"
           loading_variants: "Варіанти завантаження"
-      tag_rules:
-        shipping_method_tagged_top: "Способи доставки позначені тегами"
-        shipping_method_tagged_bottom: "є:"
-        payment_method_tagged_top: "Способи оплати позначені"
-        payment_method_tagged_bottom: "є:"
-        order_cycle_tagged_top: "Цикли замовлення позначено"
-        order_cycle_tagged_bottom: "є:"
-        inventory_tagged_top: "Варіанти асортименту позначено тегами"
-        inventory_tagged_bottom: "є:"
-      new_tag_rule_dialog:
-        select_rule_type: "Виберіть тип правила:"
-        add_rule: "Додати правило"
       enterprise_fees:
         inherit_from_product: "Успадкувати від продукту"
       orders:
@@ -3123,10 +3114,6 @@ uk:
       enterprises:
         form:
           images:
-            removed_logo_successfully: "Логотип видалено"
-            immediate_logo_removal_warning: "Логотип буде видалено відразу після вашого підтвердження."
-            removed_promo_image_successfully: "Рекламне зображення видалено"
-            immediate_promo_image_removal_warning: "Рекламне зображення буде видалено одразу після вашого підтвердження."
             immediate_terms_and_conditions_removal_warning: "Файл Загальних положень та умов буде видалено одразу після підтвердження."
             removed_terms_and_conditions_successfully: "Файл із положеннями та умовами успішно видалено"
     insufficient_stock: "Недостатній запас, залишився лише %{on_hand}"
@@ -3136,7 +3123,7 @@ uk:
           Поки ви робили покупки, рівень запасів для одного чи кількох продуктів у
           вашому кошику зменшився. Ось що змінилося:
       now_out_of_stock: зараз немає в наявності.
-      only_n_remainging: "тепер залишився лише %{num}."
+      only_n_remaining: "тепер залишився лише %{num}."
     shopfront:
       variant:
         add_to_cart: "Додати"
@@ -3169,13 +3156,6 @@ uk:
       some_trouble: "У мене виникли проблеми зі збереженням: %{errors}"
       changing_on_hand_stock: Зміна рівня запасів на руках...
       stock_reset: Склади скинуті до значень за замовчуванням.
-    tag_rules:
-      show_hide_variants: 'Показати або приховати варіанти в моїй вітрині'
-      show_hide_shipping: 'Показати або приховати способи доставки під час оформлення замовлення'
-      show_hide_payment: 'Показати або приховати способи оплати під час оформлення замовлення'
-      show_hide_order_cycles: 'Показати або приховати цикли замовлень у моїй вітрині'
-      visible: ВИДИМІ
-      not_visible: НЕ ВИДИМІ
     services:
       unsaved_changes_message: Наразі існують незбережені зміни, зберегти чи проігнорувати?
       save: ЗБЕРЕГТИ
@@ -3190,6 +3170,8 @@ uk:
       confirmation: |
           Це призведе до нульового рівня запасів для всіх продуктів для цього підприємства, яких немає в завантаженому файлі.
     order_cycles:
+      unsaved_changes: "У вас є незбережені зміни"
+      bulk_save_error: "О ні! Мені не вдалося зберегти ваші зміни."
       create_failure: "Не вдалося створити цикл замовлення"
       update_success: 'Ваш цикл замовлення оновлено.'
       update_failure: "Не вдалося оновити цикл замовлення"
@@ -3215,6 +3197,9 @@ uk:
     stripe_elements:
       unknown_error_from_stripe: |
           Під час налаштування вашої картки в нашому платіжному шлюзі виникла проблема. Будь ласка, оновіть сторінку та повторіть спробу, якщо це не вдасться вдруге, будь ласка, зв’яжіться з нами для підтримки.
+    trix:
+      code: "Код"
+      urlPlaceholder: "Введіть URL-адресу для вставки"
   inflections:
     each:
       one: "кожен"
@@ -3316,11 +3301,6 @@ uk:
       few: "горщики"
       many: "горщики"
       other: "горщики"
-    bundle:
-      one: "пучок"
-      few: "пучки"
-      many: "пучки"
-      other: "пучки"
     flask:
       one: "колба"
       few: "колби"
@@ -3336,6 +3316,11 @@ uk:
       few: "мішки"
       many: "мішки"
       other: "мішки"
+    bundle:
+      one: "пучок"
+      few: "пучки"
+      many: "пучки"
+      other: "пучки"
   producers:
     signup:
       start_free_profile: "Почніть із безкоштовного профілю та розширюйте, коли будете готові!"
@@ -3417,7 +3402,7 @@ uk:
   account: "Обліковий запис"
   logout: "Вийти"
   date_range: "Проміжок часу"
-  status: "статус"
+  status: "Статус"
   new: "Новий"
   start: "Старт"
   end: "Кінець"
@@ -3450,9 +3435,9 @@ uk:
     more: "Більше"
     new_adjustment: "Нове коригування"
     new_tax_category: "Нова податкова категорія"
-    new_taxon: "Новий таксон"
     new_user: "Новий користувач"
     no_pending_payments: "Немає незавершених платежів"
+    remove: "Видалити"
     none: "Жодного"
     not_found: "Не знайдено"
     notice_messages:
@@ -3462,14 +3447,8 @@ uk:
     rma_credit: "Кредит RMA"
     refund: "Повернення коштів"
     server_error: "Помилка серверу"
-    shipping_method_names:
-      UPS Ground: "UPS наземна"
     start_date: "Дата початку"
     successfully_removed: "Успішно видалено"
-    taxonomy_edit: "Редагування таксономії"
-    taxonomy_tree_error: "Помилка дерева таксономії"
-    taxonomy_tree_instruction: "Інструкція з таксономічного дерева"
-    tree: "Дерево"
     updating: "Оновлення"
     your_order_is_empty_add_product: "Ваше замовлення порожнє, знайдіть і додайте продукт вище"
     add_product: "Додати продукт"
@@ -3564,7 +3543,6 @@ uk:
     tax_rate_amount_explanation: "Ставки податку – це десяткова сума, яка допомагає під час розрахунків (тобто, якщо ставка податку становить 5%, введіть 0,05)"
     included_in_price: "Входить у вартість"
     show_rate_in_label: "Показати ставку в етикетці"
-    back_to_tax_rates_list: "Повернутися до списку податкових ставок"
     tax_settings: "Налаштування податку"
     zones: "Зони"
     new_zone: "Нова зона"
@@ -3577,14 +3555,11 @@ uk:
     iso_name: "Назва ISO"
     states_required: "Регіони обовязкові"
     editing_country: "Країна редагування"
-    back_to_countries_list: "Назад до списку країн"
     states: "Області"
     abbreviation: "Абревіатура"
     new_state: "Новий регіон"
     payment_methods: "методи оплати"
-    taxonomies: "Таксономії"
-    new_taxonomy: "Нова таксономія"
-    back_to_taxonomies_list: "Назад до списку таксономій"
+    taxons: "Категорії продуктів"
     shipping_methods: "Способи доставки"
     shipping_method: "Спосіб доставки"
     shipment: "Відвантаження"
@@ -3674,6 +3649,9 @@ uk:
     validation:
       must_be_int: "має бути цілим числом"
     admin:
+      images:
+        edit:
+          close: Назад
       mail_methods:
         send_testmail: "Надіслати тестовий електронний лист"
         testmail:
@@ -3688,6 +3666,7 @@ uk:
         bulk_order_management: "Управління гуртовими замовленнями"
         subscriptions: "Підписки"
         products: "Продукти"
+        products_v3: "Продукти"
         option_types: "Типи опціонів"
         properties: "Властивості"
         variant_overrides: "Інвентаризація"
@@ -3700,6 +3679,10 @@ uk:
         enterprise_relationships: "Дозволи"
         customers: "Клієнти"
         groups: "Групи"
+        overview: "Огляд"
+        product_import: "Імпорт"
+        enterprise_roles: "Ролі"
+        payment_methods: "Методи оплати"
       product_properties:
         index:
           inherits_properties_checkbox_hint: "Успадкувати властивості від %{supplier}? (якщо не перевизначено вище)"
@@ -3730,7 +3713,6 @@ uk:
           continue: "Продовжити"
         new:
           new_return_authorization: "Авторизація на нове повернення"
-          back_to_return_authorizations_list: "Назад до списку Авторизації повернень"
           continue: "Продовжити"
         edit:
           receive: "отримати"
@@ -3908,9 +3890,7 @@ uk:
         providers:
           provider: "Провайдер"
           check: "Готівка/електронний переказ коштів/і т.д. (платежі, для яких не потрібна автоматична перевірка)"
-          pin: "Pin Payments"
           paypalexpress: "PayPal Express"
-          stripeconnect: "Stripe"
           stripesca: "Stripe SCA"
       payments:
         source_forms:
@@ -3967,8 +3947,6 @@ uk:
       reports:
         table:
           select_and_search: "Виберіть фільтри та натисніть %{option}, щоб отримати доступ до своїх даних."
-        customer_names_message:
-          customer_names_tip: "Якщо імена клієнтів приховано для ваших замовлень, ви можете зв’язатися з дистриб’ютором і запитати, чи можуть вони оновити свої налаштування магазину, щоб їхні постачальники могли переглядати імена клієнтів."
       users:
         index:
           listing_users: "Список користувачів"
@@ -3984,7 +3962,6 @@ uk:
         form:
           disabled: "Вимкнено?"
           email: "Email"
-          roles: "Ролі"
           enterprise_limit: "Корпоративний ліміт"
           confirm_password: "Підтвердіть пароль"
           password: "Пароль"
@@ -4006,12 +3983,14 @@ uk:
           new_variant: "Новий Варіант"
         form:
           sku: "Артикул"
-          price: "Ціна"
           unit_price: "Ціна за од."
           display_as: "Відображати як"
           display_name: "Відображуване ім'я"
           display_as_placeholder: 'напр. 2 кг'
           display_name_placeholder: 'напр. Помідори'
+          unit: Одиниця
+          price: Ціна
+          variant_category: Категорія
         autocomplete:
           out_of_stock: "Немає в наявності"
           producer_name: "Виробник"
@@ -4021,6 +4000,7 @@ uk:
           terms_of_service: "Умови обслуговування"
         sortable_header:
           name: "Ім'я"
+          on_hand: "Під рукою"
           number: "Номер"
           completed_at: "Завершено"
           state: "Стан"
@@ -4030,14 +4010,14 @@ uk:
           total: "Всього"
           billing_address_name: "Ім'я"
       taxons:
+        index:
+          title: "Категорії продуктів"
         form:
           name: Ім'я
-          permalink: Постійне посилання
           description: Опис
       general_settings:
         edit:
           legal_settings: "Юридичні налаштування"
-          cookies_consent_banner_toggle: "Показати банер згоди на використання файлів cookie"
           privacy_policy_url: "URL-адреса політики конфіденційності"
           enterprises_require_tos: "Підприємства повинні прийняти Загальні положення та умови"
           shoppers_require_tos: "Покупці повинні прийняти Умови обслуговування"
@@ -4127,13 +4107,6 @@ uk:
         subject: "Інструкції щодо скидання пароля"
       confirmation_instructions:
         subject: "Будь ласка, підтвердьте свій обліковий запис OFN"
-    payment_mailer:
-      authorize_payment:
-        subject: "Авторизуйте свій платіж на %{distributor} на OFN"
-        instructions: "Ваш платіж %{amount} на адресу %{distributor} вимагає додаткової автентифікації. Перейдіть за такою URL-адресою, щоб авторизувати свій платіж:"
-      authorization_required:
-        subject: "Платіж потребує авторизації клієнта"
-        message: "Оплата замовлення %{order_number} потребує додаткової авторизації від клієнта. Клієнта було сповіщено електронною поштою, і платіж відображатиметься як очікуваний, доки його не буде авторизовано."
     shipment_mailer:
       shipped_email:
         dear_customer: "Дорогий клієнт,"
@@ -4206,6 +4179,10 @@ uk:
         transaction_history: Історія транзакцій
         authorisation_required: Потрібна авторизація
         authorise: Авторизувати
+      customer_account_transactions:
+        description: Опис
+        amount: Кількість
+        running_balance: Поточний баланс
       open_orders:
         order: Порядок
         shop: Магазин
@@ -4252,7 +4229,6 @@ uk:
       key_cleared: "Ключ видалено"
       shipment:
         cannot_ready: "Неможливо підготувати відправлення."
-      invalid_taxonomy_id: "Недійсний ID таксономії."
     activerecord:
       models:
         spree/payment:
@@ -4333,3 +4309,25 @@ uk:
     pagination:
       next: Далі
       previous: Попередній
+    tag_list_input:
+      default_placeholder: Додати тег
+    tag_rule_form:
+      tag_rules:
+        shipping_method_tagged_top: "Способи доставки позначені тегами"
+        shipping_method_tagged_bottom: "є:"
+        payment_method_tagged_top: "Способи оплати позначені"
+        payment_method_tagged_bottom: "є:"
+        order_cycle_tagged_top: "Цикли замовлення позначено"
+        order_cycle_tagged_bottom: "є:"
+        inventory_tagged_top: "Варіанти асортименту позначено тегами"
+        inventory_tagged_bottom: "є:"
+        variant_tagged_bottom: "є:"
+        visible: ВИДИМІ
+        not_visible: НЕ ВИДИМІ
+    tag_rule_group_form:
+      for_customers_tagged: 'Для клієнтів з тегами:'
+      add_new_rule: '+ Додати нове правило'
+      no_rules_yet: До цього тегу ще не застосовуються правила
+    add_tag_rule_modal:
+      select_rule_type: "Виберіть тип правила:"
+      add_rule: "Додати правило"

@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe OrderCycleClosingJob do
+RSpec.describe OrderCycleClosingJob do
   let(:order_cycle1) {
     create(:order_cycle, automatic_notifications: true, orders_close_at: 1.minute.ago)
   }
@@ -15,8 +13,8 @@ describe OrderCycleClosingJob do
 
   it "sends notifications for recently closed order cycles with automatic notifications enabled" do
     expect(OrderCycleNotificationJob).to receive(:perform_later).with(order_cycle1.id)
-    expect(OrderCycleNotificationJob).to_not receive(:perform_later).with(order_cycle2.id)
-    expect(OrderCycleNotificationJob).to_not receive(:perform_later).with(order_cycle3.id)
+    expect(OrderCycleNotificationJob).not_to receive(:perform_later).with(order_cycle2.id)
+    expect(OrderCycleNotificationJob).not_to receive(:perform_later).with(order_cycle3.id)
 
     OrderCycleClosingJob.perform_now
   end

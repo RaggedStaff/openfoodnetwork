@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
-
-describe "checkout/_voucher_section.html.haml" do
+RSpec.describe "checkout/_voucher_section.html.haml" do
   let(:order) { create(:order_with_distributor, total: 10) }
   let(:flat_voucher) {
     create(:voucher_flat_rate, code: "flat_code",
@@ -40,7 +38,7 @@ describe "checkout/_voucher_section.html.haml" do
     assign(:order, order)
 
     render
-    expect(rendered).to_not have_content(note)
+    expect(rendered).not_to have_content(note)
   end
 
   def add_voucher(voucher, order)

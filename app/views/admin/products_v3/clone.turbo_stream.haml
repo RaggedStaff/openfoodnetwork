@@ -1,0 +1,16 @@
+-# locals: (product:, cloned_product:, product_index:, allowed_producers:)
+- unless flash[:error]
+    - product_body = nil
+    - form_with do |form|
+        - product_body = render(partial: 'product_variant_row',
+            locals: { form:,
+            product: cloned_product,
+            product_index:,
+            allowed_producers:,
+            should_slide_in: true },
+            formats: :html)
+    = turbo_stream.after dom_id(product) do
+        = product_body
+
+= turbo_stream.append "flashes" do
+    = render(partial: 'admin/shared/flashes', locals: { flashes: flash })

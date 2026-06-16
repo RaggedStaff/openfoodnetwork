@@ -7,11 +7,15 @@ class TagRule::FilterOrderCycles < TagRule
   def tags_match?(order_cycle)
     exchange_tags = exchange_for(order_cycle)&.tag_list || []
     preferred_tags = preferred_exchange_tags.split(",")
-    ( exchange_tags & preferred_tags ).any?
+    exchange_tags.intersect?(preferred_tags)
   end
 
   def reject_matched?
     preferred_matched_order_cycles_visibility != "visible"
+  end
+
+  def tags
+    preferred_exchange_tags
   end
 
   private

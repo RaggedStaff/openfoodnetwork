@@ -4,6 +4,8 @@ module Spree
   class Payment < ApplicationRecord
     module Processing
       def process!
+        return internal_purchase! if payment_method&.internal?
+
         return unless validate!
 
         purchase!
@@ -18,6 +20,17 @@ module Spree
         else
           charge_offline!
         end
+      end
+
+      def internal_purchase!
+        started_processing!
+        options = { customer_id: order.customer_id, payment_id: id, order_number: order.number }
+        response = payment_method.purchase(
+          (amount * 100).round,
+          nil,
+          options
+        )
+        handle_response(response, :complete, :failure)
       end
 
       def authorize!(return_url = nil)
@@ -48,7 +61,7 @@ module Spree
       end
 
       def capture_and_complete_order!
-        OrderWorkflow.new(order).complete!
+        Orders::WorkflowService.new(order).complete!
         capture!
       end
 
@@ -58,16 +71,7 @@ module Spree
         protect_from_connection_error do
           check_environment
 
-          response = if payment_method.payment_profiles_supported?
-                       # Gateways supporting payment profiles will need access to credit
-                       # card object because this stores the payment profile information
-                       # so supply the authorization itself as well as the credit card,
-                       # rather than just the authorization code
-                       payment_method.void(response_code, source, gateway_options)
-                     else
-                       # Standard ActiveMerchant void usage
-                       payment_method.void(response_code, gateway_options)
-                     end
+          response = payment_method.void(response_code, gateway_options)
 
           record_response(response)
 
@@ -86,20 +90,11 @@ module Spree
 
           credit_amount = calculate_refund_amount(credit_amount)
 
-          response = if payment_method.payment_profiles_supported?
-                       payment_method.credit(
-                         (credit_amount * 100).round,
-                         source,
-                         response_code,
-                         gateway_options
-                       )
-                     else
-                       payment_method.credit(
-                         (credit_amount * 100).round,
-                         response_code,
-                         gateway_options
-                       )
-                     end
+          response = payment_method.credit(
+            (credit_amount * 100).round,
+            response_code,
+            gateway_options
+          )
 
           record_response(response)
 
@@ -125,20 +120,11 @@ module Spree
 
           refund_amount = calculate_refund_amount(refund_amount)
 
-          response = if payment_method.payment_profiles_supported?
-                       payment_method.refund(
-                         (refund_amount * 100).round,
-                         source,
-                         response_code,
-                         gateway_options
-                       )
-                     else
-                       payment_method.refund(
-                         (refund_amount * 100).round,
-                         response_code,
-                         gateway_options
-                       )
-                     end
+          response = payment_method.refund(
+            (refund_amount * 100).round,
+            response_code,
+            gateway_options
+          )
 
           record_response(response)
 
@@ -155,6 +141,27 @@ module Spree
           else
             gateway_error(response)
           end
+        end
+      end
+
+      def internal_void!
+        return true if void?
+        # We should only void complete payment, otherwise we will be refunding credit that was
+        # not used in the first place.
+        return gateway_error(Spree.t(:internal_payment_not_voidable)) if state != "completed"
+
+        options = { customer_id: order.customer_id, payment_id: id, order_number: order.number }
+        response = payment_method.void(
+          (amount * 100).round,
+          nil,
+          options
+        )
+        record_response(response)
+
+        if response.success?
+          void
+        else
+          gateway_error(response)
         end
       end
 
@@ -183,6 +190,7 @@ module Spree
 
         options.merge!({ billing_address: order.bill_address.try(:active_merchant_hash),
                          shipping_address: order.ship_address.try(:active_merchant_hash) })
+        options.merge!(payment: self)
 
         options
       end
@@ -241,7 +249,8 @@ module Spree
             if response.cvv_result
               self.cvv_response_code = response.cvv_result['code']
               self.cvv_response_message = response.cvv_result['message']
-              if cvv_response_message.present?
+              self.redirect_auth_url = response.cvv_result['redirect_auth_url']
+              if redirect_auth_url.present?
                 return require_authorization!
               end
             end
@@ -273,6 +282,7 @@ module Spree
                end
         logger.error(Spree.t(:gateway_error))
         logger.error("  #{error.to_yaml}")
+        # TODO why is this not captured ?
         raise Core::GatewayError, text
       end
 

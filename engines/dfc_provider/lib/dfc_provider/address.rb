@@ -3,7 +3,7 @@
 # Temporary solution to add `region` to Address, to be removed once the DFC connector supports it
 
 module DfcProvider
-  class Address < DataFoodConsortium::Connector::Address
+  class Address < DataFoodConsortium::ConnectorV1::Address
     # @return [String]
     attr_accessor :region
 

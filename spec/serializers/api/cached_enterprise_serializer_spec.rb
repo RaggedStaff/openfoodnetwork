@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Api::CachedEnterpriseSerializer do
+RSpec.describe Api::CachedEnterpriseSerializer do
   let(:cached_enterprise_serializer) { described_class.new(enterprise) }
   let(:enterprise) { create(:enterprise) }
 
@@ -13,7 +11,7 @@ describe Api::CachedEnterpriseSerializer do
 
     before do
       product = create(:product, properties: [property])
-      enterprise.supplied_products << product
+      enterprise.supplied_variants << product.variants.first
     end
 
     context "when the enterprise is a producer" do
@@ -56,7 +54,7 @@ describe Api::CachedEnterpriseSerializer do
 
     before do
       product = create(:product, properties: [property])
-      producer.supplied_products << product
+      producer.supplied_variants << product.variants.first
 
       create(
         :simple_order_cycle,

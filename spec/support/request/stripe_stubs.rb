@@ -86,7 +86,7 @@ module StripeStubs
 
   def stub_capture_request(order, response_mock)
     stub_request(:post, "https://api.stripe.com/v1/payment_intents/pi_123/capture")
-      .with(body: { amount_to_capture: Spree::Money.new(order.total).cents },
+      .with(body: { amount_to_capture: Spree::Money.new(order.total).money.cents },
             headers: { 'Stripe-Account' => 'abc123' })
       .to_return(response_mock)
   end
@@ -144,7 +144,7 @@ module StripeStubs
     customer_id = options[:customer_id] || "cus_A123"
     { status: 200,
       body: JSON.generate(id: customer_id,
-                          sources: { data: [id: customer_id] }) }
+                          sources: { data: [{ id: customer_id }] }) }
   end
 
   def payment_successful_refund_mock

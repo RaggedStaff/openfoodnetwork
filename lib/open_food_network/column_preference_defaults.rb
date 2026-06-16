@@ -29,6 +29,7 @@ module OpenFoodNetwork
     def customers_index_columns
       node = 'admin.customers.index'
       {
+        id: { name: I18n.t("#{node}.id"), visible: false },
         email: { name: I18n.t("admin.email"), visible: true },
         first_name: { name: I18n.t("admin.first_name"), visible: true },
         last_name: { name: I18n.t("admin.last_name"), visible: true },
@@ -36,7 +37,8 @@ module OpenFoodNetwork
         tags: { name: I18n.t("admin.tags"), visible: true },
         bill_address: { name: I18n.t("#{node}.bill_address"), visible: true },
         ship_address: { name: I18n.t("#{node}.ship_address"), visible: true },
-        balance: { name: I18n.t("#{node}.balance"), visible: true }
+        balance: { name: I18n.t("#{node}.balance"), visible: true },
+        credit: { name: I18n.t("#{node}.credit"), visible: true }
       }
     end
 
@@ -77,6 +79,33 @@ module OpenFoodNetwork
       }
     end
 
+    def products_v3_index_columns(user)
+      producer_visibility = display_producer_column?(user)
+
+      I18n.with_options scope: 'admin.products_page.columns' do
+        columns = {
+          image: { name: t(:image), visible: true },
+          name: { name: t(:name), visible: true },
+          sku: { name: t(:sku), visible: true },
+          unit: { name: t(:unit), visible: true },
+          unit_scale: { name: t(:unit_scale), visible: true },
+          price: { name: t(:price), visible: true },
+          on_hand: { name: t(:on_hand), visible: true },
+          producer: { name: t(:producer), visible: producer_visibility },
+          category: { name: t(:category), visible: true },
+          tax_category: { name: t(:tax_category), visible: true },
+        }
+        if OpenFoodNetwork::FeatureToggle.enabled?(:variant_tag, user) ||
+           OpenFoodNetwork::FeatureToggle.enabled?(:variant_tag, *user.enterprises)
+          columns[:tags] = { name: t(:tags), visible: true }
+        end
+
+        columns[:inherits_properties] = { name: t(:inherits_properties), visible: true }
+
+        columns
+      end
+    end
+
     def enterprises_index_columns
       node = "admin.enterprises.index"
       {
@@ -115,6 +144,13 @@ module OpenFoodNetwork
         payment_method: { name: I18n.t("admin.payment_method"), visible: false },
         shipping_method: { name: I18n.t("admin.shipping_method"), visible: false }
       }
+    end
+
+    def display_producer_column?(user)
+      producers = OpenFoodNetwork::Permissions.new(user)
+        .managed_product_enterprises.is_primary_producer
+
+      producers.many?
     end
   end
 end

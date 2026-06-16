@@ -11,7 +11,7 @@ module ShopWorkflow
     within find_body do
       # We ignore visibility in case the cart dropdown is not open.
       within '.cart-sidebar', visible: false do
-        expect(page).to_not have_link "Updating cart...", visible: false
+        expect(page).not_to have_link "Updating cart...", visible: false
       end
     end
   end
@@ -33,7 +33,7 @@ module ShopWorkflow
     order_cycle.exchanges.outgoing.first.enterprise_fees << enterprise_fee
   end
 
-  def set_order(order)
+  def pick_order(order)
     allow_any_instance_of(ApplicationController).to receive(:session).and_return(
       order_id: order.id, access_token: order.token
     )
@@ -109,7 +109,7 @@ module ShopWorkflow
   end
 
   def add_variant_to_order_cycle(exchange, variant)
-    ensure_supplier_exchange(exchange, variant.product.supplier)
+    ensure_supplier_exchange(exchange, variant.supplier)
     exchange.variants << variant
   end
 

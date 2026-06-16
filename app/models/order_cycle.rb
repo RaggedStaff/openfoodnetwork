@@ -3,8 +3,6 @@
 require 'open_food_network/scope_variant_to_hub'
 
 class OrderCycle < ApplicationRecord
-  self.belongs_to_required_by_default = false
-
   searchable_attributes :orders_open_at, :orders_close_at, :coordinator_id
   searchable_scopes :active, :inactive, :active_or_complete, :upcoming, :closed, :not_closed,
                     :dated, :undated, :soonest_opening, :soonest_closing, :most_recently_closed
@@ -21,11 +19,14 @@ class OrderCycle < ApplicationRecord
   # :incoming_exchanges and :outgoing_exchanges.
   has_many :cached_incoming_exchanges, -> {
                                          where incoming: true
-                                       }, class_name: "Exchange", dependent: :destroy
+                                       }, class_name: "Exchange", inverse_of: :order_cycle,
+                                          dependent: :destroy
   has_many :cached_outgoing_exchanges, -> {
                                          where incoming: false
-                                       }, class_name: "Exchange", dependent: :destroy
+                                       }, class_name: "Exchange", inverse_of: :order_cycle,
+                                          dependent: :destroy
 
+  has_many :orders, class_name: 'Spree::Order', dependent: :restrict_with_exception
   has_many :suppliers, -> { distinct }, source: :sender, through: :cached_incoming_exchanges
   has_many :distributors, -> { distinct }, source: :receiver, through: :cached_outgoing_exchanges
   has_many :order_cycle_schedules, dependent: :destroy
@@ -44,7 +45,7 @@ class OrderCycle < ApplicationRecord
   before_update :reset_processed_at, if: :will_save_change_to_orders_close_at?
   after_save :sync_subscriptions, if: :opening?
 
-  validates :name, :coordinator_id, presence: true
+  validates :name, presence: true
   validate :orders_close_at_after_orders_open_at?
 
   preference :product_selection_from_coordinator_inventory_only, :boolean, default: false
@@ -54,7 +55,7 @@ class OrderCycle < ApplicationRecord
           Time.zone.now,
           Time.zone.now)
   }
-  scope :active_or_complete, lambda { where('order_cycles.orders_open_at <= ?', Time.zone.now) }
+  scope :active_or_complete, lambda { where(order_cycles: { orders_open_at: ..Time.zone.now }) }
   scope :inactive, lambda {
     where('order_cycles.orders_open_at > ? OR order_cycles.orders_close_at < ?',
           Time.zone.now,
@@ -65,8 +66,8 @@ class OrderCycle < ApplicationRecord
     where('order_cycles.orders_close_at > ? OR order_cycles.orders_close_at IS NULL', Time.zone.now)
   }
   scope :closed, lambda {
-    where('order_cycles.orders_close_at < ?',
-          Time.zone.now).order("order_cycles.orders_close_at DESC")
+    where(order_cycles: { orders_close_at: ...Time.zone.now })
+      .order("order_cycles.orders_close_at DESC")
   }
   scope :unprocessed, -> { where(processed_at: nil) }
   scope :undated, -> { where('order_cycles.orders_open_at IS NULL OR orders_close_at IS NULL') }
@@ -85,7 +86,7 @@ class OrderCycle < ApplicationRecord
   }
 
   scope :managed_by, lambda { |user|
-    if user.has_spree_role?('admin')
+    if user.admin?
       where(nil)
     else
       where(coordinator_id: user.enterprises.to_a)
@@ -94,7 +95,7 @@ class OrderCycle < ApplicationRecord
 
   # Return order cycles that user coordinates, sends to or receives from
   scope :visible_by, lambda { |user|
-    if user.has_spree_role?('admin')
+    if user.admin?
       where(nil)
     else
       with_exchanging_enterprises_outer.
@@ -149,33 +150,36 @@ class OrderCycle < ApplicationRecord
 
   # Find the earliest closing times for each distributor in an active order cycle, and return
   # them in the format {distributor_id => closing_time, ...}
-  def self.earliest_closing_times
-    Hash[
-      Exchange.
-        outgoing.
-        joins(:order_cycle).
-        merge(OrderCycle.active).
-        group('exchanges.receiver_id').
-        select("exchanges.receiver_id AS receiver_id,
-                MIN(order_cycles.orders_close_at) AS earliest_close_at").
-        map { |ex| [ex.receiver_id, ex.earliest_close_at.to_time] }
-    ]
+  #
+  # Optionally, specify some distributor_ids as a parameter to scope the results
+  def self.earliest_closing_times(distributor_ids = nil)
+    cycles = Exchange.
+      outgoing.
+      joins(:order_cycle).
+      merge(OrderCycle.active).
+      group('exchanges.receiver_id')
+
+    cycles = cycles.where(receiver_id: distributor_ids) if distributor_ids.present?
+
+    cycles.pluck("exchanges.receiver_id AS receiver_id",
+                 "MIN(order_cycles.orders_close_at) AS earliest_close_at")
+      .to_h
   end
 
   def attachable_distributor_payment_methods
     DistributorPaymentMethod.joins(:payment_method).
       merge(Spree::PaymentMethod.available).
-      where("distributor_id IN (?)", distributor_ids)
+      where(distributor_id: distributor_ids)
   end
 
   def attachable_distributor_shipping_methods
     DistributorShippingMethod.joins(:shipping_method).
       merge(Spree::ShippingMethod.frontend).
-      where("distributor_id IN (?)", distributor_ids)
+      where(distributor_id: distributor_ids)
   end
 
   def clone!
-    OrderCycleClone.new(self).create
+    OrderCycles::CloneService.new(self).create
   end
 
   def variants
@@ -197,12 +201,13 @@ class OrderCycle < ApplicationRecord
   def variants_distributed_by(distributor)
     return Spree::Variant.where("1=0") if distributor.blank?
 
-    Spree::Variant.
-      joins(:exchanges).
-      merge(distributor.inventory_variants).
-      merge(Exchange.in_order_cycle(self)).
-      merge(Exchange.outgoing).
-      merge(Exchange.to_enterprise(distributor))
+    query = Spree::Variant.joins(:exchanges)
+
+    query = query.merge(distributor.inventory_variants) if inventory_enabled?(distributor)
+
+    query.merge(Exchange.in_order_cycle(self))
+      .merge(Exchange.outgoing)
+      .merge(Exchange.to_enterprise(distributor))
   end
 
   def products_distributed_by(distributor)
@@ -255,7 +260,7 @@ class OrderCycle < ApplicationRecord
   end
 
   def pickup_time_for(distributor)
-    exchange_for_distributor(distributor)&.pickup_time || distributor.next_collection_at
+    exchange_for_distributor(distributor)&.pickup_time
   end
 
   def pickup_instructions_for(distributor)
@@ -282,9 +287,13 @@ class OrderCycle < ApplicationRecord
                                          user_id: user,
                                          distributor_id: distributor,
                                          order_cycle_id: self)
+
+    items = Spree::LineItem.includes(:variant).joins(:order).merge(orders)
+
     scoper = OpenFoodNetwork::ScopeVariantToHub.new(distributor)
-    items = Spree::LineItem.includes(:variant).joins(:order).merge(orders).to_a
     items.each { |li| scoper.scope(li.variant) }
+
+    items
   end
 
   def distributor_payment_methods
@@ -315,6 +324,13 @@ class OrderCycle < ApplicationRecord
     coordinator.sells == 'own'
   end
 
+  def same_datetime_value(attribute, string)
+    return true if self[attribute].blank? && string.blank?
+    return false if self[attribute].blank? || string.blank?
+
+    DateTime.parse(string).to_fs(:short) == self[attribute]&.to_fs(:short)
+  end
+
   private
 
   def opening?
@@ -334,8 +350,8 @@ class OrderCycle < ApplicationRecord
   end
 
   def orders_close_at_after_orders_open_at?
-    return if orders_open_at.blank? || orders_close_at.blank?
-    return if orders_close_at > orders_open_at
+    return false if orders_open_at.blank? || orders_close_at.blank?
+    return false if orders_close_at > orders_open_at
 
     errors.add(:orders_close_at, :after_orders_open_at)
   end
@@ -354,5 +370,10 @@ class OrderCycle < ApplicationRecord
 
     self.processed_at = nil
     self.mails_sent = false
+  end
+
+  def inventory_enabled?(distributor)
+    OpenFoodNetwork::FeatureToggle.enabled?(:inventory, distributor) &&
+      !OpenFoodNetwork::FeatureToggle.enabled?(:variant_tag, distributor)
   end
 end

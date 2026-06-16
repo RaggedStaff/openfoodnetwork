@@ -1,16 +1,15 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
 require 'stripe/account_connector'
 require 'stripe/oauth'
 
 module Stripe
-  describe AccountConnector do
+  RSpec.describe AccountConnector do
     describe "create_account" do
       let(:user) { create(:user) }
       let(:enterprise) { create(:enterprise) }
       let(:payload) { { "junk" => "Ssfs" } }
-      let(:state) { JWT.encode(payload, Openfoodnetwork::Application.config.secret_token) }
+      let(:state) { JWT.encode(payload, Rails.application.secret_key_base) }
       let(:params) { { "state" => state } }
       let(:connector) { AccountConnector.new(user, params) }
 
@@ -27,7 +26,7 @@ module Stripe
         it "returns false and does not create a new StripeAccount" do
           expect do
             expect(connector.create_account).to be false
-          end.to_not change { StripeAccount.count }
+          end.not_to change { StripeAccount.count }
         end
       end
 
@@ -36,7 +35,7 @@ module Stripe
           it "raises a StripeError" do
             expect do
               expect{ connector.create_account }.to raise_error StripeError
-            end.to_not change { StripeAccount.count }
+            end.not_to change { StripeAccount.count }
           end
         end
 
@@ -47,7 +46,7 @@ module Stripe
             it "raises an AccessDenied error" do
               expect do
                 expect{ connector.create_account }.to raise_error CanCan::AccessDenied
-              end.to_not change { StripeAccount.count }
+              end.not_to change { StripeAccount.count }
             end
           end
 
@@ -68,7 +67,7 @@ module Stripe
                 expect(OAuth).to receive(:deauthorize).with(stripe_user_id: "some_user_id")
                 expect do
                   expect{ connector.create_account }.to raise_error CanCan::AccessDenied
-                end.to_not change { StripeAccount.count }
+                end.not_to change { StripeAccount.count }
               end
             end
 
@@ -78,7 +77,7 @@ module Stripe
               end
 
               it "raises no errors" do
-                expect(OAuth).to_not receive(:deauthorize)
+                expect(OAuth).not_to receive(:deauthorize)
                 connector.create_account
               end
 
@@ -94,7 +93,7 @@ module Stripe
               let(:user) { enterprise.owner }
 
               it "raises no errors" do
-                expect(OAuth).to_not receive(:deauthorize)
+                expect(OAuth).not_to receive(:deauthorize)
                 connector.create_account
               end
 

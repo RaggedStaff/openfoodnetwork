@@ -29,13 +29,7 @@ module Spree
                                   scope: [:admin, :tab]).capitalize
 
         css_classes = []
-
-        if options[:icon] && !feature?(:admin_style_v3, spree_current_user)
-          link = link_to_with_icon(options[:icon], titleized_label, destination_url)
-          css_classes << 'tab-with-icon'
-        else
-          link = link_to(titleized_label, destination_url)
-        end
+        link = link_to(titleized_label, destination_url)
 
         selected = if options[:match_path]
                      PathChecker
@@ -89,6 +83,14 @@ module Spree
       def link_to_delete(resource, options = {})
         url = options[:url] || object_url(resource)
         name = options[:name] || I18n.t(:delete)
+        options[:data] = { confirm: I18n.t(:are_you_sure), turbo: true, turbo_method: :delete }
+        link_to_with_icon 'icon-trash', name, url, options
+      end
+
+      # Old method using jQuery, deprecated in favour of :link_to_delete which uses turbo.
+      def deprecated_link_to_delete(resource, options = {})
+        url = options[:url] || object_url(resource)
+        name = options[:name] || I18n.t(:delete)
         options[:class] = "delete-resource"
         options[:data] = { confirm: I18n.t(:are_you_sure), action: 'remove' }
         link_to_with_icon 'icon-trash', name, url, options
@@ -96,8 +98,11 @@ module Spree
 
       def link_to_with_icon(icon_name, text, url, options = {})
         options[:class] = (options[:class].to_s + " icon_link with-tip #{icon_name}").strip
-        options[:class] += ' no-text' if options[:no_text]
-        options[:title] = text if options[:no_text]
+        if options[:no_text]
+          options[:class] += ' no-text'
+          options[:title] = text
+          options['aria-label'] = text
+        end
         # rubocop:disable Rails/OutputSafety
         text = options[:no_text] ? '' : raw("<span class='text'>#{text}</span>")
         # rubocop:enable Rails/OutputSafety
@@ -122,7 +127,7 @@ module Spree
           end
         else
           if html_options['data-update'].nil? && html_options[:remote]
-            object_name, action = url.split('/')[-2..-1]
+            object_name, action = url.split('/')[-2..]
             html_options['data-update'] = [action, object_name.singularize].join('_')
           end
 

@@ -5,12 +5,13 @@ module Spree
     module ControllerHelpers
       module Common
         extend ActiveSupport::Concern
+
         included do
           helper_method :title
           helper_method :title=
           helper_method :accurate_title
 
-          layout :get_layout
+          layout :pick_layout
 
           before_action :set_user_language
 
@@ -38,7 +39,7 @@ module Spree
             Spree::Config[:default_seo_title]
           end
 
-          def render_404(_exception = nil)
+          def render404(_exception = nil)
             respond_to do |type|
               type.html {
                 render status: :not_found,
@@ -65,7 +66,7 @@ module Spree
           # Returns which layout to render.
           #   The layout to render can be set inside Spree configuration with the +:layout+ option.
           # Default layout is: +app/views/spree/layouts/spree_application+
-          def get_layout
+          def pick_layout
             Spree::Config[:layout]
           end
         end

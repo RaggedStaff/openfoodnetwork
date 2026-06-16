@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe Checkout::PostCheckoutActions do
+RSpec.describe Checkout::PostCheckoutActions do
   let(:order) { create(:order_with_distributor) }
   let(:postCheckoutActions) { Checkout::PostCheckoutActions.new(order) }
 
@@ -22,7 +20,7 @@ describe Checkout::PostCheckoutActions do
       it "sets customer's terms_and_conditions to the current time if terms have been accepted" do
         params = { order: { terms_and_conditions_accepted: true } }
         postCheckoutActions.success(params, current_user)
-        expect(order.customer.terms_and_conditions_accepted_at).to_not be_nil
+        expect(order.customer.terms_and_conditions_accepted_at).not_to be_nil
       end
     end
 
@@ -51,10 +49,12 @@ describe Checkout::PostCheckoutActions do
   end
 
   describe "#failure" do
-    let(:restart_checkout_service) { instance_double(OrderCheckoutRestart) }
+    let(:restart_checkout_service) { instance_double(Orders::CheckoutRestartService) }
 
     it "restarts the checkout process" do
-      expect(OrderCheckoutRestart).to receive(:new).with(order).and_return(restart_checkout_service)
+      expect(Orders::CheckoutRestartService).to receive(:new)
+        .with(order)
+        .and_return(restart_checkout_service)
       expect(restart_checkout_service).to receive(:call)
 
       postCheckoutActions.failure

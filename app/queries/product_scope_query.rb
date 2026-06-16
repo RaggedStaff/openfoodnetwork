@@ -20,7 +20,7 @@ class ProductScopeQuery
 
     product_query.
       ransack(query_params_with_defaults).
-      result
+      result(distinct: true)
   end
 
   def find_product
@@ -31,20 +31,22 @@ class ProductScopeQuery
     product_scope.find(@params[:product_id])
   end
 
-  def paged_products_for_producers
+  def products_for_producers
     producer_ids = OpenFoodNetwork::Permissions.new(@user).
       variant_override_producers.by_name.select('enterprises.id')
 
+    # Use `order("enterprises.name")` instead of `by_producer scope`, the scope adds a join
+    # on variants which messes our query
     Spree::Product.where(nil).
       merge(product_scope).
-      includes(variants: [:product, :default_price, :stock_items]).
-      where(supplier_id: producer_ids).
-      by_producer.by_name.
-      ransack(@params[:q]).result
+      includes(variants: [:product, :default_price, :stock_items, :supplier]).
+      where(variants: { supplier_id: producer_ids }).
+      order("enterprises.name, spree_products.name").
+      ransack(@params[:q]).result(distinct: true)
   end
 
   def product_scope
-    if @user.has_spree_role?("admin") || @user.enterprises.present?
+    if @user.admin? || @user.enterprises.present?
       scope = Spree::Product
       if @params[:show_deleted]
         scope = scope.with_deleted
@@ -58,8 +60,8 @@ class ProductScopeQuery
 
   def product_query_includes
     [
-      image: { attachment_attachment: :blob },
-      variants: [:default_price, :stock_locations, :stock_items, :variant_overrides]
+      { image: { attachment_attachment: :blob },
+        variants: [:default_price, :stock_items, :variant_overrides] }
     ]
   end
 

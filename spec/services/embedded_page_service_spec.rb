@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe EmbeddedPageService do
+RSpec.describe EmbeddedPageService do
   let(:enterprise_slug) { 'test-enterprise' }
   let(:params) {
     { controller: 'enterprises', action: 'shop', id: enterprise_slug, embedded_shopfront: true }
@@ -39,7 +37,7 @@ describe EmbeddedPageService do
         expect(session[:embedded_shopfront]).to eq true
         expect(session[:embedding_domain]).to eq 'embedding-enterprise.com'
         expect(session[:shopfront_redirect])
-          .to eq '/' + enterprise_slug + '/shop?embedded_shopfront=true'
+          .to eq "/#{enterprise_slug}/shop?embedded_shopfront=true"
       end
 
       it "publicly reports that embedded layout should be used" do
@@ -58,7 +56,7 @@ describe EmbeddedPageService do
         expect(session[:embedded_shopfront]).to eq true
         expect(session[:embedding_domain]).to eq 'embedding-enterprise.com'
         expect(session[:shopfront_redirect])
-          .to eq '/' + enterprise_slug + '/shop?embedded_shopfront=true'
+          .to eq "/#{enterprise_slug}/shop?embedded_shopfront=true"
       end
     end
 
@@ -84,7 +82,7 @@ describe EmbeddedPageService do
       end
 
       it "returns a 200 status" do
-        expect(response.status).to eq 200
+        expect(response).to have_http_status :ok
       end
     end
   end

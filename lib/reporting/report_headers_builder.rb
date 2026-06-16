@@ -4,25 +4,24 @@ module Reporting
   class ReportHeadersBuilder
     attr_reader :report
 
-    def initialize(report, current_user)
+    def initialize(report)
       @report = report
-      @current_user = current_user
     end
 
     def table_headers
       filter = proc { |key| key.to_sym.in?(fields_to_show) }
-      report.columns.keys.filter { |key| filter.call(key) }.map do |key|
+      report.table_columns.keys.filter { |key| filter.call(key) }.map do |key|
         translate_header(key)
       end
     end
 
     def available_headers
-      report.columns.keys.map { |key| [translate_header(key), key] }
+      report.table_columns.keys.map { |key| [translate_header(key), key] }
     end
 
     def fields_to_hide
       if report.display_header_row?
-        report.formatted_rules.map { |rule| rule[:fields_used_in_header] }.flatten.compact_blank
+        report.formatted_rules.pluck(:fields_used_in_header).flatten.compact_blank
       else
         []
       end.concat(params_fields_to_hide)
@@ -30,9 +29,10 @@ module Reporting
 
     def fields_to_show
       fields_in_headers = if report.display_header_row?
-                            report.formatted_rules.map { |rule|
-                              rule[:fields_used_in_header]
-                            }.flatten.compact_blank
+                            report.formatted_rules
+                              .pluck(:fields_used_in_header)
+                              .flatten
+                              .compact_blank
                           else
                             []
                           end

@@ -2,21 +2,23 @@
 
 require 'system_helper'
 
-describe '
+RSpec.describe '
     As an administrator
     I want to see alert for unsaved changes on order cycle edit page
 ' do
   include AuthenticationHelper
   include WebHelper
 
+  let(:distributor_enterprise) { create(:distributor_enterprise, with_payment_and_shipping: true) }
+  let(:oc) { create(:order_cycle, distributors: [distributor_enterprise]) }
+
   it "Alerts for unsaved changes on general settings (/edit) page" do
-    oc = create(:order_cycle)
     login_as_admin
     visit edit_admin_order_cycle_path(oc)
 
     # Expect correct values
     expect(page).to have_field('order_cycle_name', with: oc.name)
-    expect(page).to have_content "COORDINATOR #{oc.coordinator.name}"
+    expect(page).to have_content "Coordinator #{oc.coordinator.name}"
     expect(page).to have_button('Save', disabled: true)
     expect(page).to have_button('Save and Next', disabled: true)
 
@@ -84,6 +86,9 @@ describe '
     oc.suppliers.first.update_attribute :name, 'farmer'
     login_as_admin
     visit edit_admin_order_cycle_path(oc)
+
+    # Click dismiss on distributor warning
+    click_button 'Dismiss'
 
     # Go to incoming step
     click_button 'Next'
@@ -153,6 +158,9 @@ describe '
     oc.distributors.first.update_attribute :name, 'store'
     login_as_admin
     visit edit_admin_order_cycle_path(oc)
+
+    # Click dismiss on distributor warning
+    click_button 'Dismiss'
 
     # Go to incoming step
     click_button 'Next'

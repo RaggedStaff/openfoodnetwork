@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe RaisingParameters do
+RSpec.describe RaisingParameters do
   describe "Parameters" do
     let(:params) do
       RaisingParameters::Parameters.new(
@@ -26,7 +24,7 @@ describe RaisingParameters do
     it "raises no error when all parameters are permitted" do
       expect {
         params.require(:data).permit(:id, :admin)
-      }.to_not raise_error
+      }.not_to raise_error
     end
 
     it "doesn't change standard parameter objects" do
@@ -34,7 +32,7 @@ describe RaisingParameters do
 
       expect {
         original_params.permit(:one)
-      }.to_not raise_error
+      }.not_to raise_error
     end
   end
 end

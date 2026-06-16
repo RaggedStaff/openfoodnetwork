@@ -1,10 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
-describe SubscriptionPlacementJob do
-  include ActiveSupport::Testing::TimeHelpers
-
+RSpec.describe SubscriptionPlacementJob do
   let(:job) { SubscriptionPlacementJob.new }
   let(:summarizer) { OrderManagement::Subscriptions::Summarizer.new }
 
@@ -25,29 +21,29 @@ describe SubscriptionPlacementJob do
     } # OK
 
     it "ignores proxy orders where the OC has closed" do
-      expect(job.send(:proxy_orders)).to include proxy_order
+      expect(job.__send__(:proxy_orders)).to include proxy_order
       proxy_order.update!(order_cycle_id: order_cycle2.id)
-      expect(job.send(:proxy_orders)).to_not include proxy_order
+      expect(job.__send__(:proxy_orders)).not_to include proxy_order
     end
 
     it "ignores proxy orders for paused or cancelled subscriptions" do
-      expect(job.send(:proxy_orders)).to include proxy_order
+      expect(job.__send__(:proxy_orders)).to include proxy_order
       subscription.update!(paused_at: 1.minute.ago)
-      expect(job.send(:proxy_orders)).to_not include proxy_order
+      expect(job.__send__(:proxy_orders)).not_to include proxy_order
       subscription.update!(paused_at: nil)
-      expect(job.send(:proxy_orders)).to include proxy_order
+      expect(job.__send__(:proxy_orders)).to include proxy_order
       subscription.update!(canceled_at: 1.minute.ago)
-      expect(job.send(:proxy_orders)).to_not include proxy_order
+      expect(job.__send__(:proxy_orders)).not_to include proxy_order
     end
 
     it "ignores proxy orders that have been marked as cancelled or placed" do
-      expect(job.send(:proxy_orders)).to include proxy_order
+      expect(job.__send__(:proxy_orders)).to include proxy_order
       proxy_order.update!(canceled_at: 5.minutes.ago)
-      expect(job.send(:proxy_orders)).to_not include proxy_order
+      expect(job.__send__(:proxy_orders)).not_to include proxy_order
       proxy_order.update!(canceled_at: nil)
-      expect(job.send(:proxy_orders)).to include proxy_order
+      expect(job.__send__(:proxy_orders)).to include proxy_order
       proxy_order.update!(placed_at: 5.minutes.ago)
-      expect(job.send(:proxy_orders)).to_not include proxy_order
+      expect(job.__send__(:proxy_orders)).not_to include proxy_order
     end
   end
 
@@ -108,7 +104,7 @@ describe SubscriptionPlacementJob do
     let!(:exchange_fee) { ExchangeFee.create!(exchange: ex, enterprise_fee: fee) }
 
     before do
-      expect_any_instance_of(Spree::Payment).to_not receive(:process!)
+      expect_any_instance_of(Spree::Payment).not_to receive(:process!)
       allow_any_instance_of(PlaceProxyOrder).to receive(:send_placement_email)
       allow_any_instance_of(PlaceProxyOrder).to receive(:send_empty_email)
     end
@@ -136,7 +132,7 @@ describe SubscriptionPlacementJob do
           expect(proxy_order.order.total).to eq 0
           expect(proxy_order.order.adjustment_total).to eq 0
 
-          expect(service).to_not have_received(:send_placement_email)
+          expect(service).not_to have_received(:send_placement_email)
           expect(service).to have_received(:send_empty_email)
         end
       end
@@ -162,7 +158,7 @@ describe SubscriptionPlacementJob do
 
         it "does not enqueue confirmation emails" do
           expect{ service.call }
-            .to_not have_enqueued_mail(Spree::OrderMailer, :confirm_email_for_customer)
+            .not_to have_enqueued_mail(Spree::OrderMailer, :confirm_email_for_customer)
 
           expect(service).to have_received(:send_placement_email).once
         end
@@ -171,7 +167,7 @@ describe SubscriptionPlacementJob do
           before { allow(service).to receive(:move_to_completion).and_raise(StandardError) }
 
           it "records an error and does not attempt to send an email" do
-            expect(service).to_not receive(:send_placement_email)
+            expect(service).not_to receive(:send_placement_email)
             expect(summarizer).to receive(:record_and_log_error).once
             service.call
           end
@@ -202,7 +198,7 @@ describe SubscriptionPlacementJob do
       breakpoint.lock
       allow(PlaceProxyOrder).to(
         receive(:new).and_wrap_original do |method, *args|
-          breakpoint.synchronize {}
+          breakpoint.synchronize { nil }
           method.call(*args)
         end
       )

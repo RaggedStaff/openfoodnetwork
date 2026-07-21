@@ -435,6 +435,7 @@ uk:
         unit: Одиниця
         price: Ціна
         producer: Виробник
+        enterprise: Підприємство
         category: Категорія
         sku: Артикул
         on_hand: "Під рукою"
@@ -687,8 +688,8 @@ uk:
         header:
           title: Масове редагування продуктів
       filters:
-        producers:
-          label: Виробники
+        enterprises:
+          label: Підприємства
         categories:
           label: Категорії
         tags:
@@ -704,7 +705,7 @@ uk:
         none_tax_category: Жодного
         category_field_name: "Категорія"
         tax_category_field_name: "Категорія податку"
-        producer_field_name: "Виробник"
+        enterprise_field_name: "Підприємство"
         add_a_tag: Додати тег
     product_import:
       title: Імпорт продукту
@@ -2015,6 +2016,7 @@ uk:
   email_shipping_collection_time: "Готовий до збору:"
   email_shipping_collection_instructions: "Інструкції зі збору:"
   email_special_instructions: "Ваші примітки:"
+  email_order_note: "Примітка:"
   email_signup_greeting: Привіт!
   email_signup_welcome: "Ласкаво просимо до %{sitename}!"
   email_signup_confirmed_email: "Дякуємо за підтвердження електронної пошти."
@@ -3129,7 +3131,6 @@ uk:
         add_to_cart: "Додати"
         in_cart: "у кошику"
         quantity_in_cart: "%{quantity} у кошику"
-        remaining_in_stock: "Залишився лише %{quantity}"
       bulk_buy_modal:
         min_quantity: "Мінімальна кількість"
         max_quantity: "Максимальна кількість"
@@ -3904,7 +3905,7 @@ uk:
         new:
           title: "Новий продукт"
           new_product: "Новий продукт"
-          supplier: "Постачальник"
+          enterprise: "Підприємство"
           product_name: "Назва продукту"
           units: "Розмір одиниці"
           value: "Значення"

@@ -3,6 +3,7 @@
 require_relative "../swagger_helper"
 
 RSpec.describe "SuppliedProducts", swagger_doc: "dfc.yaml" do
+  let(:Accept) { "application/json" }
   let!(:user) { create(:oidc_user) }
   let!(:enterprise) { create(:distributor_enterprise, id: 10_000, owner: user) }
   let!(:product) {
@@ -17,7 +18,7 @@ RSpec.describe "SuppliedProducts", swagger_doc: "dfc.yaml" do
     build(
       :base_variant,
       id: 10_001, sku: "BP", unit_value: 1,
-      primary_taxon: taxon, supplier: enterprise,
+      primary_taxon: taxon, enterprise:,
     )
   }
   let(:taxon) {
@@ -71,8 +72,22 @@ RSpec.describe "SuppliedProducts", swagger_doc: "dfc.yaml" do
         end
 
         context "as user owning two enterprises" do
-          run_test! do
-            expect(response.body).to include "Pesto"
+          context "in DFC v1 format" do
+            run_test! do
+              expect(response.body).to include "Pesto"
+            end
+          end
+
+          context "in DFC v2 format" do
+            let(:Accept) { 'application/ld+json; profile="dfc-v2"' }
+
+            run_test! do
+              expect(graph[0]).to include(
+                "@id" => "http://test.host/api/dfc/supplied_products",
+                "@type" => "ldp:Container",
+              )
+              expect(response.body).to include "Pesto"
+            end
           end
         end
       end
@@ -140,7 +155,7 @@ RSpec.describe "SuppliedProducts", swagger_doc: "dfc.yaml" do
           Spree::Config.products_require_tax_category = true
 
           expect { submit_request(example.metadata) }
-            .to change { enterprise.supplied_products.count }.by(1)
+            .to change { enterprise.products.count }.by(1)
 
           dfc_id = json_response["@id"]
           expect(dfc_id).to match(

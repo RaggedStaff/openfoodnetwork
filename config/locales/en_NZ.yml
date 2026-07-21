@@ -435,6 +435,7 @@ en_NZ:
         unit: Unit
         price: Price
         producer: Producer
+        enterprise: Enterprise
         category: Category
         sku: SKU
         on_hand: "On Hand"
@@ -685,8 +686,8 @@ en_NZ:
         header:
           title: Bulk Edit Products
       filters:
-        producers:
-          label: Producers
+        enterprises:
+          label: Enterprises
         categories:
           label: Categories
         tags:
@@ -702,7 +703,7 @@ en_NZ:
         none_tax_category: None
         category_field_name: "Category"
         tax_category_field_name: "Tax Category"
-        producer_field_name: "Producer"
+        enterprise_field_name: "Enterprise"
         add_a_tag: Add a tag
     product_import:
       title: Product Import
@@ -2009,6 +2010,7 @@ en_NZ:
   email_shipping_collection_time: "Ready for collection:"
   email_shipping_collection_instructions: "Collection instructions:"
   email_special_instructions: "Your notes:"
+  email_order_note: "Note:"
   email_signup_greeting: Hello!
   email_signup_welcome: "Welcome to %{sitename}!"
   email_signup_confirmed_email: "Thanks for confirming your email."
@@ -3767,7 +3769,7 @@ en_NZ:
         new:
           title: "New Product"
           new_product: "New Product"
-          supplier: "Supplier"
+          enterprise: "Enterprise"
           product_name: "Product Name"
           units: "Unit Size"
           value: "Value"

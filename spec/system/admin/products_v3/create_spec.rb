@@ -7,8 +7,8 @@ RSpec.describe 'As an enterprise user, I can manage my products' do
   include WebHelper
 
   let!(:supplier) { create(:supplier_enterprise) }
-  # Creating another producer such that producer column is visible
-  # otherwise on one producer, it's hidden by default
+  # Creating another enterprise such that enterprise column is visible
+  # otherwise on one enterprise, it's hidden by default
   let!(:supplier2) { create(:supplier_enterprise) }
   let!(:taxon) { create(:taxon) }
 
@@ -22,7 +22,7 @@ RSpec.describe 'As an enterprise user, I can manage my products' do
       find("a", text: "New Product").click
       expect(page).to have_content "New Product"
       fill_in 'product_name', with: 'Big Bag Of Apples'
-      tomselect_select supplier.name, from: 'product[supplier_id]'
+      tomselect_select supplier.name, from: "Enterprise"
       tomselect_search_and_select 'Weight (g)', from: "product_variant_unit_with_scale"
       fill_in 'product_unit_value', with: '100'
       fill_in 'product_price', with: '10.00'
@@ -92,7 +92,7 @@ RSpec.describe 'As an enterprise user, I can manage my products' do
             find('input[id$="_on_demand_desired"]').check
           end
 
-          tomselect_select supplier.name, from: 'Producer'
+          tomselect_select supplier.name, from: 'Enterprise'
           tomselect_select taxon.name, from: 'Category'
         end
 

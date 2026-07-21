@@ -541,7 +541,7 @@ de_CH:
       title: Produkte
       filters:
         categories:
-          title: Lieferkategorien
+          title: Kategorien
           selected_categories: "%{count} Kategorien ausgewählt"
         producers:
           title: Unsere Produzenten
@@ -557,6 +557,7 @@ de_CH:
         display_as: Einheit anzeigen als
         price: Preis
         producer: Produzent
+        enterprise: Unternehmen
         category: Kategorie
         sku: Artikelnummer
         on_hand: "Verfügbar"
@@ -586,8 +587,6 @@ de_CH:
         create_linked_variant: Verknüpfte Variante erstellen
       image:
         edit: Bearbeiten
-      variant_row:
-        sourced_from: "Quelle: %{source_name} ( %{source_id} ); Hub: %{hub_name}"
       product_preview:
         product_preview: Produktvorschau
         shop_tab: Laden
@@ -867,17 +866,14 @@ de_CH:
           cancellation_text: "Produktvariante beibehalten"
       filters:
         search_products: Nach Produkten suchen
-        search_for_producers: Produzenten suchen
-        select_producer: Produzent auswählen
-        all_producers: Alle Produzenten
         search_for_categories: Kategorien suchen
         select_category: Kategorie auswählen
         all_categories: Alle Kategorien
         select_tag: Stichwort auswählen
-        producers:
-          label: Unsere Produzenten
+        enterprises:
+          label: Unternehmen
         categories:
-          label: Lieferkategorien
+          label: Kategorien
         tags:
           label: Stichwörter
           none: Keine
@@ -923,7 +919,7 @@ de_CH:
         search_for_tax_categories: "Suche nach Steuerkategorien"
         category_field_name: "Kategorie"
         tax_category_field_name: "Steuerkategorie"
-        producer_field_name: "Produzent"
+        enterprise_field_name: "Unternehmen"
         select_unit_scale: Einheit auswählen
         add_a_tag: Stichwort hinzufügen
       clone:
@@ -2400,6 +2396,7 @@ de_CH:
   email_shipping_collection_time: "Bereit zur Abholung am:"
   email_shipping_collection_instructions: "Informationen zur Abholung:"
   email_special_instructions: "Ihre Notizen:"
+  email_order_note: "Anmerkung:"
   email_signup_greeting: Hallo!
   email_signup_welcome: "Willkommen im Open Food Network!"
   email_signup_confirmed_email: "Vielen Dank für die Bestätigung Ihrer E-Mail-Adresse."
@@ -3574,7 +3571,6 @@ de_CH:
         add_to_cart: "Hinzufügen"
         in_cart: "im Warenkorb"
         quantity_in_cart: "%{quantity} im Warenkorb"
-        remaining_in_stock: "Nur noch %{quantity} verfügbar! "
       bulk_buy_modal:
         min_quantity: "Minimale Menge"
         max_quantity: "Maximale Menge"
@@ -4315,7 +4311,7 @@ de_CH:
         new:
           title: "Neues Produkt"
           new_product: "Neues Produkt"
-          supplier: "Lieferant"
+          enterprise: "Unternehmen"
           product_name: "Produktname"
           units: "Einheit"
           value: "Menge"

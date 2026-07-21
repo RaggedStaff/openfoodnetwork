@@ -12,7 +12,7 @@ module Admin
 
     def prepare_new_variant(product, producer_id = nil)
       product.variants.build do |new_variant|
-        new_variant.supplier_id = producer_id
+        new_variant.enterprise_id = producer_id
         new_variant.tax_category_id = product.variants.first.tax_category_id
       end
     end
@@ -35,6 +35,21 @@ module Admin
       session[:products_return_to_url] || admin_products_url
     end
 
+    def product_carousel_images_data(product, size: :large)
+      images = product.images.to_a
+      show_caption = images.many?
+
+      return [default_carousel_image(size, product)] if images.empty?
+
+      images.map.with_index do |image, index|
+        {
+          url: image.url(size),
+          alt: product_image_alt_text(image, product),
+          caption: show_caption ? "#{product.name} - #{index + 1}" : nil
+        }
+      end
+    end
+
     # if user hasn't saved any preferences on products page and there's only one producer;
     # we need to hide producer column
     def hide_producer_column?(allowed_producers)
@@ -45,11 +60,6 @@ module Admin
     # the enterprises the user manages
     def variant_tag_enabled?(user)
       feature?(:variant_tag, user) || feature?(:variant_tag, *user.enterprises)
-    end
-
-    def allowed_source_producers
-      @allowed_source_producers ||= OpenFoodNetwork::Permissions.new(spree_current_user)
-        .enterprises_granting_linked_variants
     end
 
     def managed_product_enterprises
@@ -65,6 +75,46 @@ module Admin
       return [] unless name
 
       [[name, id]]
+    end
+
+    def variant_displayable?(variant, producer_id, allowed_producers, allowed_source_producers)
+      # Filter out other enterprises if an enterprise filter was selected.
+      # (Note we still don't filter category selections here)
+      return false if producer_id.present? && variant.enterprise_id.to_s != producer_id
+
+      # Filter out variant a user has not permission to update, but keep variant with no enterprise
+      return false if variant.enterprise.present? &&
+                      !(allowed_producers.include?(variant.enterprise) ||
+                        allowed_source_producers.include?(variant.enterprise)
+                       )
+
+      # Filter out other hub's variants that are linked to mine
+      return false if variant.hub.present? && managed_product_enterprises.exclude?(variant.hub)
+
+      true
+    end
+
+    # Read only if variant comes from enterprise giving "create_linked_variants" permission and
+    # isn't a variant we can manage
+    def variant_readonly?(variant, allowed_producers, allowed_source_producers)
+      return true if allowed_producers.exclude?(variant.enterprise) &&
+                     allowed_source_producers.include?(variant.enterprise) && variant.hub_id.blank?
+
+      false
+    end
+
+    private
+
+    def product_image_alt_text(image, product)
+      image.alt.presence || product.name
+    end
+
+    def default_carousel_image(size, product)
+      {
+        url: Spree::Image.default_image_url(size),
+        alt: product.name,
+        caption: nil
+      }
     end
   end
 end

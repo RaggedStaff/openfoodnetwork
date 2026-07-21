@@ -550,6 +550,7 @@ hu:
         display_as: Egység megjelenítése mint
         price: Ár
         producer: Termelő
+        enterprise: Vállalkozás
         category: Kategória
         sku: SKU kód
         on_hand: "Készlet"
@@ -579,8 +580,6 @@ hu:
         create_linked_variant: Kapcsolt termékváltozat létrehozása
       image:
         edit: Szerkesztés
-      variant_row:
-        sourced_from: "Forrás: %{source_name} ( %{source_id} ); Elosztó: %{hub_name}"
       product_preview:
         product_preview: Termék előnézet
         shop_tab: Átvételi pont
@@ -849,15 +848,14 @@ hu:
           cancellation_text: "Változat megtartása"
       filters:
         search_products: Keresés a termékek között
-        search_for_producers: Keresés termelőre
-        select_producer: Válassz termelőt
-        all_producers: Minden termelő
+        search_for_enterprises: Vállalkozások keresése
+        all_enterprises: Minden vállalkozás
         search_for_categories: Keresés termékkategóriára
         select_category: Válassz kategóriát
         all_categories: Minden kategória
         select_tag: Válassz címkét
-        producers:
-          label: Termelők
+        enterprises:
+          label: Vállalkozások
         categories:
           label: Kategóriák
         tags:
@@ -905,7 +903,7 @@ hu:
         search_for_tax_categories: "Keresés adókategóriára."
         category_field_name: "Kategória"
         tax_category_field_name: "Adókategória"
-        producer_field_name: "Termelő"
+        enterprise_field_name: "Vállalkozás"
         select_unit_scale: Válassz mértékegységet
         add_a_tag: Adj hozzá egy címkét
       clone:
@@ -2281,6 +2279,7 @@ hu:
   brandstory_part6: "Csatlakozz te is!"
   system_headline: "A vásárlás lépései"
   system_step1_html: "1. Keresés"
+  system_step1_text_html: <a href="/shops">Találd meg</a> a környéked termelőit és közösségi élelmiszer-rendszereit! Böngéssz termékek, kategóriák vagy helyszínek szerint, és válaszd a számodra legkényelmesebb átvételi módot.
   system_step2_html: "2. Vásárlás"
   system_step2_text_html: "Alakítsd át a fogyasztási szokásaidat! Pakold meg a bevásárlókosarad helyi termelőktől származó termékekkel. Vásárolj olyan élelmiszert, amelynek ismered az eredetét, és tudod, hogyan állították elő."
   system_step3_html: "3. Átvétel / kiszállítás"
@@ -2326,7 +2325,7 @@ hu:
   order_delivery_on: Készenállás
   order_delivery_address: Szállítási cím
   order_delivery_time: Megrendelés készen áll
-  order_special_instructions: "Megjegyzés:"
+  order_special_instructions: "Megjegyzésed:"
   order_pickup_time: Átvétel időpontja
   order_pickup_instructions: Átvételi információk
   order_produce: Termékek
@@ -2411,7 +2410,8 @@ hu:
   email_shipping_collection_details: Gyűjtemény részletei
   email_shipping_collection_time: "Átvétel időpontja:"
   email_shipping_collection_instructions: "Átvételi információk:"
-  email_special_instructions: "Megjegyzés:"
+  email_special_instructions: "Megjegyzésed:"
+  email_order_note: "Megjegyzés:"
   email_signup_greeting: Üdv!
   email_signup_welcome: "Köszöntünk az %{sitename} oldalon!"
   email_signup_confirmed_email: "Köszönjük, hogy megerősítetted az e-mail címed."
@@ -3055,6 +3055,7 @@ hu:
   report_header_hub_code: Átvételi Pont kód
   report_header_hub_id: Átvételi Pont ID
   report_header_hub_business_number: "Átvételi Pont cégjegyzékszáma"
+  report_header_hub_external_billing_id: "Átvételi Pont külső számlázási azonosítója"
   report_header_hub_legal_name: "Átvételi Pont hivatalos neve"
   report_header_hub_contact_name: "Átvételi Pont kapcsolattartó neve"
   report_header_hub_email: "Átvételi Pont nyilvános email"
@@ -3581,7 +3582,9 @@ hu:
         add_to_cart: "Hozzáadás"
         in_cart: "kosárban"
         quantity_in_cart: "%{quantity} a kosárban"
-        remaining_in_stock: "Már csak %{quantity} maradt"
+        remaining_in_stock:
+          one: "Már csak %{count} maradt"
+          other: "Már csak %{count} rendelhető"
       bulk_buy_modal:
         min_quantity: "Min. mennyiség"
         max_quantity: "Max. mennyiség"
@@ -4362,9 +4365,8 @@ hu:
         new:
           title: "Új termék"
           new_product: "Új termék"
-          supplier: "Beszállító"
-          supplier_select_placeholder: "Válassz ki egy beszállítót"
-          search_for_suppliers: "Keresés beszállítókra"
+          enterprise: "Vállalkozás"
+          search_for_enterprises: "Vállalkozások keresése"
           search_for_units: "Keresés kiszerelésre"
           product_name: "Termék név"
           units: "Mértékegység"

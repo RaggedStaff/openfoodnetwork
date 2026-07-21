@@ -498,6 +498,7 @@ mr:
         unit_value: युनिट मूल्य
         price: किंमत
         producer: उत्पादक
+        enterprise: एंटरप्राइझ
         category: श्रेणी
         sku: SKU
         on_hand: "आता उपलब्ध"
@@ -746,10 +747,9 @@ mr:
           title: मोठ्या प्रमाणात उत्पादने संपादित करा
       filters:
         search_products: उत्पादने शोधा
-        all_producers: सर्व उत्पादक
         all_categories: सर्व श्रेण्या
-        producers:
-          label: उत्पादक
+        enterprises:
+          label: एंटरप्राईझेस
         categories:
           label: श्रेण्या
         tags:
@@ -781,7 +781,7 @@ mr:
       variant_row:
         none_tax_category: कोणतेही नाही
         category_field_name: "श्रेणी"
-        producer_field_name: "उत्पादक"
+        enterprise_field_name: "एंटरप्राइझ"
     product_import:
       title: उत्पादन आयात
       file_not_found: फाइल सापडली नाही किंवा उघडता आली नाही
@@ -2110,6 +2110,7 @@ mr:
   email_shipping_collection_time: "संकलनासाठी तयार:"
   email_shipping_collection_instructions: "संकलन सूचना:"
   email_special_instructions: "तुमच्या नोट्स:"
+  email_order_note: "टीप:"
   email_signup_greeting: नमस्कार!
   email_signup_welcome: "%{sitename} मध्ये आपले स्वागत आहे!"
   email_signup_confirmed_email: "तुमच्या ईमेलची पुष्टी केल्याबद्दल धन्यवाद."
@@ -3256,7 +3257,6 @@ mr:
         add_to_cart: "जमा करा"
         in_cart: "कार्टमध्ये"
         quantity_in_cart: "%{quantity} कार्टमध्ये"
-        remaining_in_stock: "फक्त %{quantity} बाकी"
       bulk_buy_modal:
         min_quantity: "किमान प्रमाण"
         max_quantity: "कमाल प्रमाण"
@@ -4001,8 +4001,7 @@ mr:
         new:
           title: "नवीन उत्पादन"
           new_product: "नवीन उत्पादन"
-          supplier: "पुरवठादार"
-          supplier_select_placeholder: "एक पुरवठादार निवडा"
+          enterprise: "एंटरप्राइझ"
           product_name: "उत्पादनाचे नांव"
           units: "युनिट आकार"
           value: "मूल्य"

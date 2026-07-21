@@ -466,6 +466,7 @@ it:
         unit_value: Valore unità
         price: Prezzo
         producer: Produttore
+        enterprise: Azienda
         category: Categoria
         sku: Codice ID
         on_hand: "Disponibile"
@@ -722,8 +723,8 @@ it:
         header:
           title: Modifica prodotti tabella
       filters:
-        producers:
-          label: Produttori
+        enterprises:
+          label: Aziende
         categories:
           label: categorie
         tags:
@@ -739,7 +740,7 @@ it:
         none_tax_category: Nessuno
         category_field_name: "Categoria"
         tax_category_field_name: "Categoria d'imposta"
-        producer_field_name: "Produttore"
+        enterprise_field_name: "Azienda"
         add_a_tag: Aggiungi un'etichetta
     product_import:
       title: Importa prodotto
@@ -2072,6 +2073,7 @@ it:
   email_shipping_collection_time: "Pronto per:"
   email_shipping_collection_instructions: "Istruzioni per la distribuzione:"
   email_special_instructions: "Tue note:"
+  email_order_note: "Note:"
   email_signup_greeting: Ciao!
   email_signup_welcome: "Benvenuto su %{sitename}!"
   email_signup_confirmed_email: "Grazie di aver confermato la tua mail."
@@ -3210,7 +3212,6 @@ it:
         add_to_cart: "Aggiungi"
         in_cart: "nel carrello"
         quantity_in_cart: "%{quantity} nel carrello"
-        remaining_in_stock: "Solo %{quantity} rimanenti"
       bulk_buy_modal:
         min_quantity: "Quantità minima"
         max_quantity: "Quantità massima"
@@ -3969,8 +3970,7 @@ it:
         new:
           title: "Nuovo prodotto"
           new_product: "Nuovo prodotto"
-          supplier: "Fornitore"
-          supplier_select_placeholder: "Seleziona un fornitore"
+          enterprise: "Azienda"
           product_name: "Nome Prodotto"
           units: "Unità di misura"
           value: "Valore"

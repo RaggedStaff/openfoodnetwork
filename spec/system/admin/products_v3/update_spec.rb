@@ -8,17 +8,13 @@ RSpec.describe 'As an enterprise user, I can update my products' do
   include AuthenticationHelper
   include FileHelper
 
-  let(:producer) { create(:supplier_enterprise) }
-  let(:producer2) { create(:supplier_enterprise) }
-  let(:user) { create(:user, enterprises: [producer, producer2]) }
+  let(:enterprise) { create(:supplier_enterprise) }
+  let(:enterprise2) { create(:supplier_enterprise) }
+  let(:user) { create(:user, enterprises: [enterprise, enterprise2]) }
 
   before do
     login_as user
   end
-
-  let(:producer_search_selector) { 'input[placeholder="Search for producers"]' }
-  let(:categories_search_selector) { 'input[placeholder="Search for categories"]' }
-  let(:tax_categories_search_selector) { 'input[placeholder="Search for tax categories"]' }
 
   describe "updating", feature: :variant_tag do
     let!(:taxon) { create(:taxon) }
@@ -216,7 +212,7 @@ RSpec.describe 'As an enterprise user, I can update my products' do
       end
     end
 
-    # it "can select only the producers that I manage"
+    # it "can select only the enterprises that I manage"
 
     it "discards changes and reloads latest data" do
       within row_containing_name("Apples") do
@@ -350,7 +346,7 @@ RSpec.describe 'As an enterprise user, I can update my products' do
           click_on "On Hand" # activate popout
           fill_in "On Hand", with: "3"
 
-          tomselect_select producer.name, from: 'Producer'
+          tomselect_select enterprise.name, from: 'Enterprise'
           tomselect_select taxon.name, from: 'Category'
         end
 
@@ -439,11 +435,11 @@ RSpec.describe 'As an enterprise user, I can update my products' do
         expect(page).not_to have_css('form.disabled-section#filters')
       end
 
-      xdescribe "producer" do
-        it "can select only the producers that I manage"
+      xdescribe "enterprise" do
+        it "can select only the enterprises that I manage"
 
-        context " when I manage only one producer" do
-          it "producer select doesn't show, and is saved correctly"
+        context " when I manage only one enterprise" do
+          it "enterprise select doesn't show, and is saved correctly"
         end
       end
 
@@ -586,7 +582,7 @@ RSpec.describe 'As an enterprise user, I can update my products' do
             fill_in "Name", with: "Nice box"
             fill_in "SKU", with: "APL-02"
 
-            tomselect_select producer.name, from: 'Producer'
+            tomselect_select enterprise.name, from: 'Enterprise'
             tomselect_select taxon.name, from: 'Category'
           end
 
@@ -742,10 +738,10 @@ RSpec.describe 'As an enterprise user, I can update my products' do
         # Ensure all products are shown
         expect_products_count_to_be 2
 
-        supplier_name = variant_a1.supplier.name
+        supplier_name = variant_a1.enterprise.name
         category_name = variant_a1.primary_taxon.name
         tag_name = variant_a1.tags.first.name
-        tomselect_select supplier_name, from: "producer_id"
+        tomselect_select supplier_name, from: "Enterprises"
         tomselect_select category_name, from: "category_id"
         tomselect_multiselect tag_name, from: "tags_name_in"
         click_button "Search"
@@ -792,7 +788,7 @@ RSpec.describe 'As an enterprise user, I can update my products' do
         end
 
         expect(page).to have_content /Image has been successfully (updated|created)/
-        expect(product.image.reload.url(:large)).to match /500.jpg$/
+        expect(product.reload.image.attachment.filename.to_s).to eq("500.jpg")
 
         within row_containing_name("Apples") do
           expect_page_to_have_image('500.jpg')

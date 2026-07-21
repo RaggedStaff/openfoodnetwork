@@ -1,4 +1,4 @@
-angular.module('Darkswarm').factory 'Products', (OrderCycleResource, OrderCycle, Shopfront, currentHub, Dereferencer, Taxons, Properties, Cart, Variants) ->
+angular.module('Darkswarm').factory 'Products', (OrderCycleResource, OrderCycle, Shopfront, currentHub, Dereferencer, Taxons, Properties, Cart, Variants, productGridViewFeature) ->
   new class Products
     constructor: ->
       @update()
@@ -8,6 +8,10 @@ angular.module('Darkswarm').factory 'Products', (OrderCycleResource, OrderCycle,
     loading: true
 
     update: (params = {}, load_more = false) =>
+      if productGridViewFeature["enabled"] is true
+        console.warn "Products.update disabled..."
+        return
+
       @loading = true
       order_cycle_id = OrderCycle.order_cycle.order_cycle_id
 
@@ -39,7 +43,7 @@ angular.module('Darkswarm').factory 'Products', (OrderCycleResource, OrderCycle,
 
     dereference: ->
       for product in @fetched_products
-        product.supplier = Shopfront.producers_by_id[product.variants[0].supplier.id]
+        product.producer = Shopfront.producers_by_id[product.variants[0].producer.id]
         Dereferencer.dereference product.taxons, Taxons.taxons_by_id
 
         product.properties = angular.copy(product.properties_with_values)

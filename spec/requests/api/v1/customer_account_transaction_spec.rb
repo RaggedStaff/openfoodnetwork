@@ -2,9 +2,9 @@
 
 require "swagger_helper"
 
-RSpec.describe "CustomerAccountTransactions", swagger_doc: "v1.yaml", feature: :api_v1 do
+RSpec.describe "CustomerAccountTransactions", swagger_doc: "v1.yaml" do
   let!(:enterprise) { create(:enterprise) }
-  let(:customer) { create(:customer) }
+  let(:customer) { create(:customer, enterprise:) }
 
   before do
     login_as enterprise.owner
@@ -48,18 +48,21 @@ RSpec.describe "CustomerAccountTransactions", swagger_doc: "v1.yaml", feature: :
       end
 
       response "422", "Unpermitted parameter" do
+        let(:someone_else) { create(:user) }
         let(:customer_account_transaction) do
           {
             id: 101,
             customer_id: customer.id.to_s,
             amount: "10.25",
+            created_by_id: someone_else.id.to_s,
           }
         end
         schema '$ref': "#/components/schemas/error_response"
 
         run_test! do
+          expect(CustomerAccountTransaction.count).to eq 0
           expect(json_response[:errors][0][:detail]).to eq(
-            "Parameters not allowed in this request: id"
+            "Parameters not allowed in this request: id, created_by_id"
           )
         end
       end
@@ -76,15 +79,60 @@ RSpec.describe "CustomerAccountTransactions", swagger_doc: "v1.yaml", feature: :
         end
       end
 
-      response "422", "Invalid resource" do
-        let(:customer_account_transaction) { { amount: "10.25" } }
+      response "422", "Missing required parameter" do
+        let(:customer_account_transaction) { { customer_id: customer.id.to_s } }
         schema '$ref': "#/components/schemas/error_response"
 
         run_test! do
           expect(json_response[:errors][0][:detail]).to eq(
             "Invalid resource. Please fix errors and try again."
           )
-          expect(json_response[:meta][:validation_errors]).to eq ["Customer must exist"]
+          expect(json_response[:meta][:validation_errors]).to eq ["Amount can't be blank"]
+        end
+      end
+
+      response "404", "Invalid customer ID" do
+        let(:customer_account_transaction) { { amount: "10.25" } }
+        schema '$ref': "#/components/schemas/error_response"
+
+        run_test! do
+          expect(json_response[:errors][0][:detail]).to eq(
+            "The resource you were looking for could not be found."
+          )
+        end
+      end
+
+      response "401", "Access forbidden" do
+        # Customer belongs to enterprise that I don't have permission for
+        let(:customer) { create(:customer, enterprise: create(:enterprise)) }
+
+        let(:customer_account_transaction) do
+          {
+            customer_id: customer.id.to_s,
+            amount: "10.25",
+          }
+        end
+
+        run_test! do
+          expect(customer.reload.credit_balance).to eq 0
+        end
+      end
+
+      response "401", "Access forbidden" do
+        # Customer belongs to me and an enterprise I don't have permission for
+        let(:customer) {
+          create(:customer, enterprise: create(:enterprise), user: enterprise.owner)
+        }
+
+        let(:customer_account_transaction) do
+          {
+            customer_id: customer.id.to_s,
+            amount: "10.25",
+          }
+        end
+
+        run_test! do
+          expect(customer.reload.credit_balance).to eq 0
         end
       end
 
@@ -99,6 +147,26 @@ RSpec.describe "CustomerAccountTransactions", swagger_doc: "v1.yaml", feature: :
         end
 
         run_test!
+      end
+    end
+
+    describe "with a wrapped request body" do
+      let(:params) do
+        {
+          customer_account_transaction: {
+            customer_id: customer.id.to_s,
+            amount: "10.25",
+            description: "Payment processed by POS",
+          }
+        }
+      end
+
+      it "preserves the description nested in the wrapped body" do
+        post "/api/v1/customer_account_transaction", params: params
+
+        expect(response).to have_http_status(:created)
+        expect(CustomerAccountTransaction.last.description)
+          .to eq("API credit: Payment processed by POS")
       end
     end
 
